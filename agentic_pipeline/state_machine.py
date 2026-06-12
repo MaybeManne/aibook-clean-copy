@@ -30,12 +30,16 @@ class StateMachine:
     """Event-driven FSM. states/transitions/initial all passed in by caller.
 
     transitions = {state: {event: next_state}}
+    
+     completely generic class that has zero knowledge of AMC, lessons, or AI. It just knows how to move between states and run functions. You could use it for literally anything
 
     Handlers are optional entry actions (no-arg callables) run when a state
     is entered. Register after construction, states with no handler just
     do nothing on entry.
     """
 
+
+    # the state machine base class
     def __init__(self, states, transitions, initial):
         # store the full set of valid states so we know what's allowed
         self.states = set(states)
@@ -43,15 +47,19 @@ class StateMachine:
         self.transitions = transitions
         # we start here — whatever "initial" is passed in
         self.state = initial
-        # empty for now — handlers get attached later via register()
+        # empty for now — handlers get attached later via register(), can add functions
         self.handlers = {}
+        
+
 
     def register(self, state, handler):
         # attach a function to a state
         # whenever we enter that state, this function runs
-        # e.g. register(PLANNING, self._do_planning) means
+        # for example if we do register(PLANNING, self._do_planning) means
         # "when we enter PLANNING, call _do_planning()"
         self.handlers[state] = handler
+        
+        # how we attach a function to state above
 
     def can(self, event):
         # quick check: is this event even valid right now?
@@ -62,6 +70,8 @@ class StateMachine:
         # THIS IS THE WHOLE FSM — everything else is setup for this
         # step 1: look up what transitions are valid from where we are right now
         table = self.transitions.get(self.state, {})
+        
+        #
 
         # if the event isn't valid here, just ignore it and bail
         if event not in table:
@@ -134,7 +144,7 @@ class PipelineStateMachine(StateMachine):
     instead (-> ERROR) and remember which stage broke.
     """
 
-    def __init__(self, model="gemini-2.5-flash", review=True):
+    def __init__(self, model="claude-sonnet-4-6", review=True):
         # build the full states list and transition table, then init the base class
         states = [IDLE, *_ORDER, DONE, ERROR]
         transitions = _linear_transitions(_ORDER, IDLE, DONE, ERROR)
