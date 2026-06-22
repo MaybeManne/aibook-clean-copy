@@ -157,7 +157,7 @@ export class Lesson {
       .map((latex, i) => `    calc.setExpression({ id: "eq${i}", latex: ${JSON.stringify(latex)} });`)
       .join("\n");
     return `<div id="${divId}" style="width: 600px; height: 400px; margin: 12px 0;"></div>
-<script src="https://www.desmos.com/api/v1.11/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+<script src="https://www.desmos.com/api/v1.12/calculator.js?apiKey=e2cc6f2eaa9a470288357616d5c75869"></script>
 <script>
   (function () {
     var elt = document.getElementById("${divId}");
