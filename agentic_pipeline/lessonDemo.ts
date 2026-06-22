@@ -32,7 +32,9 @@ lesson
   .addAct("the_math", () => lesson.latex("\\frac{8 - 5}{8} = \\frac{3}{8}"))
   .addAct("quick_check", () =>
     lesson.multipleChoice("So how much pizza is LEFT?", ["3/8", "5/8", "8/8", "1/8"], 0)
-  );
+  )
+  .addAct("graph", () => lesson.graph(["x^2 + y^2 = 25"]));
+
 
 // 3) run + assemble. toContext()/getRegistry() plug straight into the existing pipeline.
 const acts = runAllActs(lesson.toContext(), lesson.getRegistry());
