@@ -15,7 +15,8 @@ import type { ActResult } from "./actRegistry.ts";
 // To add a visual:
 //   1. add a function inside vizLib below.
 //   2. it takes ONE argument: an `args` object.
-//   3. draw with plain DOM calls into <div id="viz">.
+//   3. draw with plain DOM calls into document.getElementById(args.targetId || 'viz').
+//      (the assembler gives each act its own div and passes its id as args.targetId.)
 //   4. back in actRegistry.ts set jsCall="yourFn" and jsArgs={...}.
 // follow the same one options object pattern as showFractionBar.
 const VIZ_LIB_JS = `
@@ -28,7 +29,7 @@ window.vizLib = {
   //   label       (string)  optional caption above the bar
   //   width       (number)  optional bar width in pixels (default 320)
   showFractionBar: function (args) {
-    var viz = document.getElementById('viz');
+    var viz = document.getElementById(args.targetId || 'viz');
     if (!viz) { return; }
 
     var wrap = document.createElement('div');
@@ -66,7 +67,7 @@ window.vizLib = {
   //   options      (array)   the answer choices, as strings
   //   correctIndex (number)  which choice is right (0 = the first one)
   showMultipleChoice: function (args) {
-    var viz = document.getElementById('viz');
+    var viz = document.getElementById(args.targetId || 'viz');
     if (!viz) { return; }
 
     var wrap = document.createElement('div');
@@ -103,7 +104,7 @@ window.vizLib = {
   //   step    (number)  how far each notch moves
   //   default (number)  where the slider starts out
   showSlider: function (args) {
-    var viz = document.getElementById('viz');
+    var viz = document.getElementById(args.targetId || 'viz');
     if (!viz) { return; }
 
     var wrap = document.createElement('div');
@@ -138,7 +139,7 @@ window.vizLib = {
   //   rows    (array)  a list of rows, where each row is its own list of
   //                    cells. keep every row the same length as headers.
   showTable: function (args) {
-    var viz = document.getElementById('viz');
+    var viz = document.getElementById(args.targetId || 'viz');
     if (!viz) { return; }
 
     var table = document.createElement('table');
@@ -189,7 +190,7 @@ function htmlEscape(s: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#x27;");
-}
+} // upgrade to use latex/katex conversion
 
 
 // Turn one act into an HTML <section>: the text, then at most one vizLib line
@@ -205,9 +206,13 @@ export function assembleAct(act: ActResult): string {
     parts.push(`  <p>${safe}</p>`);
   }
 
-  // the one line visual call into vizLib, if any.
+  // the one line visual call into vizLib, if any. each visual gets its OWN div
+  // right before the script, and we pass that div's id as targetId so the visual
+  // renders next to this act's text instead of stacking in one shared box.
   if (act.jsCall) {
-    const argsJson = JSON.stringify(act.jsArgs || {});
+    const vizId = `viz-${htmlEscape(name)}`;
+    parts.push(`  <div id="${vizId}"></div>`);
+    const argsJson = JSON.stringify({ ...act.jsArgs, targetId: vizId });
     parts.push(`  <script>vizLib.${act.jsCall}(${argsJson});</script>`);
   }
 
@@ -221,9 +226,9 @@ export function assembleAct(act: ActResult): string {
 }
 
 
-// Stitch every act section, a shared <div id="viz">, and vizLib into one full
-// HTML page. vizLib is defined in <head> and #viz sits near the top so each
-// act's one line call (lower on the page) can find both when it runs.
+// Stitch every act section and vizLib into one full HTML page. vizLib is defined
+// in <head>; each act carries its own visual div (see assembleAct), so visuals
+// render next to their own act's text rather than in one shared box.
 export function assembleLesson(acts: ActResult[], title: string): string {
   const sections = acts.map(assembleAct).join("\n");
   const safeTitle = htmlEscape(title);
@@ -240,7 +245,6 @@ export function assembleLesson(acts: ActResult[], title: string): string {
           line-height: 1.6; color: #1a1a2e; }
   h1 { font-size: 1.6rem; }
   section.act { padding: 16px 0; border-bottom: 1px solid #eee; }
-  #viz { margin: 8px 0 24px; }
 </style>
 <!-- vizLib is defined first so every act's one-line call below can use it. -->
 <script>
@@ -249,9 +253,6 @@ ${VIZ_LIB_JS}
 </head>
 <body>
 <h1>${safeTitle}</h1>
-
-<!-- Shared drawing area. vizLib functions append their visuals here. -->
-<div id="viz"></div>
 
 ${sections}
 </body>
