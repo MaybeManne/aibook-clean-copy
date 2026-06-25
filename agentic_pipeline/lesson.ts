@@ -1,4 +1,5 @@
 // LAYER 3: Lesson (teacher-facing lesson builder).
+// Now extends the Layer 0 StateMachine base (the state graph gets rebuilt in run() later).
 //
 // This is the nicest layer a teacher touches. you make a Lesson, add acts to it,
 // and use the prebuilt visual methods (fractionBar, multipleChoice, slider, table,
@@ -17,7 +18,8 @@
 // arguments directly, and the lesson context only ever carries problemText (and
 // narrative, if you set one). nothing else rides along.
 
-import type { LessonContext, ActOutput, ActFn, RegistryEntry } from "./actRegistry.ts";
+import type { LessonContext, ActOutput, ActFn, RegistryEntry, ActResult } from "./actRegistry.ts";
+import { StateMachine } from "./stateMachine.ts";
 
 
 // tiny HTML escaper for the rawHtml methods (so a stray < or & can't break the page).
@@ -26,7 +28,30 @@ function escapeHtml(s: string): string {
 }
 
 
-export class Lesson {
+// the bookend states for a Lesson run (the act states come from the registry).
+// SM contants
+const IDLE = "IDLE";
+const DONE = "DONE";
+const ERROR = "ERROR";
+
+// build the linear transition table: IDLE -> act0 -> ... -> actN -> DONE, plus a
+// "fail" edge to ERROR on each act. (moved here from lessonStateMachine.ts.)
+function buildLinearTransitions(actNames: string[]): Record<string, Record<string, string>> {
+  const chain = [IDLE, ...actNames, DONE];
+  const transitions: Record<string, Record<string, string>> = {};
+  for (let i = 0; i < chain.length - 1; i++) {
+    transitions[chain[i]] = { next: chain[i + 1] };
+  }
+  for (const name of actNames) {
+    transitions[name].fail = ERROR;
+  }
+  transitions[DONE] = {};
+  transitions[ERROR] = {};
+  return transitions;
+}
+
+
+export class Lesson extends StateMachine {
   title: string;
   problemText: string;
   narrative?: string;
@@ -37,7 +62,14 @@ export class Lesson {
   // counter so each graph embed gets its own DOM id even if a lesson has several.
   private _graphCount: number;
 
+  // if a run hits ERROR, these say what broke.
+  failedAct: string | null = null;
+  error: string | null = null;
+  // collected act results from the last run(), in act order.
+  private _results: ActResult[] = [];
+
   constructor(title: string, problemText: string) {
+    super([], {}, "IDLE");
     this.title = title;
     this.problemText = problemText;
     this._registry = [];
@@ -62,7 +94,7 @@ export class Lesson {
   // hand back the acts as a RegistryEntry[] so you can feed it straight to
   // runAllActs(lesson.toContext(), lesson.getRegistry()).
   getRegistry(): RegistryEntry[] {
-    return this._registry;
+        return this._registry;
   }
 
   // the context every act receives. ONLY problemText (and narrative if set).
@@ -71,6 +103,67 @@ export class Lesson {
     const ctx: LessonContext = { problemText: this.problemText };
     if (this.narrative !== undefined) ctx.narrative = this.narrative;
     return ctx;
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // Running the lesson as a state machine (we inherit the Layer 0 base).
+  //
+  // run() rebuilds the state graph from the CURRENT registry at call time, then
+  // steps through every act as a state. each act state's handler calls the ActFn
+  // and stashes the result. getResults() hands back what was collected.
+  // ─────────────────────────────────────────────────────────────────
+
+  // rebuild the state graph from the acts added so far, then run to DONE/ERROR.
+  // returns the final state; call getResults() afterward for the ActResult[].
+  async run(): Promise<string> {
+    const actNames = this._registry.map(([name]) => name);
+    this.states = new Set([IDLE, ...actNames, DONE, ERROR]);
+    this.transitions = buildLinearTransitions(actNames);
+    this.state = IDLE;
+    this.handlers = {};
+    for (const [name, fn] of this._registry) {
+      this.register(name, () => this._runAct(name, fn));
+    }
+    this._results = [];
+    this.failedAct = null;
+    this.error = null;
+    return this._runToDone();
+  }
+
+  // the collected results from the last run(), in act order, ready for assembleLesson().
+  getResults(): ActResult[] {
+    return this._results;
+  }
+
+  // keep firing "next" until DONE; on a throwing act, fire "fail" -> ERROR.
+  // async because the inherited trigger() is async.
+  private async _runToDone(): Promise<string> {
+    while (this.state !== DONE && this.state !== ERROR) {
+      try {
+        await this.trigger("next"); // move to the next act AND run its handler
+      } catch (e: any) {
+        this.failedAct = this.state;
+        this.error = String(e?.message ?? e);
+        await this.trigger("fail"); // -> ERROR
+        console.log(`[Lesson] FAILED in ${this.failedAct}: ${e?.message ?? e}`);
+        return this.state;
+      }
+    }
+    if (this.state === DONE) console.log("[Lesson] Complete.");
+    return this.state;
+  }
+
+  // run one act: call its ActFn with the lesson context, stash the result, log it.
+  private _runAct(name: string, fn: ActFn): void {
+    const out = fn(this.toContext());
+    this._results.push({
+      name,
+      text: out.text,
+      jsCall: out.jsCall ?? null,
+      jsArgs: out.jsArgs ?? {},
+      rawHtml: out.rawHtml ?? null,
+    });
+    console.log(`[Lesson] ran act: ${name}`);
   }
 
   // ─────────────────────────────────────────────────────────────────
@@ -102,13 +195,12 @@ export class Lesson {
   // a drag slider. layering: teacher -> here -> vizLib.showSlider.
   // note: vizLib's option is called `default`, so we map defaultValue onto it here.
   slider(label: string, min: number, max: number, step: number, defaultValue: number): ActOutput {
-    return {
-      text: "",
-      jsCall: "showSlider",
-      jsArgs: { label, min, max, step, default: defaultValue },
-    };
-  }
-
+        return {
+            text: "",
+            jsCall: "showSlider",
+            jsArgs: { label, min, max, step, default: defaultValue },
+     };
+}
   // a data table. layering: teacher -> here -> vizLib.showTable.
   // headers is one flat list, rows is a list of rows (each its own list of cells).
   table(headers: string[], rows: any[][]): ActOutput {
@@ -144,6 +236,93 @@ export class Lesson {
     // other backends aren't wired up yet. the act code doesn't change when they are —
     // only this method does.
     throw new Error(`Unknown graph backend: '${backend}' (only 'desmos' is implemented so far).`);
+  }
+
+  // a horizontal number line with optional marked points.
+  // teacher -> here -> vizLib.showNumberLine.
+  numberLine(min: number, max: number, points?: number[], labels?: string[]): ActOutput {
+    return {
+      text: "",
+      jsCall: "showNumberLine",
+      jsArgs: { min, max, points, labels },
+    };
+  }
+
+  // a simple x/y grid with optional plotted points and line segments.
+  // teacher -> here -> vizLib.showCoordinatePlane.
+  coordinatePlane(
+    xRange: [number, number],
+    yRange: [number, number],
+    points?: number[][],
+    lines?: number[][][]
+  ): ActOutput {
+    return {
+      text: "",
+      jsCall: "showCoordinatePlane",
+      jsArgs: { xRange, yRange, points, lines },
+    };
+  }
+
+  // calls attention to a key step by boxing it in a colored highlight.
+  // teacher -> here -> vizLib.showHighlight.
+  highlight(text: string, color?: string): ActOutput {
+    return {
+      text: "",
+      jsCall: "showHighlight",
+      jsArgs: { text, color },
+    };
+  }
+
+  // a numbered list of solution steps. teacher -> here -> vizLib.showStepList.
+  stepList(steps: string[]): ActOutput {
+    return {
+      text: "",
+      jsCall: "showStepList",
+      jsArgs: { steps },
+    };
+  }
+
+  // a simple bar chart. teacher -> here -> vizLib.showBarChart.
+  barChart(labels: string[], values: number[], title?: string): ActOutput {
+    return {
+      text: "",
+      jsCall: "showBarChart",
+      jsArgs: { labels, values, title },
+    };
+  }
+
+  // two overlapping circles with labels. teacher -> here -> vizLib.showVennDiagram.
+  vennDiagram(
+    setA: number | string,
+    setB: number | string,
+    intersection: number | string,
+    labels?: string[]
+  ): ActOutput {
+    return {
+      text: "",
+      jsCall: "showVennDiagram",
+      jsArgs: { setA, setB, intersection, labels },
+    };
+  }
+
+  // a pie chart, useful for fraction / ratio problems.
+  // teacher -> here -> vizLib.showPieChart.
+  pieChart(slices: { label: string; value: number; color?: string }[]): ActOutput {
+    return {
+      text: "",
+      jsCall: "showPieChart",
+      jsArgs: { slices },
+    };
+  }
+
+  // a box-and-whisker plot. teacher -> here -> vizLib.showBoxPlot.
+  boxPlot(min: number, q1: number, median: number, q3: number, max: number, label?: string): ActOutput {
+    return { text: "", jsCall: "showBoxPlot", jsArgs: { min, q1, median, q3, max, label } };
+  }
+
+  // a colored callout box. teacher -> here -> vizLib.showCallout.
+  callout(text: string, style?: "info" | "warning" | "success"): ActOutput {
+    return { text: "", jsCall: "showCallout", jsArgs: { text, style } };
   }
 
   // ---- private helpers (a teacher never calls these) ----
