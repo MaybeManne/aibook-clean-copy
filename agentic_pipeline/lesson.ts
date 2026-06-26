@@ -20,12 +20,118 @@
 
 import type { LessonContext, ActOutput, ActFn, RegistryEntry, ActResult } from "./actRegistry.ts";
 import { StateMachine } from "./stateMachine.ts";
+import { type LessonTemplate, type TemplateOverrides, getPreset, mergeTemplate } from "./templates.ts";
 
 
 // tiny HTML escaper for the rawHtml methods (so a stray < or & can't break the page).
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
+
+
+// ---- visualize() arg guards + registry ----
+// small type guards so each registry entry's validate() stays one line.
+const isNum = (v: any) => typeof v === "number" && !Number.isNaN(v);
+const isStr = (v: any) => typeof v === "string";
+const isArr = (v: any) => Array.isArray(v);
+const isStrArr = (v: any) => isArr(v) && v.every(isStr);
+// require(condition, message): throw the descriptive error if the check fails.
+const need = (ok: boolean, msg: string) => { if (!ok) throw new Error(msg); };
+
+// one entry per prebuilt visual: how to validate its args, the error to throw if
+// they're wrong, and how to call the matching Lesson method. visualize() just looks
+// the type up here, so adding a visual is a registry entry, not a switch case.
+interface VisualEntry {
+  validate: (args: Record<string, any>) => boolean;
+  message: string;
+  call: (lesson: Lesson, args: Record<string, any>) => ActOutput;
+}
+
+const VISUAL_REGISTRY: Record<string, VisualEntry> = {
+  fractionBar: {
+    validate: (a) => isNum(a.numerator) && isNum(a.denominator),
+    message: `visualize("fractionBar") requires args.numerator and args.denominator to be numbers.`,
+    call: (l, a) => l.fractionBar(a.numerator, a.denominator, a.label),
+  },
+  multipleChoice: {
+    validate: (a) => isStr(a.question) && isArr(a.options) && isNum(a.correctIndex),
+    message: `visualize("multipleChoice") requires args.question to be a string, args.options to be an array, and args.correctIndex to be a number.`,
+    call: (l, a) => l.multipleChoice(a.question, a.options, a.correctIndex),
+  },
+  slider: {
+    validate: (a) => isStr(a.label) && isNum(a.min) && isNum(a.max) && isNum(a.step) && isNum(a.defaultValue),
+    message: `visualize("slider") requires args.label to be a string and args.min, args.max, args.step, args.defaultValue to be numbers.`,
+    call: (l, a) => l.slider(a.label, a.min, a.max, a.step, a.defaultValue),
+  },
+  table: {
+    validate: (a) => isStrArr(a.headers) && isArr(a.rows) && a.rows.every(isArr),
+    message: `visualize("table") requires args.headers to be an array of strings and args.rows to be an array of arrays.`,
+    call: (l, a) => l.table(a.headers, a.rows),
+  },
+  numberLine: {
+    validate: (a) => isNum(a.min) && isNum(a.max),
+    message: `visualize("numberLine") requires args.min and args.max to be numbers.`,
+    call: (l, a) => l.numberLine(a.min, a.max, a.points, a.labels),
+  },
+  coordinatePlane: {
+    validate: (a) =>
+      isArr(a.xRange) && a.xRange.length === 2 && a.xRange.every(isNum) &&
+      isArr(a.yRange) && a.yRange.length === 2 && a.yRange.every(isNum),
+    message: `visualize("coordinatePlane") requires args.xRange and args.yRange to each be a [number, number] array.`,
+    call: (l, a) => l.coordinatePlane(a.xRange, a.yRange, a.points, a.lines),
+  },
+  highlight: {
+    validate: (a) => isStr(a.text),
+    message: `visualize("highlight") requires args.text to be a string.`,
+    call: (l, a) => l.highlight(a.text, a.color),
+  },
+  stepList: {
+    validate: (a) => isStrArr(a.steps) && a.steps.length > 0,
+    message: `visualize("stepList") requires args.steps to be a non-empty array of strings.`,
+    call: (l, a) => l.stepList(a.steps),
+  },
+  barChart: {
+    validate: (a) =>
+      isStrArr(a.labels) && isArr(a.values) && a.values.every(isNum) &&
+      a.labels.length === a.values.length,
+    message: `visualize("barChart") requires args.labels to be an array of strings and args.values to be an array of numbers of the same length.`,
+    call: (l, a) => l.barChart(a.labels, a.values, a.title),
+  },
+  vennDiagram: {
+    validate: (a) =>
+      (isNum(a.setA) || isStr(a.setA)) && (isNum(a.setB) || isStr(a.setB)) &&
+      (isNum(a.intersection) || isStr(a.intersection)),
+    message: `visualize("vennDiagram") requires args.setA, args.setB, and args.intersection to each be a number or string.`,
+    call: (l, a) => l.vennDiagram(a.setA, a.setB, a.intersection, a.labels),
+  },
+  pieChart: {
+    validate: (a) =>
+      isArr(a.slices) && a.slices.length > 0 &&
+      a.slices.every((s: any) => s && isStr(s.label) && isNum(s.value)),
+    message: `visualize("pieChart") requires args.slices to be a non-empty array of { label: string, value: number } objects.`,
+    call: (l, a) => l.pieChart(a.slices),
+  },
+  boxPlot: {
+    validate: (a) => isNum(a.min) && isNum(a.q1) && isNum(a.median) && isNum(a.q3) && isNum(a.max),
+    message: `visualize("boxPlot") requires args.min, args.q1, args.median, args.q3, and args.max to be numbers.`,
+    call: (l, a) => l.boxPlot(a.min, a.q1, a.median, a.q3, a.max, a.label),
+  },
+  callout: {
+    validate: (a) => isStr(a.text),
+    message: `visualize("callout") requires args.text to be a string.`,
+    call: (l, a) => l.callout(a.text, a.style),
+  },
+  latex: {
+    validate: (a) => isStr(a.expression),
+    message: `visualize("latex") requires args.expression to be a string.`,
+    call: (l, a) => l.latex(a.expression),
+  },
+  graph: {
+    validate: (a) => isStrArr(a.equations) && a.equations.length > 0,
+    message: `visualize("graph") requires args.equations to be a non-empty array of strings.`,
+    call: (l, a) => l.graph(a.equations, a.options ?? {}),
+  },
+};
 
 
 // the bookend states for a Lesson run (the act states come from the registry).
@@ -68,12 +174,40 @@ export class Lesson extends StateMachine {
   // collected act results from the last run(), in act order.
   private _results: ActResult[] = [];
 
+  // the look/layout applied when this lesson is rendered to HTML. starts on the
+  // "default" preset; setTemplate()/customizeTemplate() change it. presentation
+  // only — it never affects the acts or the state machine.
+  private _template: LessonTemplate;
+
   constructor(title: string, problemText: string) {
     super([], {}, "IDLE");
     this.title = title;
     this.problemText = problemText;
     this._registry = [];
     this._graphCount = 0;
+    this._template = getPreset("default");
+  }
+
+  // ---- templates (presentation only) ----
+
+  // start from a named preset ("default" / "dark" / "minimal"). throws on a typo.
+  setTemplate(name: string): this {
+    this._template = getPreset(name);
+    return this;
+  }
+
+  // override specific fields on the current template, e.g.
+  //   lesson.customizeTemplate({ colors: { background: "#ff0000" }, fonts: { title: "Georgia" } })
+  //   lesson.customizeTemplate({ layout: { visualPosition: "right" } })  // flip the columns
+  // partial nested groups are fine; anything not mentioned is kept.
+  customizeTemplate(overrides: TemplateOverrides): this {
+    this._template = mergeTemplate(this._template, overrides);
+    return this;
+  }
+
+  // the resolved template to hand to assembleLesson(results, title, template).
+  getTemplate(): LessonTemplate {
+    return this._template;
   }
 
   // ---- building the lesson ----
@@ -323,6 +457,25 @@ export class Lesson extends StateMachine {
   // a colored callout box. teacher -> here -> vizLib.showCallout.
   callout(text: string, style?: "info" | "warning" | "success"): ActOutput {
     return { text: "", jsCall: "showCallout", jsArgs: { text, style } };
+  }
+
+  // ---- generic dispatch ----
+
+  /**
+   * Generic entry point for the agent to trigger any prebuilt visual.
+   * @param type - the visual type, e.g. "fractionBar", "barChart", "graph"
+   * @param args - the args for that visual, e.g. { numerator: 3, denominator: 8 }
+   * @returns ActOutput ready to pass into addAct()
+   */
+  visualize(type: string, args: Record<string, any>): ActOutput {
+    const entry = VISUAL_REGISTRY[type];
+    if (!entry) {
+      throw new Error(
+        `Unknown visual type: '${type}'. Expected one of: ${Object.keys(VISUAL_REGISTRY).join(", ")}.`
+      );
+    }
+    need(entry.validate(args), entry.message);
+    return entry.call(this, args);
   }
 
   // ---- private helpers (a teacher never calls these) ----

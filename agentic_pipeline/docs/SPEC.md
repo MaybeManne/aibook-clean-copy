@@ -169,11 +169,31 @@ This is a TypeScript port of the original Python pipeline, preserved unmodified 
 **Key components:**
 - `VIZ_LIB_JS` — a JS source string emitted into the page as `window.vizLib`. Defines 13 drawing functions: `showFractionBar`, `showMultipleChoice`, `showSlider`, `showTable`, `showNumberLine`, `showCoordinatePlane`, `showHighlight`, `showStepList`, `showBarChart`, `showVennDiagram`, `showPieChart`, `showBoxPlot`, `showCallout`. Each renders DOM/SVG into a target `<div>` by id.
 - `htmlEscape(s)` — escapes `& < > " '` for safe embedding.
-- `assembleAct(act)` — renders one `ActResult` as a `<section>`: text as a paragraph, a target `<div>` plus a one-line `<script>vizLib.X(...)</script>` if `jsCall` is set, or the raw HTML directly if `rawHtml` is set.
-- `assembleLesson(acts, title)` — wraps all act sections in a complete HTML document with KaTeX CSS/JS, the `vizLib` script block, and base styling.
+- `assembleAct(act)` — renders one `ActResult` as a `<div class="slide">` (one slide of the slideshow): a top-right `.act-label` (the act name, uppercased by CSS) and a `.act-columns` flex row. Content is sorted into two columns: diagrams go in `.act-visual` (left), while text, steps, math, highlights, callouts, tables, and the MCQ go in `.act-text` (right). `TEXT_VISUALS` lists the vizLib calls that count as textual; latex (`rawHtml` with `class="katex"`) routes to text, other `rawHtml` (e.g. Desmos) to visual. An act with only one column lets it flex to full width.
+- `SLIDESHOW_JS` — the slideshow controller emitted at the end of `<body>`: shows one slide at a time (toggling `.active`), wires the prev/next buttons, the `n / total` counter, and left/right arrow keys.
+- `assembleLesson(acts, title, template?)` — wraps the slides in the slideshow shell: a fixed `.lesson-title`, the `.slideshow` container of `.slide`s, the bottom `.navbar` (prev / counter / next), KaTeX, the `vizLib` script block, the template CSS (`templateToCss`), and `SLIDESHOW_JS`. The `template` argument is optional; when omitted it falls back to the `"default"` preset, so two-arg callers keep working.
 
-**Depends on:** none. Independent of assembler.ts, orchestrator.ts, and stateMachine.ts.
+**Depends on:** templates.ts (`LessonTemplate`, `getPreset`, `templateToCss`). Independent of assembler.ts, orchestrator.ts, and stateMachine.ts.
 **Used by:** actRegistry.ts consumers (demo.ts, exampleCustomLesson.ts) and Lesson consumers (lessonDemo.ts, visualTest.ts).
+
+---
+
+## templates.ts
+
+**Purpose:** Presentation-only template system. Defines how a lesson looks and is laid out, with zero effect on the state machine, acts, or visual logic. A template only feeds the CSS that `assembleLesson` emits.
+
+**Layout model:** a slideshow. Every act is a full-viewport `.slide`; only the `.active` one is visible (hidden slides use `visibility`, not `display:none`, so SVG/Desmos keep real dimensions while off-screen). A fixed bottom nav bar drives prev/next/counter. Each slide is a two-column split: visual in one column, text/explanation (and MCQ) in the other, 50/50. `layout.visualPosition` (`"left"` default, or `"right"`) picks the side by flipping the flex direction. `layout` also carries `padding` and `gap`.
+
+**Key types:** `VisualPosition` (`"left"` | `"right"`), `LessonTemplate` (name, colors, fonts, layout, slide), `TemplateOverrides` (deep-partial for `customizeTemplate`).
+
+**Key functions:**
+- `PRESETS` — the three starting templates: `default` (dark, two-column), `dark` (near-black variant), `minimal` (light). Add a new look by adding one entry here; nothing else changes.
+- `getPreset(name)` — returns a fresh deep copy of a preset; throws on an unknown name.
+- `mergeTemplate(base, overrides)` — merges overrides one nested group at a time, so a partial override (just a color, just `visualPosition`) keeps every field it did not mention.
+- `templateToCss(t)` — turns a resolved template into the page `<style>` body: the slideshow shell (full-viewport `.slide`s, active-only visibility), the `.act-columns` flex row (direction from `visualPosition`), the darker `.act-visual` panel, scrollable `.act-text`, the accent `.act-label`, the fixed `.navbar`, MCQ buttons, and readable SVG/table text. The teacher never sees any CSS.
+
+**Depends on:** none.
+**Used by:** lesson.ts (`getPreset`, `mergeTemplate` + the types), layer2Assembler.ts (`templateToCss`, `getPreset`).
 
 ---
 
@@ -196,9 +216,15 @@ This is a TypeScript port of the original Python pipeline, preserved unmodified 
 - `_runToDone()` — same drive loop as `PipelineStateMachine._runToDone`: fires `next` until terminal, routes a thrown error to `fail`.
 - `_runAct(name, fn)` — invokes the act with `toContext()`, records the result.
 - **Prebuilt visual methods** (each returns a complete `ActOutput`): `fractionBar`, `multipleChoice`, `slider`, `table`, `latex`, `graph`, `numberLine`, `coordinatePlane`, `highlight`, `stepList`, `barChart`, `vennDiagram`, `pieChart`, `boxPlot`, `callout`. All but `latex` and `graph` delegate to a named `vizLib` function; `latex` renders via KaTeX and `graph` via a Desmos embed (`_desmosEmbed`), both as `rawHtml`.
+- `visualize(type, args)` — generic dispatch over the 15 prebuilt visuals via `VISUAL_REGISTRY`: validates `args`, throws a descriptive error on bad input or an unknown type, then calls the matching method. The entry point for triggering a visual programmatically.
 - `_desmosEmbed(equations, options)` — private helper constructing the Desmos `<div>`/`<script>` embed used by `graph()`.
 
-**Depends on:** stateMachine.ts (`StateMachine`). Output is shape-compatible with `assembleLesson` (layer2Assembler.ts) without adapter code.
+**Template methods (presentation only):**
+- `setTemplate(name)` — switch to a preset (`getPreset`).
+- `customizeTemplate(overrides)` — override specific template fields (deep-partial), e.g. `customizeTemplate({ layout: { visualPosition: "right" } })` to flip the columns.
+- `getTemplate()` — returns the resolved `LessonTemplate` to pass as `assembleLesson(results, title, template)`.
+
+**Depends on:** stateMachine.ts (`StateMachine`), templates.ts (`getPreset`, `mergeTemplate` + types). Output is shape-compatible with `assembleLesson` (layer2Assembler.ts) without adapter code.
 **Used by:** lessonDemo.ts, visualTest.ts.
 
 ---
