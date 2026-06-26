@@ -9,6 +9,7 @@
 // Standalone. does not touch assembler.py, orchestrator.py, or the state machine.
 
 import type { ActResult } from "./actRegistry.ts";
+import { type LessonTemplate, getPreset, templateToCss } from "./templates.ts";
 
 
 const VIZ_LIB_JS = `
@@ -42,26 +43,23 @@ window.vizLib = {
     viz.appendChild(wrap);
   },
 
+  // Base button/question styling comes from the template CSS (.act-mcq ...); we
+  // only set the question class and the correct/incorrect feedback color here.
   showMultipleChoice: function (args) {
     var viz = document.getElementById(args.targetId || 'viz');
     if (!viz) { return; }
     var wrap = document.createElement('div');
-    wrap.style.margin = '12px 0';
     var q = document.createElement('div');
+    q.className = 'mcq-question';
     q.textContent = args.question;
-    q.style.fontWeight = '600';
-    q.style.marginBottom = '8px';
     wrap.appendChild(q);
     args.options.forEach(function (opt, i) {
       var btn = document.createElement('button');
       btn.textContent = opt;
-      btn.style.display = 'block';
-      btn.style.margin = '4px 0';
-      btn.style.padding = '8px 12px';
-      btn.style.cursor = 'pointer';
       btn.onclick = function () {
         btn.style.background = (i === args.correctIndex) ? '#22c55e' : '#ef4444';
-        btn.style.color = '#fff';
+        btn.style.color = '#ffffff';
+        btn.style.borderColor = 'transparent';
       };
       wrap.appendChild(btn);
     });
@@ -352,35 +350,95 @@ function htmlEscape(s: string): string {
 }
 
 
+// vizLib calls that are textual (steps / highlights / callouts / tables) belong in
+// the right-hand text column, not the left-hand diagram column.
+const TEXT_VISUALS = new Set(["showStepList", "showHighlight", "showCallout", "showTable"]);
+
+// one-line vizLib call: a target div plus the script that draws into it.
+function vizCall(name: string, jsCall: string, jsArgs: Record<string, any>): string {
+  const vizId = `viz-${htmlEscape(name)}`;
+  const argsJson = JSON.stringify({ ...jsArgs, targetId: vizId });
+  return `      <div id="${vizId}"></div>\n      <script>vizLib.${jsCall}(${argsJson});</script>`;
+}
+
+// render one act as a slideshow slide: a top-right act label and a two-column
+// split. diagrams go left (.act-visual); text / steps / math / highlights / MCQ
+// go right (.act-text). an act with only one column lets it flex to full width.
 export function assembleAct(act: ActResult): string {
   const name = act.name || "act";
-  const parts: string[] = [`<section class="act" id="act-${htmlEscape(name)}">`];
+  const label = htmlEscape(name.replace(/_/g, " "));
+  const parts: string[] = [
+    `<div class="slide" id="slide-${htmlEscape(name)}">`,
+    `  <div class="act-label">${label}</div>`,
+  ];
 
-  const text = act.text || "";
-  if (text) {
-    const safe = htmlEscape(text).replace(/\n/g, "<br>");
-    parts.push(`  <p>${safe}</p>`);
+  const visualCol: string[] = [];
+  const textCol: string[] = [];
+
+  if (act.text) {
+    textCol.push(`      <p>${htmlEscape(act.text).replace(/\n/g, "<br>")}</p>`);
   }
-
-  if (act.jsCall) {
-    const vizId = `viz-${htmlEscape(name)}`;
-    parts.push(`  <div id="${vizId}"></div>`);
-    const argsJson = JSON.stringify({ ...act.jsArgs, targetId: vizId });
-    parts.push(`  <script>vizLib.${act.jsCall}(${argsJson});</script>`);
+  if (act.jsCall && act.jsCall !== "showMultipleChoice") {
+    const html = vizCall(name, act.jsCall, act.jsArgs);
+    (TEXT_VISUALS.has(act.jsCall) ? textCol : visualCol).push(html);
   }
-
   if (act.rawHtml) {
-    parts.push(act.rawHtml);
+    // latex (KaTeX) is math -> text column; everything else (e.g. Desmos) -> visual.
+    (act.rawHtml.includes('class="katex"') ? textCol : visualCol).push(`      ${act.rawHtml}`);
+  }
+  // multiple choice renders in the right column, below the text.
+  if (act.jsCall === "showMultipleChoice") {
+    textCol.push(`      <div class="act-mcq">\n${vizCall(name, act.jsCall, act.jsArgs)}\n      </div>`);
   }
 
-  parts.push("</section>");
+  const cols: string[] = [];
+  if (visualCol.length) cols.push(`    <div class="act-visual">\n${visualCol.join("\n")}\n    </div>`);
+  if (textCol.length) cols.push(`    <div class="act-text">\n${textCol.join("\n")}\n    </div>`);
+  parts.push(`  <div class="act-columns">\n${cols.join("\n")}\n  </div>`);
+
+  parts.push("</div>");
   return parts.join("\n");
 }
 
 
-export function assembleLesson(acts: ActResult[], title: string): string {
-  const sections = acts.map(assembleAct).join("\n");
+// the slideshow controller: show one slide at a time, wire prev/next buttons,
+// arrow keys, and the counter. kept ES5-ish to match the vizLib style.
+const SLIDESHOW_JS = `
+(function () {
+  var slides = document.querySelectorAll('.slide');
+  var total = slides.length;
+  var cur = 0;
+  var curEl = document.getElementById('curSlide');
+  var prevBtn = document.getElementById('prevBtn');
+  var nextBtn = document.getElementById('nextBtn');
+  function show(i) {
+    if (i < 0) { i = 0; }
+    if (i > total - 1) { i = total - 1; }
+    cur = i;
+    for (var k = 0; k < total; k++) { slides[k].classList.toggle('active', k === i); }
+    if (curEl) { curEl.textContent = String(i + 1); }
+    if (prevBtn) { prevBtn.disabled = (i === 0); }
+    if (nextBtn) { nextBtn.disabled = (i === total - 1); }
+  }
+  if (prevBtn) { prevBtn.onclick = function () { show(cur - 1); }; }
+  if (nextBtn) { nextBtn.onclick = function () { show(cur + 1); }; }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft') { show(cur - 1); }
+    else if (e.key === 'ArrowRight') { show(cur + 1); }
+  });
+  show(0);
+})();
+`;
+
+
+// template is optional so existing callers (lessonDemo, visualTest) keep working
+// with the two-arg form; they get the "default" preset. pass lesson.getTemplate()
+// as the third arg to apply a customized look.
+export function assembleLesson(acts: ActResult[], title: string, template?: LessonTemplate): string {
+  const slides = acts.map(assembleAct).join("\n");
   const safeTitle = htmlEscape(title);
+  const tpl = template ?? getPreset("default");
+  const total = acts.length;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -390,23 +448,31 @@ export function assembleLesson(acts: ActResult[], title: string): string {
 <title>${safeTitle}</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <style>
-  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif;
-          max-width: 760px; margin: 40px auto; padding: 0 16px;
-          line-height: 1.6; color: #1a1a2e; }
-  h1 { font-size: 1.6rem; }
-  section.act { padding: 16px 0; border-bottom: 1px solid #eee; }
+${templateToCss(tpl)}
 </style>
 <!-- KaTeX for math rendering -->
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<!-- vizLib is defined first so every act's one-line call below can use it. -->
+<!-- vizLib is defined first so every slide's one-line call below can use it. -->
 <script>
 ${VIZ_LIB_JS}
 </script>
 </head>
 <body>
-<h1>${safeTitle}</h1>
+<div class="lesson-title">${safeTitle}</div>
 
-${sections}
+<div class="slideshow">
+${slides}
+</div>
+
+<div class="navbar">
+  <button id="prevBtn">&larr; Prev</button>
+  <span class="counter"><span id="curSlide">1</span> / ${total}</span>
+  <button id="nextBtn">Next &rarr;</button>
+</div>
+
+<script>
+${SLIDESHOW_JS}
+</script>
 </body>
 </html>
 `;
