@@ -169,7 +169,7 @@ This is a TypeScript port of the original Python pipeline, preserved unmodified 
 **Key components:**
 - `VIZ_LIB_JS` — a JS source string emitted into the page as `window.vizLib`. Defines 13 drawing functions: `showFractionBar`, `showMultipleChoice`, `showSlider`, `showTable`, `showNumberLine`, `showCoordinatePlane`, `showHighlight`, `showStepList`, `showBarChart`, `showVennDiagram`, `showPieChart`, `showBoxPlot`, `showCallout`. Each renders DOM/SVG into a target `<div>` by id.
 - `htmlEscape(s)` — escapes `& < > " '` for safe embedding.
-- `assembleAct(act)` — renders one `ActResult` as a `<div class="slide">` (one slide of the slideshow): a top-right `.act-label` (the act name, uppercased by CSS) and a `.act-columns` flex row. Content is sorted into two columns: diagrams go in `.act-visual` (left), while text, steps, math, highlights, callouts, tables, and the MCQ go in `.act-text` (right). `TEXT_VISUALS` lists the vizLib calls that count as textual; latex (`rawHtml` with `class="katex"`) routes to text, other `rawHtml` (e.g. Desmos) to visual. An act with only one column lets it flex to full width.
+- `assembleAct(act, index?)` — renders one `ActResult` as a `<div class="slide">` (one slide of the slideshow): a top-right `.act-label` (the act name, uppercased by CSS) and a `.act-columns` flex row. Content is sorted into two columns: diagrams go in `.act-visual` (left), while text, steps, math, highlights, callouts, tables, and the MCQ go in `.act-text` (right). `TEXT_VISUALS` lists the vizLib calls that count as textual; latex (`rawHtml` with `class="katex"`) routes to text, other `rawHtml` (e.g. Desmos) to visual. An act with only one column lets it flex to full width. `index` makes the slide/viz DOM ids unique per occurrence, so a freeform lesson that visits the same act twice (a loop) renders both slides correctly.
 - `SLIDESHOW_JS` — the slideshow controller emitted at the end of `<body>`: shows one slide at a time (toggling `.active`), wires the prev/next buttons, the `n / total` counter, and left/right arrow keys.
 - `assembleLesson(acts, title, template?)` — wraps the slides in the slideshow shell: a fixed `.lesson-title`, the `.slideshow` container of `.slide`s, the bottom `.navbar` (prev / counter / next), KaTeX, the `vizLib` script block, the template CSS (`templateToCss`), and `SLIDESHOW_JS`. The `template` argument is optional; when omitted it falls back to the `"default"` preset, so two-arg callers keep working.
 
@@ -211,9 +211,9 @@ This is a TypeScript port of the original Python pipeline, preserved unmodified 
 - `setNarrative(narrative)` — attaches an optional narrative string.
 - `getRegistry()` — returns the act list as `RegistryEntry[]`.
 - `toContext()` — builds the `LessonContext` passed to each act (`problemText` plus optional `narrative`; no `extra` field).
-- `run()` — rebuilds `states`/`transitions`/`handlers` from the current act list, then drives execution from `IDLE` to `DONE` or `ERROR`.
+- `run()` — rebuilds `states`/`handlers` from the current act list, then: in **linear mode** builds `buildLinearTransitions` and drives `IDLE → act0 → ... → DONE` automatically; in **freeform mode** (custom transitions defined) it calls `validateGraph()`, builds the custom graph, enters the start act, and returns for the caller to drive with `step()`.
 - `getResults()` — returns the `ActResult[]` collected by the last `run()`.
-- `_runToDone()` — same drive loop as `PipelineStateMachine._runToDone`: fires `next` until terminal, routes a thrown error to `fail`.
+- `_runToDone()` — linear drive loop: fires `next` until terminal, routes a thrown error to `fail`.
 - `_runAct(name, fn)` — invokes the act with `toContext()`, records the result.
 - **Prebuilt visual methods** (each returns a complete `ActOutput`): `fractionBar`, `multipleChoice`, `slider`, `table`, `latex`, `graph`, `numberLine`, `coordinatePlane`, `highlight`, `stepList`, `barChart`, `vennDiagram`, `pieChart`, `boxPlot`, `callout`. All but `latex` and `graph` delegate to a named `vizLib` function; `latex` renders via KaTeX and `graph` via a Desmos embed (`_desmosEmbed`), both as `rawHtml`.
 - `visualize(type, args)` — generic dispatch over the 15 prebuilt visuals via `VISUAL_REGISTRY`: validates `args`, throws a descriptive error on bad input or an unknown type, then calls the matching method. The entry point for triggering a visual programmatically.
@@ -224,8 +224,16 @@ This is a TypeScript port of the original Python pipeline, preserved unmodified 
 - `customizeTemplate(overrides)` — override specific template fields (deep-partial), e.g. `customizeTemplate({ layout: { visualPosition: "right" } })` to flip the columns.
 - `getTemplate()` — returns the resolved `LessonTemplate` to pass as `assembleLesson(results, title, template)`.
 
+**Freeform state machine (branching / looping graphs):** by default a lesson is linear; defining any custom transition switches it into freeform mode, where the act graph can branch, loop, and take conditional paths.
+- `addTransition(from, { trigger: to, ... })` — add the outgoing edges for one state, e.g. `addTransition("quick_check", { correct: "advanced", incorrect: "re_explain" })`. Merges with edges already set for `from`; targets may be other acts or `"DONE"`.
+- `setStartAct(name)` — choose the act the lesson starts from (defaults to the first act added).
+- `getFreeformMode()` — `true` if any custom transition is defined, `false` (linear) otherwise.
+- `validateGraph()` — checks the freeform graph and throws a descriptive error on the first problem: a transition naming a non-existent act, an act unreachable from `IDLE`, no path from `IDLE` to `DONE`, or an act with no path to `DONE` (a no-exit loop). `run()` calls it automatically in freeform mode.
+- `step(trigger)` — fire one named trigger: follow that edge from the current state and run the entered act's handler. This is how a caller drives a freeform lesson (`await lesson.step("incorrect")`); a thrown handler routes to `ERROR`.
+- `_buildFreeformTransitions()` / `_reachable(start, transitions)` / `_startState()` — private helpers: assemble the custom graph (plus `IDLE → start` and terminal `DONE`/`ERROR`) and run BFS reachability for validation.
+
 **Depends on:** stateMachine.ts (`StateMachine`), templates.ts (`getPreset`, `mergeTemplate` + types). Output is shape-compatible with `assembleLesson` (layer2Assembler.ts) without adapter code.
-**Used by:** lessonDemo.ts, visualTest.ts.
+**Used by:** lessonDemo.ts, visualTest.ts, meanMedianDemo.ts (linear); freeformDemo.ts (freeform).
 
 ---
 
@@ -246,6 +254,15 @@ This is a TypeScript port of the original Python pipeline, preserved unmodified 
 **Purpose:** Reference example for the `Lesson` API. Builds the pizza fractions lesson, runs it, writes `lesson_demo.html`.
 
 Constructs a `Lesson`, chains `.addAct(...)` calls using prebuilt visual methods (`fractionBar`, `pieChart`, `stepList`, `latex`, `numberLine`, `multipleChoice`, `graph`), then in `main()`: `await lesson.run()`, `assembleLesson(lesson.getResults(), lesson.title)`, writes the output file. Wrapped in an async `main()` because the repo lacks `"type": "module"`, so `tsx` compiles to CommonJS and top-level `await` is unavailable.
+
+**Depends on:** lesson.ts, layer2Assembler.ts.
+**Used by:** run directly via CLI.
+
+---
+
+## freeformDemo.ts
+
+**Purpose:** Reference example for **freeform mode** — a branching, looping pizza fractions lesson. Defines the graph with `setStartAct` + `addTransition` (`intro → quick_check`, `quick_check --correct--> advanced` / `--incorrect--> re_explain`, `re_explain → quick_check`, `advanced → DONE`), then `run()` validates it and enters the start act. `main()` drives a path with `step()` that gets the check wrong once (looping back through `re_explain`) then right, so the output visits `quick_check` twice. Writes `freeform_demo.html`.
 
 **Depends on:** lesson.ts, layer2Assembler.ts.
 **Used by:** run directly via CLI.

@@ -18,7 +18,8 @@
 // arguments directly, and the lesson context only ever carries problemText (and
 // narrative, if you set one). nothing else rides along.
 
-import type { LessonContext, ActOutput, ActFn, RegistryEntry, ActResult } from "./actRegistry.ts";
+import type { LessonContext, ActOutput, ActFn, RegistryEntry, ActResult, ActLocation } from "./actRegistry.ts";
+import { ActState } from "./act.ts";
 import { StateMachine } from "./stateMachine.ts";
 import { type LessonTemplate, type TemplateOverrides, getPreset, mergeTemplate } from "./templates.ts";
 
@@ -55,7 +56,7 @@ const VISUAL_REGISTRY: Record<string, VisualEntry> = {
   },
   multipleChoice: {
     validate: (a) => isStr(a.question) && isArr(a.options) && isNum(a.correctIndex),
-    message: `visualize("multipleChoice") requires args.question to be a string, args.options to be an array, and args.correctIndex to be a number.`,
+    message: `(visualize)("multipleChoice") requires args.question to be a string, args.options to be an array, and args.correctIndex to be a number.`,
     call: (l, a) => l.multipleChoice(a.question, a.options, a.correctIndex),
   },
   slider: {
@@ -162,9 +163,9 @@ export class Lesson extends StateMachine {
   problemText: string;
   narrative?: string;
 
-  // the acts a teacher adds, in order. kept private so getRegistry() is the only
-  // way out (it hands back the same shape runAllActs() already understands).
-  private _registry: RegistryEntry[];
+  // the acts a teacher adds, in order — each an ActState instance (see act.ts).
+  // kept private; getRegistry() hands back the [name, fn] shape runAllActs() wants.
+  private _acts: ActState[];
   // counter so each graph embed gets its own DOM id even if a lesson has several.
   private _graphCount: number;
 
@@ -173,6 +174,12 @@ export class Lesson extends StateMachine {
   error: string | null = null;
   // collected act results from the last run(), in act order.
   private _results: ActResult[] = [];
+
+  // freeform mode: a custom transition graph ({ from: { trigger: to } }). empty
+  // means linear mode (the default — IDLE -> act0 -> ... -> DONE, unchanged).
+  private _customTransitions: Record<string, Record<string, string>> = {};
+  // optional explicit start act for freeform mode (defaults to the first act added).
+  private _startAct?: string;
 
   // the look/layout applied when this lesson is rendered to HTML. starts on the
   // "default" preset; setTemplate()/customizeTemplate() change it. presentation
@@ -183,7 +190,7 @@ export class Lesson extends StateMachine {
     super([], {}, "IDLE");
     this.title = title;
     this.problemText = problemText;
-    this._registry = [];
+    this._acts = [];
     this._graphCount = 0;
     this._template = getPreset("default");
   }
@@ -214,8 +221,14 @@ export class Lesson extends StateMachine {
 
   // add one act. fn is an ActFn (ctx in, ActOutput out) — same type the rest of the
   // pipeline uses. returns `this` so you can chain addAct(...).addAct(...).
-  addAct(name: string, fn: ActFn): this {
-    this._registry.push([name, fn]);
+  //
+  // options.location optionally overrides where this act's visual is placed:
+  //   lesson.addAct("quiz", fn, { location: "bottom" })
+  //   lesson.addAct("diagram", fn, { location: "left" })
+  // when omitted, the assembler auto-places each piece by its type (visual left,
+  // text right, MCQ/slider bottom).
+  addAct(name: string, fn: ActFn, options?: { location?: ActLocation }): this {
+    this._acts.push(new ActState(name, fn, options?.location));
     return this;
   }
 
@@ -228,7 +241,7 @@ export class Lesson extends StateMachine {
   // hand back the acts as a RegistryEntry[] so you can feed it straight to
   // runAllActs(lesson.toContext(), lesson.getRegistry()).
   getRegistry(): RegistryEntry[] {
-        return this._registry;
+    return this._acts.map((act) => [act.name, act.fn] as RegistryEntry);
   }
 
   // the context every act receives. ONLY problemText (and narrative if set).
@@ -247,26 +260,157 @@ export class Lesson extends StateMachine {
   // and stashes the result. getResults() hands back what was collected.
   // ─────────────────────────────────────────────────────────────────
 
-  // rebuild the state graph from the acts added so far, then run to DONE/ERROR.
-  // returns the final state; call getResults() afterward for the ActResult[].
+  // rebuild the state graph from the acts added so far, then run.
+  //
+  // FREEFORM mode (custom transitions defined): validate the graph, then enter the
+  // start act and return. branches/loops can't be auto-followed, so the caller
+  // drives the rest with step("correct"/"incorrect"/"next"/...).
+  // LINEAR mode (default, no custom transitions): IDLE -> act0 -> ... -> DONE, fully
+  // automatic — exactly as before.
+  // returns the state landed in; call getResults() afterward for the ActResult[].
   async run(): Promise<string> {
-    const actNames = this._registry.map(([name]) => name);
+    const actNames = this._acts.map((act) => act.name);
     this.states = new Set([IDLE, ...actNames, DONE, ERROR]);
-    this.transitions = buildLinearTransitions(actNames);
     this.state = IDLE;
     this.handlers = {};
-    for (const [name, fn] of this._registry) {
-      this.register(name, () => this._runAct(name, fn));
+    for (const act of this._acts) {
+      this.register(act.name, () => this._runAct(act));
     }
     this._results = [];
     this.failedAct = null;
     this.error = null;
+
+    if (this.getFreeformMode()) {
+      this.validateGraph();
+      this.transitions = this._buildFreeformTransitions();
+      return this.step("next"); // IDLE -> start act (runs its handler)
+    }
+
+    this.transitions = buildLinearTransitions(actNames);
     return this._runToDone();
   }
 
   // the collected results from the last run(), in act order, ready for assembleLesson().
   getResults(): ActResult[] {
     return this._results;
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // Freeform state machine (branching / looping / conditional graphs).
+  //
+  // By default a lesson is linear. Call addTransition() to define your own graph;
+  // that switches the lesson into freeform mode, where run() enters the start act
+  // and you drive the rest with step(). validateGraph() (run() calls it for you)
+  // proves the graph is sane before anything executes.
+  // ─────────────────────────────────────────────────────────────────
+
+  // add the outgoing transitions for one state, e.g.
+  //   lesson.addTransition("quick_check", { correct: "advanced", incorrect: "re_explain" })
+  // merges with any transitions already set for `from`. defining any transition
+  // switches the lesson into freeform mode.
+  addTransition(from: string, transitions: Record<string, string>): this {
+    this._customTransitions[from] = { ...(this._customTransitions[from] ?? {}), ...transitions };
+    return this;
+  }
+
+  // pick which act the lesson starts from (freeform mode). defaults to the first
+  // act added.
+  setStartAct(name: string): this {
+    this._startAct = name;
+    return this;
+  }
+
+  // true if a custom transition graph has been defined (freeform), false if linear.
+  getFreeformMode(): boolean {
+    return Object.keys(this._customTransitions).length > 0;
+  }
+
+  // fire one named trigger: move along that edge (if valid from the current state)
+  // and run the entered act's handler. this is how you drive a freeform lesson
+  //   await lesson.step("incorrect");
+  // returns the state landed in; a thrown handler is routed to ERROR.
+  async step(trigger: string): Promise<string> {
+    try {
+      await this.trigger(trigger);
+    } catch (e: any) {
+      this.failedAct = this.state;
+      this.error = String(e?.message ?? e);
+      this.state = ERROR;
+      console.log(`[Lesson] FAILED in ${this.failedAct}: ${e?.message ?? e}`);
+    }
+    return this.state;
+  }
+
+  // validate the freeform graph before running. throws a clear, descriptive error
+  // on the first problem found. (linear mode never needs this; run() calls it
+  // automatically in freeform mode.)
+  validateGraph(): void {
+    const acts = new Set(this._acts.map((act) => act.name));
+    const transitions = this._buildFreeformTransitions();
+    const special = new Set([IDLE, DONE, ERROR]);
+
+    // 1. no dangling references: every state named in the graph must be a real act
+    //    (or one of IDLE / DONE / ERROR).
+    for (const [from, edges] of Object.entries(transitions)) {
+      for (const state of [from, ...Object.values(edges)]) {
+        if (!special.has(state) && !acts.has(state)) {
+          throw new Error(`Act "${state}" is referenced in transitions but was never added via addAct().`);
+        }
+      }
+    }
+
+    const fromIdle = this._reachable(IDLE, transitions);
+
+    // 2. every act is reachable from IDLE.
+    for (const act of acts) {
+      if (!fromIdle.has(act)) {
+        throw new Error(`Act "${act}" is unreachable from IDLE — no transition leads to it.`);
+      }
+    }
+
+    // 3. at least one path from IDLE to DONE exists.
+    if (!fromIdle.has(DONE)) {
+      throw new Error(`No path from IDLE to DONE exists — the lesson can never finish.`);
+    }
+
+    // 4. every act can still reach DONE (no dead-end or no-exit loop).
+    for (const act of acts) {
+      if (!this._reachable(act, transitions).has(DONE)) {
+        throw new Error(`Act "${act}" has no path to DONE — it may loop forever.`);
+      }
+    }
+  }
+
+  // the act the lesson starts from: explicit setStartAct, else the first act added.
+  private _startState(): string | undefined {
+    return this._startAct ?? this._acts[0]?.name;
+  }
+
+  // assemble the freeform transition table: the teacher's custom edges plus the
+  // IDLE -> start edge and the terminal DONE / ERROR states.
+  private _buildFreeformTransitions(): Record<string, Record<string, string>> {
+    const transitions: Record<string, Record<string, string>> = {};
+    for (const [from, edges] of Object.entries(this._customTransitions)) {
+      transitions[from] = { ...edges };
+    }
+    const start = this._startState();
+    if (start) transitions[IDLE] = { next: start };
+    transitions[DONE] = transitions[DONE] ?? {};
+    transitions[ERROR] = transitions[ERROR] ?? {};
+    return transitions;
+  }
+
+  // every state reachable from `start` by following any transition (BFS).
+  private _reachable(start: string, transitions: Record<string, Record<string, string>>): Set<string> {
+    const seen = new Set<string>();
+    const queue = [start];
+    while (queue.length) {
+      const state = queue.shift()!;
+      if (seen.has(state)) continue;
+      seen.add(state);
+      for (const to of Object.values(transitions[state] ?? {})) queue.push(to);
+    }
+    return seen;
   }
 
   // keep firing "next" until DONE; on a throwing act, fire "fail" -> ERROR.
@@ -287,17 +431,19 @@ export class Lesson extends StateMachine {
     return this.state;
   }
 
-  // run one act: call its ActFn with the lesson context, stash the result, log it.
-  private _runAct(name: string, fn: ActFn): void {
-    const out = fn(this.toContext());
-    this._results.push({
-      name,
+  // run one act: let the ActState produce its output, stash the result, log it.
+  private _runAct(act: ActState): void {
+    const out = act.run(this.toContext());
+    const result: ActResult = {
+      name: act.name,
       text: out.text,
       jsCall: out.jsCall ?? null,
       jsArgs: out.jsArgs ?? {},
       rawHtml: out.rawHtml ?? null,
-    });
-    console.log(`[Lesson] ran act: ${name}`);
+    };
+    if (act.location) result.location = act.location;
+    this._results.push(result);
+    console.log(`[Lesson] ran act: ${act.name}`);
   }
 
   // ─────────────────────────────────────────────────────────────────
@@ -499,3 +645,68 @@ ${exprs}
 </script>`;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+// Validation — 4 checks before a single act runs:
+// 1. no typos — every act name in transitions must actually exist
+// 2. every act is reachable from IDLE
+// 3. at least one path to DONE exists
+// 4. no act is stuck in an infinite loop with no exit
+
+// powered by a BFS flood fill that follows every arrow from a
+// starting point and collects everything reachable:
+const queue = [start];
+while (queue.length) {
+  const state = queue.shift()!;
+  for (const to of Object.values(transitions[state] ?? {})) queue.push(to);
+}
+
+// step() — how you advance a freeform lesson:
+async step(trigger: string) {
+  await this.trigger(trigger); // fires the arrow, runs the act it lands on
+}
+
+// in practice:
+await lesson.run()              // enters first act, stops
+await lesson.step("incorrect")  // fires "incorrect" arrow → re_explain
+await lesson.step("next")       // re_explain → question (retry loop)
+await lesson.step("correct")    // fires "correct" arrow → advanced
+await lesson.step("next")       // advanced → DONE
+
+// student actions are hardcoded step() calls for now
+// — real frontend interactivity comes later.
+
+*/

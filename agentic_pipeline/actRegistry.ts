@@ -37,6 +37,11 @@ export type ActFn = (ctx: LessonContext) => ActOutput;
 // One entry in a registry: a short name plus its function.
 export type RegistryEntry = [string, ActFn];
 
+// where an act's visual content is placed in the slide. "left" = the diagram
+// panel, "right" = the text column, "bottom" = the question band. optional: when
+// unset the assembler auto-places each piece by its type.
+export type ActLocation = "left" | "right" | "bottom";
+
 // The plain shape run produces for the assembler.
 export interface ActResult {
   name: string;
@@ -44,6 +49,9 @@ export interface ActResult {
   jsCall: string | null;
   jsArgs: Record<string, any>;
   rawHtml: string | null;
+  // optional teacher override (from addAct's options). forces where this act's
+  // visual (jsCall + rawHtml) is placed; text always stays in the right column.
+  location?: ActLocation;
 }
 
 

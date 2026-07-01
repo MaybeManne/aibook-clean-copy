@@ -1,18 +1,87 @@
-// LAYER 2: assembler (TypeScript port of layer2_assembler.py).
-//
-// Takes the act objects from runAllActs and stitches them into one self
-// contained HTML file you can open in a browser.
-//
-// Rule: an act's JS is at most ONE line (a vizLib call), or rawHtml for an
-// outside tool. a teacher never hand writes a <script> block for a normal visual.
-//
-// Standalone. does not touch assembler.py, orchestrator.py, or the state machine.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Counting and Adding</title>
+<!-- web fonts used by some templates: Nunito (duolingo), Patrick Hand (chalk).
+     other presets name system/near-system fonts and need no load. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Patrick+Hand&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<style>
 
-import type { ActResult } from "./actRegistry.ts";
-import { type LessonTemplate, getPreset, templateToCss } from "./templates.ts";
+  html, body { margin: 0; padding: 0; height: 100%; }
+  html { background: #ffffff; }
+  body { background: #ffffff; color: #3c3c3c;
+         font-family: Nunito, Comic Sans MS, cursive; font-size: 18px; line-height: 1.6; }
 
+  /* persistent lesson title, top-left across every slide. titleSize drives the
+     visual hierarchy, so a kid-friendly or accessibility preset reads larger. */
+  .lesson-title { position: fixed; top: 18px; left: 32px; z-index: 30;
+                  font-family: Nunito, Comic Sans MS, cursive; font-size: 2rem; font-weight: 600;
+                  letter-spacing: 0.5px; color: #3c3c3c; }
 
-const VIZ_LIB_JS = `
+  /* slideshow: all slides stacked; only the active one is visible. using
+     visibility (not display:none) so SVG/embeds keep real dimensions while hidden. */
+  .slideshow { position: relative; width: 100%; height: 100vh; overflow: hidden; }
+  .slide { position: absolute; inset: 0; visibility: hidden;
+           display: flex; flex-direction: column; justify-content: center;
+           box-sizing: border-box; padding: 64px 48px 88px;
+           background: #f7f7f7; }
+  .slide.active { visibility: visible; }
+
+  /* per-slide act label, top-right, accent */
+  .act-label { position: absolute; top: 24px; right: 32px; text-transform: uppercase;
+               color: #58cc02; font-size: 11px; letter-spacing: 2px; font-weight: 600; }
+
+  /* top section: the visual/text two-column split. flexes to fill the slide above
+     the bottom band (min-height:0 lets .act-text scroll instead of overflowing). */
+  .act-columns { display: flex; flex-direction: row; gap: 16px;
+                 width: 100%; flex: 1 1 auto; min-height: 0; }
+  /* left: visual, vertically centered on a darker panel */
+  .act-visual { flex: 1; min-width: 0; display: flex; align-items: center;
+                justify-content: center; background: #ffffff; border-radius: 8px; }
+  /* right: text/steps/math/highlights/mcq, scrolls if it overflows */
+  .act-text { flex: 1; min-width: 0; overflow-y: auto; padding: 0 4px; }
+  .act-text p { margin-top: 0; }
+
+  /* SVG text defaults to black; make it readable on the dark panel. */
+  .slide svg text { fill: #3c3c3c; }
+  .slide table th { color: #111827; }
+  .slide table td { color: #3c3c3c; }
+
+  /* bottom band: questions (MCQ / slider) below the two columns. flows from the
+     top when it's the only content (question-only act), else sits under the split. */
+  .act-bottom { flex: 0 0 auto; width: 100%; margin-top: 16px; }
+
+  /* MCQ block: capped width so buttons don't stretch across the wide bottom band;
+     centered when it lives in the bottom band. */
+  .act-mcq { margin-top: 20px; max-width: 520px; }
+  .act-bottom .act-mcq { margin-left: auto; margin-right: auto; }
+  .act-mcq .mcq-question { font-weight: 600; color: #3c3c3c; margin-bottom: 10px; }
+  .act-mcq button { display: block; margin: 8px 0; padding: 10px 20px; font: inherit;
+                    background: #ffffff; color: #3c3c3c;
+                    border: 1px solid #e5e5e5; border-radius: 6px; cursor: pointer; }
+  .act-mcq button:hover { border-color: #58cc02; }
+
+  /* bottom navigation bar: [Prev]  n / total  [Next] */
+  .navbar { position: fixed; bottom: 0; left: 0; right: 0; height: 56px; z-index: 30;
+            display: flex; align-items: center; justify-content: center; gap: 28px;
+            background: #f7f7f7; border-top: 1px solid #e5e5e5; }
+  .navbar button { background: #ffffff; color: #3c3c3c;
+                   border: 1px solid #e5e5e5; border-radius: 6px;
+                   padding: 8px 18px; font: inherit; font-size: 14px; cursor: pointer; }
+  .navbar button:hover:not(:disabled) { border-color: #58cc02; color: #3c3c3c; }
+  .navbar button:disabled { opacity: 0.4; cursor: default; }
+  .counter { color: #8a8fa3; font-size: 13px; letter-spacing: 1px; }
+</style>
+<!-- KaTeX for math rendering -->
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<!-- vizLib is defined first so every slide's one-line call below can use it. -->
+<script>
+
 window.vizLib = {
 
   showFractionBar: function (args) {
@@ -337,104 +406,71 @@ window.vizLib = {
   },
 
 };
-`;
 
+</script>
+</head>
+<body>
+<div class="lesson-title">Counting and Adding</div>
 
-function htmlEscape(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
-}
+<div class="slideshow">
+<div class="slide" id="slide-intro-0">
+  <div class="act-label">intro</div>
+  <div class="act-columns">
+    <div class="act-visual">
+      <div id="viz-intro-0"></div>
+      <script>vizLib.showBarChart({"labels":["your apples","friend's apples"],"values":[2,3],"title":"Count the apples!","targetId":"viz-intro-0"});</script>
+    </div>
+    <div class="act-text">
+      <p>Let&#x27;s count and add! You start with 2 apples, and your friend gives you 3 more.</p>
+    </div>
+  </div>
+</div>
+<div class="slide" id="slide-count_up-1">
+  <div class="act-label">count up</div>
+  <div class="act-columns">
+    <div class="act-text">
+      <div id="viz-count_up-1"></div>
+      <script>vizLib.showStepList({"steps":["Start with your 2 apples: 1, 2.","Now add your friend's 3: 3, 4, 5.","2 and 3 make 5!"],"targetId":"viz-count_up-1"});</script>
+    </div>
+  </div>
+</div>
+<div class="slide" id="slide-check-2">
+  <div class="act-label">check</div>
+  <div class="act-columns">
+    <div class="act-visual">
+      <div id="viz-left-0"></div><script>vizLib.showNumberLine({"min":0,"max":6,"points":[2,5],"labels":["start: 2","2 + 3 = 5"],"targetId":"viz-left-0"});</script>
+    </div>
+    <div class="act-text">
+      <p>Hop along the number line: start at 2, then take 3 hops to the right. Where do you land?</p>
+    </div>
+  </div>
+  <div class="act-bottom">
+      <div class="act-mcq">
+      <div id="viz-check-2"></div>
+      <script>vizLib.showMultipleChoice({"question":"So what is 2 + 3?","options":["5","4","6","3"],"correctIndex":0,"targetId":"viz-check-2"});</script>
+      </div>
+  </div>
+</div>
+<div class="slide" id="slide-celebrate-3">
+  <div class="act-label">celebrate</div>
+  <div class="act-columns">
+    <div class="act-text">
+      <p>You did it! Counting on from a number is a super-fast way to add. Keep it up!</p>
+      <div id="viz-celebrate-3"></div>
+      <script>vizLib.showHighlight({"text":"Awesome! 2 + 3 = 5 apples!","targetId":"viz-celebrate-3"});</script>
+    </div>
+  </div>
+</div>
+</div>
 
+<div class="navbar">
+  <button id="prevBtn">&larr; Prev</button>
+  <span class="counter"><span id="curSlide">1</span> / 4</span>
+  <button id="nextBtn">Next &rarr;</button>
+</div>
 
-// vizLib calls that are textual (steps / highlights / callouts / tables) belong in
-// the right-hand text column, not the left-hand diagram column.
-const TEXT_VISUALS = new Set(["showStepList", "showHighlight", "showCallout", "showTable"]);
+<script>
 
-// interactive question types belong in the bottom band, below the two columns.
-const BOTTOM_VISUALS = new Set(["showMultipleChoice", "showSlider"]);
-
-// where a jsCall piece auto-places: bottom for questions, right for textual
-// visuals, left for everything else (diagrams). a teacher can override the whole
-// act with addAct(..., { location }).
-function autoZoneForJsCall(jsCall: string): "left" | "right" | "bottom" {
-  if (BOTTOM_VISUALS.has(jsCall)) return "bottom";
-  if (TEXT_VISUALS.has(jsCall)) return "right";
-  return "left";
-}
-
-// one-line vizLib call: a target div plus the script that draws into it.
-function vizCall(uid: string, jsCall: string, jsArgs: Record<string, any>): string {
-  const vizId = `viz-${uid}`;
-  const argsJson = JSON.stringify({ ...jsArgs, targetId: vizId });
-  return `      <div id="${vizId}"></div>\n      <script>vizLib.${jsCall}(${argsJson});</script>`;
-}
-
-// render one act as a slideshow slide: a top-right act label, a two-column split
-// (visual left / text right) and a bottom band for questions. each piece is placed
-// by type — diagrams left (.act-visual), text / steps / math / highlights right
-// (.act-text), MCQ / slider bottom (.act-bottom) — unless act.location overrides
-// where the act's visual (jsCall + rawHtml) goes. text always stays right. a zone
-// that gets no content isn't emitted, so a single-piece act flexes to fill.
-//
-// `index` makes the DOM ids unique per slide: a freeform lesson can visit the same
-// act twice (a loop), and two slides sharing an id would make both vizLib scripts
-// target the first one, leaving the second slide's visual empty.
-export function assembleAct(act: ActResult, index = 0): string {
-  const name = act.name || "act";
-  const uid = `${htmlEscape(name)}-${index}`;
-  const label = htmlEscape(name.replace(/_/g, " "));
-  const parts: string[] = [
-    `<div class="slide" id="slide-${uid}">`,
-    `  <div class="act-label">${label}</div>`,
-  ];
-
-  const visualCol: string[] = [];
-  const textCol: string[] = [];
-  const bottomCol: string[] = [];
-  const zoneFor = (zone: "left" | "right" | "bottom") =>
-    zone === "left" ? visualCol : zone === "bottom" ? bottomCol : textCol;
-
-  // text always lives in the right column (the explanation), never overridden.
-  if (act.text) {
-    textCol.push(`      <p>${htmlEscape(act.text).replace(/\n/g, "<br>")}</p>`);
-  }
-  // a jsCall piece: MCQ gets wrapped in .act-mcq; the location override (if any)
-  // wins over the auto zone for this jsCall type.
-  if (act.jsCall) {
-    const zone = act.location ?? autoZoneForJsCall(act.jsCall);
-    const html =
-      act.jsCall === "showMultipleChoice"
-        ? `      <div class="act-mcq">\n${vizCall(uid, act.jsCall, act.jsArgs)}\n      </div>`
-        : vizCall(uid, act.jsCall, act.jsArgs);
-    zoneFor(zone).push(html);
-  }
-  // rawHtml: latex (KaTeX) is math -> right; everything else (e.g. Desmos) -> left.
-  // the location override wins here too.
-  if (act.rawHtml) {
-    const auto = act.rawHtml.includes('class="katex"') ? "right" : "left";
-    zoneFor(act.location ?? auto).push(`      ${act.rawHtml}`);
-  }
-
-  const cols: string[] = [];
-  if (visualCol.length) cols.push(`    <div class="act-visual">\n${visualCol.join("\n")}\n    </div>`);
-  if (textCol.length) cols.push(`    <div class="act-text">\n${textCol.join("\n")}\n    </div>`);
-  // only emit the two-column row when it has content, so a question-only act
-  // doesn't leave an empty top half pushing the bottom band to the edge.
-  if (cols.length) parts.push(`  <div class="act-columns">\n${cols.join("\n")}\n  </div>`);
-  if (bottomCol.length) parts.push(`  <div class="act-bottom">\n${bottomCol.join("\n")}\n  </div>`);
-
-  parts.push("</div>");
-  return parts.join("\n");
-}
-
-
-// the slideshow controller: show one slide at a time, wire prev/next buttons,
-// arrow keys, and the counter. kept ES5-ish to match the vizLib style.
-const SLIDESHOW_JS = `
 (function () {
   var slides = document.querySelectorAll('.slide');
   var total = slides.length;
@@ -459,57 +495,7 @@ const SLIDESHOW_JS = `
   });
   show(0);
 })();
-`;
 
-
-// template is optional so existing callers (lessonDemo, visualTest) keep working
-// with the two-arg form; they get the "default" preset. pass lesson.getTemplate()
-// as the third arg to apply a customized look.
-export function assembleLesson(acts: ActResult[], title: string, template?: LessonTemplate): string {
-  const slides = acts.map((act, i) => assembleAct(act, i)).join("\n");
-  const safeTitle = htmlEscape(title);
-  const tpl = template ?? getPreset("default");
-  const total = acts.length;
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${safeTitle}</title>
-<!-- web fonts used by some templates: Nunito (duolingo), Patrick Hand (chalk).
-     other presets name system/near-system fonts and need no load. -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Patrick+Hand&display=swap">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<style>
-${templateToCss(tpl)}
-</style>
-<!-- KaTeX for math rendering -->
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<!-- vizLib is defined first so every slide's one-line call below can use it. -->
-<script>
-${VIZ_LIB_JS}
-</script>
-</head>
-<body>
-<div class="lesson-title">${safeTitle}</div>
-
-<div class="slideshow">
-${slides}
-</div>
-
-<div class="navbar">
-  <button id="prevBtn">&larr; Prev</button>
-  <span class="counter"><span id="curSlide">1</span> / ${total}</span>
-  <button id="nextBtn">Next &rarr;</button>
-</div>
-
-<script>
-${SLIDESHOW_JS}
 </script>
 </body>
 </html>
-`;
-}

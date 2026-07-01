@@ -53,9 +53,33 @@ export type TemplateOverrides = {
   slide?: Partial<LessonTemplate["slide"]>;
 };
 
+// the shape a template module must export: the preset lookup/merge/render helpers
+// plus the PRESETS map. formalizes what this file (templates.ts) provides so an
+// alternative template module could be swapped in against the same contract.
+export interface ITemplate {
+  name: string;
+  getPreset(name: string): LessonTemplate;
+  mergeTemplate(base: LessonTemplate, overrides: TemplateOverrides): LessonTemplate;
+  templateToCss(t: LessonTemplate): string;
+  PRESETS: Record<string, LessonTemplate>;
+}
+
 
 // ---- the presets ----
 // add a new look by adding one entry here. nothing else changes.
+//
+// the full set and who each one is for:
+//   default      — general-purpose dark, the primary look
+//   dark         — near-black variant of default
+//   minimal      — light, low-chrome, distraction-free
+//   duolingo     — playful + gamified, for young kids (ages 6-10)
+//   technical    — dark, ultra-minimal, for technical / developer audiences
+//   notion       — warm minimalism, document-like, for calm focused reading
+//   ocean        — deep navy/teal, calm, for long study sessions
+//   chalk        — chalkboard classroom aesthetic, nostalgic and warm
+//   sunrise      — warm light mode, inviting, for morning focus sessions
+//   highcontrast — WCAG AAA accessibility first, for visual impairments
+//   kids         — bold primary colors, for very young children (ages 4-7)
 export const PRESETS: Record<string, LessonTemplate> = {
   // dark, clean, two-column. the primary look.
   default: {
@@ -81,7 +105,71 @@ export const PRESETS: Record<string, LessonTemplate> = {
     layout: { visualPosition: "left", padding: "24px", gap: "16px" },
     slide: { titleSize: "1.5rem", titleColor: "#111111", showDividers: false },
   },
-};
+  // playful + gamified, big friendly type — for young kids (ages 6-10).
+  duolingo: {
+    name: "duolingo",
+    colors: { background: "#ffffff", text: "#3c3c3c", accent: "#58cc02", slideBackground: "#f7f7f7", divider: "#e5e5e5" },
+    fonts: { title: "Nunito, Comic Sans MS, cursive", body: "Nunito, Comic Sans MS, cursive", size: "18px" },
+    layout: { visualPosition: "left", padding: "24px", gap: "16px" },
+    slide: { titleSize: "2rem", titleColor: "#3c3c3c", showDividers: false },
+  },
+  // dark, ultra-minimal, tight type — for technical / developer audiences.
+  technical: {
+    name: "technical",
+    colors: { background: "#0a0a0f", text: "#e2e8f0", accent: "#7c3aed", slideBackground: "#0f0f17", divider: "#1e1e2e" },
+    fonts: { title: "Inter, -apple-system, sans-serif", body: "Inter, -apple-system, sans-serif", size: "15px" },
+    layout: { visualPosition: "left", padding: "24px", gap: "16px" },
+    slide: { titleSize: "1.5rem", titleColor: "#ffffff", showDividers: true },
+  },
+  // warm minimalism, serif title — document-like, for calm focused reading.
+  notion: {
+    name: "notion",
+    colors: { background: "#f7f6f3", text: "#1a1a1a", accent: "#e9a84c", slideBackground: "#ffffff", divider: "#e5e0d8" },
+    fonts: { title: "Georgia, 'Times New Roman', serif", body: "Inter, sans-serif", size: "16px" },
+    layout: { visualPosition: "left", padding: "24px", gap: "16px" },
+    slide: { titleSize: "1.6rem", titleColor: "#1a1a1a", showDividers: false },
+  },
+  // deep navy/teal, calm and focused — for long study sessions.
+  ocean: {
+    name: "ocean",
+    colors: { background: "#0d1b2a", text: "#e0f7ff", accent: "#06b6d4", slideBackground: "#112336", divider: "#1e3a5f" },
+    fonts: { title: "Inter, sans-serif", body: "Inter, sans-serif", size: "16px" },
+    layout: { visualPosition: "left", padding: "24px", gap: "16px" },
+    slide: { titleSize: "1.7rem", titleColor: "#ffffff", showDividers: true },
+  },
+  // chalkboard classroom aesthetic, handwritten type — nostalgic and warm.
+  chalk: {
+    name: "chalk",
+    colors: { background: "#1a2e1a", text: "#f5f0e8", accent: "#ffd700", slideBackground: "#1f351f", divider: "#2d4a2d" },
+    fonts: { title: "'Patrick Hand', 'Comic Sans MS', cursive", body: "'Patrick Hand', 'Comic Sans MS', cursive", size: "16px" },
+    layout: { visualPosition: "left", padding: "24px", gap: "16px" },
+    slide: { titleSize: "1.8rem", titleColor: "#ffd700", showDividers: true },
+  },
+  // warm light mode, inviting — for morning focus sessions.
+  sunrise: {
+    name: "sunrise",
+    colors: { background: "#fffbf5", text: "#2d1f0e", accent: "#f59e0b", slideBackground: "#fff8ef", divider: "#fde8c8" },
+    fonts: { title: "Inter, sans-serif", body: "Inter, sans-serif", size: "16px" },
+    layout: { visualPosition: "left", padding: "24px", gap: "16px" },
+    slide: { titleSize: "1.7rem", titleColor: "#1a0f00", showDividers: false },
+  },
+  // WCAG AAA accessibility first, large type — for visual impairments.
+  highcontrast: {
+    name: "highcontrast",
+    colors: { background: "#000000", text: "#ffffff", accent: "#00d4ff", slideBackground: "#0a0a0a", divider: "#333333" },
+    fonts: { title: "Arial, Helvetica, sans-serif", body: "Arial, Helvetica, sans-serif", size: "18px" },
+    layout: { visualPosition: "left", padding: "24px", gap: "16px" },
+    slide: { titleSize: "2rem", titleColor: "#ffffff", showDividers: true },
+  },
+  // bold primary colors, extra-large friendly type — for very young children (ages 4-7).
+  kids: {
+    name: "kids",
+    colors: { background: "#ffffff", text: "#1a1a1a", accent: "#ff3b3b", slideBackground: "#fff9f0", divider: "#ffeb99" },
+    fonts: { title: "Nunito, Comic Sans MS, cursive", body: "Nunito, Comic Sans MS, cursive", size: "20px" },
+    layout: { visualPosition: "left", padding: "24px", gap: "16px" },
+    slide: { titleSize: "2.2rem", titleColor: "#2563eb", showDividers: false },
+  },
+} satisfies ITemplate["PRESETS"];
 
 
 // return a fresh copy of a preset by name. throws on an unknown name so a typo
@@ -94,6 +182,8 @@ export function getPreset(name: string): LessonTemplate {
   // deep clone so callers can mutate/override without touching the shared preset.
   return mergeTemplate(preset, {});
 }
+// enforce the module contract (see ITemplate above).
+getPreset satisfies ITemplate["getPreset"];
 
 // merge overrides onto a base template, one nested group at a time, so a partial
 // override (just a color, just visualPosition) keeps every field it didn't mention.
@@ -106,6 +196,7 @@ export function mergeTemplate(base: LessonTemplate, overrides: TemplateOverrides
     slide: { ...base.slide, ...(overrides.slide ?? {}) },
   };
 }
+mergeTemplate satisfies ITemplate["mergeTemplate"];
 
 
 // ---- template -> CSS ----
@@ -128,16 +219,18 @@ export function templateToCss(t: LessonTemplate): string {
   body { background: ${c.background}; color: ${c.text};
          font-family: ${f.body}; font-size: ${f.size}; line-height: 1.6; }
 
-  /* persistent lesson title, top-left across every slide */
+  /* persistent lesson title, top-left across every slide. titleSize drives the
+     visual hierarchy, so a kid-friendly or accessibility preset reads larger. */
   .lesson-title { position: fixed; top: 18px; left: 32px; z-index: 30;
-                  font-family: ${f.title}; font-size: 14px; font-weight: 600;
+                  font-family: ${f.title}; font-size: ${s.titleSize}; font-weight: 600;
                   letter-spacing: 0.5px; color: ${s.titleColor}; }
 
   /* slideshow: all slides stacked; only the active one is visible. using
      visibility (not display:none) so SVG/embeds keep real dimensions while hidden. */
   .slideshow { position: relative; width: 100%; height: 100vh; overflow: hidden; }
   .slide { position: absolute; inset: 0; visibility: hidden;
-           display: flex; box-sizing: border-box; padding: 64px 48px 88px;
+           display: flex; flex-direction: column; justify-content: center;
+           box-sizing: border-box; padding: 64px 48px 88px;
            background: ${c.slideBackground}; }
   .slide.active { visibility: visible; }
 
@@ -145,7 +238,10 @@ export function templateToCss(t: LessonTemplate): string {
   .act-label { position: absolute; top: 24px; right: 32px; text-transform: uppercase;
                color: ${c.accent}; font-size: 11px; letter-spacing: 2px; font-weight: 600; }
 
-  .act-columns { display: flex; flex-direction: ${direction}; gap: ${l.gap}; width: 100%; height: 100%; }
+  /* top section: the visual/text two-column split. flexes to fill the slide above
+     the bottom band (min-height:0 lets .act-text scroll instead of overflowing). */
+  .act-columns { display: flex; flex-direction: ${direction}; gap: ${l.gap};
+                 width: 100%; flex: 1 1 auto; min-height: 0; }
   /* left: visual, vertically centered on a darker panel */
   .act-visual { flex: 1; min-width: 0; display: flex; align-items: center;
                 justify-content: center; background: ${c.background}; border-radius: 8px; }
@@ -158,12 +254,18 @@ export function templateToCss(t: LessonTemplate): string {
   .slide table th { color: #111827; }
   .slide table td { color: ${c.text}; }
 
-  /* MCQ lives in the right column, below the text */
-  .act-mcq { margin-top: 20px; }
+  /* bottom band: questions (MCQ / slider) below the two columns. flows from the
+     top when it's the only content (question-only act), else sits under the split. */
+  .act-bottom { flex: 0 0 auto; width: 100%; margin-top: ${l.gap}; }
+
+  /* MCQ block: capped width so buttons don't stretch across the wide bottom band;
+     centered when it lives in the bottom band. */
+  .act-mcq { margin-top: 20px; max-width: 520px; }
+  .act-bottom .act-mcq { margin-left: auto; margin-right: auto; }
   .act-mcq .mcq-question { font-weight: 600; color: ${s.titleColor}; margin-bottom: 10px; }
   .act-mcq button { display: block; margin: 8px 0; padding: 10px 20px; font: inherit;
                     background: ${c.background}; color: ${c.text};
-                    border: 1px solid #3a3a5a; border-radius: 6px; cursor: pointer; }
+                    border: 1px solid ${c.divider}; border-radius: 6px; cursor: pointer; }
   .act-mcq button:hover { border-color: ${c.accent}; }
 
   /* bottom navigation bar: [Prev]  n / total  [Next] */
@@ -177,3 +279,4 @@ export function templateToCss(t: LessonTemplate): string {
   .navbar button:disabled { opacity: 0.4; cursor: default; }
   .counter { color: ${muted}; font-size: 13px; letter-spacing: 1px; }`;
 }
+templateToCss satisfies ITemplate["templateToCss"];

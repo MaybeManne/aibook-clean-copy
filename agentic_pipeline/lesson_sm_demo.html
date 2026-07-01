@@ -1,18 +1,22 @@
-// LAYER 2: assembler (TypeScript port of layer2_assembler.py).
-//
-// Takes the act objects from runAllActs and stitches them into one self
-// contained HTML file you can open in a browser.
-//
-// Rule: an act's JS is at most ONE line (a vizLib call), or rawHtml for an
-// outside tool. a teacher never hand writes a <script> block for a normal visual.
-//
-// Standalone. does not touch assembler.py, orchestrator.py, or the state machine.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pizza Fractions</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<style>
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+          max-width: 760px; margin: 40px auto; padding: 0 16px;
+          line-height: 1.6; color: #1a1a2e; }
+  h1 { font-size: 1.6rem; }
+  section.act { padding: 16px 0; border-bottom: 1px solid #eee; }
+</style>
+<!-- KaTeX for math rendering -->
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<!-- vizLib is defined first so every act's one-line call below can use it. -->
+<script>
 
-import type { ActResult } from "./actRegistry.ts";
-import { type LessonTemplate, getPreset, templateToCss } from "./templates.ts";
-
-
-const VIZ_LIB_JS = `
 window.vizLib = {
 
   showFractionBar: function (args) {
@@ -43,23 +47,26 @@ window.vizLib = {
     viz.appendChild(wrap);
   },
 
-  // Base button/question styling comes from the template CSS (.act-mcq ...); we
-  // only set the question class and the correct/incorrect feedback color here.
   showMultipleChoice: function (args) {
     var viz = document.getElementById(args.targetId || 'viz');
     if (!viz) { return; }
     var wrap = document.createElement('div');
+    wrap.style.margin = '12px 0';
     var q = document.createElement('div');
-    q.className = 'mcq-question';
     q.textContent = args.question;
+    q.style.fontWeight = '600';
+    q.style.marginBottom = '8px';
     wrap.appendChild(q);
     args.options.forEach(function (opt, i) {
       var btn = document.createElement('button');
       btn.textContent = opt;
+      btn.style.display = 'block';
+      btn.style.margin = '4px 0';
+      btn.style.padding = '8px 12px';
+      btn.style.cursor = 'pointer';
       btn.onclick = function () {
         btn.style.background = (i === args.correctIndex) ? '#22c55e' : '#ef4444';
-        btn.style.color = '#ffffff';
-        btn.style.borderColor = 'transparent';
+        btn.style.color = '#fff';
       };
       wrap.appendChild(btn);
     });
@@ -83,13 +90,13 @@ window.vizLib = {
     slider.min = args.min;
     slider.max = args.max;
     slider.step = args.step;
+    slider.value = args.default;
     slider.style.display = 'block';
     slider.style.width = '320px';
     slider.style.marginTop = '6px';
     slider.oninput = function () { out.textContent = slider.value; };
     wrap.appendChild(slider);
     viz.appendChild(wrap);
-    slider.value = args.default;
   },
 
   showTable: function (args) {
@@ -337,179 +344,37 @@ window.vizLib = {
   },
 
 };
-`;
 
-
-function htmlEscape(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
-}
-
-
-// vizLib calls that are textual (steps / highlights / callouts / tables) belong in
-// the right-hand text column, not the left-hand diagram column.
-const TEXT_VISUALS = new Set(["showStepList", "showHighlight", "showCallout", "showTable"]);
-
-// interactive question types belong in the bottom band, below the two columns.
-const BOTTOM_VISUALS = new Set(["showMultipleChoice", "showSlider"]);
-
-// where a jsCall piece auto-places: bottom for questions, right for textual
-// visuals, left for everything else (diagrams). a teacher can override the whole
-// act with addAct(..., { location }).
-function autoZoneForJsCall(jsCall: string): "left" | "right" | "bottom" {
-  if (BOTTOM_VISUALS.has(jsCall)) return "bottom";
-  if (TEXT_VISUALS.has(jsCall)) return "right";
-  return "left";
-}
-
-// one-line vizLib call: a target div plus the script that draws into it.
-function vizCall(uid: string, jsCall: string, jsArgs: Record<string, any>): string {
-  const vizId = `viz-${uid}`;
-  const argsJson = JSON.stringify({ ...jsArgs, targetId: vizId });
-  return `      <div id="${vizId}"></div>\n      <script>vizLib.${jsCall}(${argsJson});</script>`;
-}
-
-// render one act as a slideshow slide: a top-right act label, a two-column split
-// (visual left / text right) and a bottom band for questions. each piece is placed
-// by type — diagrams left (.act-visual), text / steps / math / highlights right
-// (.act-text), MCQ / slider bottom (.act-bottom) — unless act.location overrides
-// where the act's visual (jsCall + rawHtml) goes. text always stays right. a zone
-// that gets no content isn't emitted, so a single-piece act flexes to fill.
-//
-// `index` makes the DOM ids unique per slide: a freeform lesson can visit the same
-// act twice (a loop), and two slides sharing an id would make both vizLib scripts
-// target the first one, leaving the second slide's visual empty.
-export function assembleAct(act: ActResult, index = 0): string {
-  const name = act.name || "act";
-  const uid = `${htmlEscape(name)}-${index}`;
-  const label = htmlEscape(name.replace(/_/g, " "));
-  const parts: string[] = [
-    `<div class="slide" id="slide-${uid}">`,
-    `  <div class="act-label">${label}</div>`,
-  ];
-
-  const visualCol: string[] = [];
-  const textCol: string[] = [];
-  const bottomCol: string[] = [];
-  const zoneFor = (zone: "left" | "right" | "bottom") =>
-    zone === "left" ? visualCol : zone === "bottom" ? bottomCol : textCol;
-
-  // text always lives in the right column (the explanation), never overridden.
-  if (act.text) {
-    textCol.push(`      <p>${htmlEscape(act.text).replace(/\n/g, "<br>")}</p>`);
-  }
-  // a jsCall piece: MCQ gets wrapped in .act-mcq; the location override (if any)
-  // wins over the auto zone for this jsCall type.
-  if (act.jsCall) {
-    const zone = act.location ?? autoZoneForJsCall(act.jsCall);
-    const html =
-      act.jsCall === "showMultipleChoice"
-        ? `      <div class="act-mcq">\n${vizCall(uid, act.jsCall, act.jsArgs)}\n      </div>`
-        : vizCall(uid, act.jsCall, act.jsArgs);
-    zoneFor(zone).push(html);
-  }
-  // rawHtml: latex (KaTeX) is math -> right; everything else (e.g. Desmos) -> left.
-  // the location override wins here too.
-  if (act.rawHtml) {
-    const auto = act.rawHtml.includes('class="katex"') ? "right" : "left";
-    zoneFor(act.location ?? auto).push(`      ${act.rawHtml}`);
-  }
-
-  const cols: string[] = [];
-  if (visualCol.length) cols.push(`    <div class="act-visual">\n${visualCol.join("\n")}\n    </div>`);
-  if (textCol.length) cols.push(`    <div class="act-text">\n${textCol.join("\n")}\n    </div>`);
-  // only emit the two-column row when it has content, so a question-only act
-  // doesn't leave an empty top half pushing the bottom band to the edge.
-  if (cols.length) parts.push(`  <div class="act-columns">\n${cols.join("\n")}\n  </div>`);
-  if (bottomCol.length) parts.push(`  <div class="act-bottom">\n${bottomCol.join("\n")}\n  </div>`);
-
-  parts.push("</div>");
-  return parts.join("\n");
-}
-
-
-// the slideshow controller: show one slide at a time, wire prev/next buttons,
-// arrow keys, and the counter. kept ES5-ish to match the vizLib style.
-const SLIDESHOW_JS = `
-(function () {
-  var slides = document.querySelectorAll('.slide');
-  var total = slides.length;
-  var cur = 0;
-  var curEl = document.getElementById('curSlide');
-  var prevBtn = document.getElementById('prevBtn');
-  var nextBtn = document.getElementById('nextBtn');
-  function show(i) {
-    if (i < 0) { i = 0; }
-    if (i > total - 1) { i = total - 1; }
-    cur = i;
-    for (var k = 0; k < total; k++) { slides[k].classList.toggle('active', k === i); }
-    if (curEl) { curEl.textContent = String(i + 1); }
-    if (prevBtn) { prevBtn.disabled = (i === 0); }
-    if (nextBtn) { nextBtn.disabled = (i === total - 1); }
-  }
-  if (prevBtn) { prevBtn.onclick = function () { show(cur - 1); }; }
-  if (nextBtn) { nextBtn.onclick = function () { show(cur + 1); }; }
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'ArrowLeft') { show(cur - 1); }
-    else if (e.key === 'ArrowRight') { show(cur + 1); }
-  });
-  show(0);
-})();
-`;
-
-
-// template is optional so existing callers (lessonDemo, visualTest) keep working
-// with the two-arg form; they get the "default" preset. pass lesson.getTemplate()
-// as the third arg to apply a customized look.
-export function assembleLesson(acts: ActResult[], title: string, template?: LessonTemplate): string {
-  const slides = acts.map((act, i) => assembleAct(act, i)).join("\n");
-  const safeTitle = htmlEscape(title);
-  const tpl = template ?? getPreset("default");
-  const total = acts.length;
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${safeTitle}</title>
-<!-- web fonts used by some templates: Nunito (duolingo), Patrick Hand (chalk).
-     other presets name system/near-system fonts and need no load. -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Patrick+Hand&display=swap">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<style>
-${templateToCss(tpl)}
-</style>
-<!-- KaTeX for math rendering -->
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<!-- vizLib is defined first so every slide's one-line call below can use it. -->
-<script>
-${VIZ_LIB_JS}
 </script>
 </head>
 <body>
-<div class="lesson-title">${safeTitle}</div>
+<h1>Pizza Fractions</h1>
 
-<div class="slideshow">
-${slides}
-</div>
-
-<div class="navbar">
-  <button id="prevBtn">&larr; Prev</button>
-  <span class="counter"><span id="curSlide">1</span> / ${total}</span>
-  <button id="nextBtn">Next &rarr;</button>
-</div>
-
+<section class="act" id="act-intro">
+  <p>Let&#x27;s figure out how much pizza is left.<br><br>A pizza is cut into 8 equal slices. You and your friends eat 5 of them. How much of the pizza is left?<br><br>We&#x27;ll picture it, do the math, then check our answer.</p>
+</section>
+<section class="act" id="act-show_eaten">
+  <div id="viz-show_eaten"></div>
+  <script>vizLib.showFractionBar({"numerator":5,"denominator":8,"label":"5/8 eaten","targetId":"viz-show_eaten"});</script>
+</section>
+<section class="act" id="act-the_math">
+<span class="katex">\frac{8 - 5}{8} = \frac{3}{8}</span>
+<script>(function(){var el=document.currentScript.previousElementSibling;if(window.katex){try{window.katex.render("\\frac{8 - 5}{8} = \\frac{3}{8}", el);}catch(e){}}})();</script>
+</section>
+<section class="act" id="act-quick_check">
+  <div id="viz-quick_check"></div>
+  <script>vizLib.showMultipleChoice({"question":"So how much pizza is LEFT?","options":["3/8","5/8","8/8","1/8"],"correctIndex":0,"targetId":"viz-quick_check"});</script>
+</section>
+<section class="act" id="act-graph">
+<div id="desmos-0" style="width: 600px; height: 400px; margin: 12px 0;"></div>
+<script src="https://www.desmos.com/api/v1.12/calculator.js?apiKey=e2cc6f2eaa9a470288357616d5c75869"></script>
 <script>
-${SLIDESHOW_JS}
+  (function () {
+    var elt = document.getElementById("desmos-0");
+    var calc = Desmos.GraphingCalculator(elt, { expressionsCollapsed: true });
+    calc.setExpression({ id: "eq0", latex: "x^2 + y^2 = 25" });
+  })();
 </script>
+</section>
 </body>
 </html>
-`;
-}
