@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Image asset",
+  "type": "object",
+  "required": ["asset_id", "url"],
+  "additionalProperties": false,
+  "properties": {
+    "asset_id":     { "type": "string", "description": "SHA256(url)[:16]" },
+    "url":          { "type": "string" },
+    "local_path":   { "type": ["string", "null"] },
+    "status":       { "type": "string" },
+    "bytes":        { "type": ["integer", "null"] },
+    "content_type": { "type": ["string", "null"] },
+    "error":        { "type": ["string", "null"] },
+
+    "alt_text_md":        { "type": ["string", "null"] },
+    "kind":               { "enum": ["graph", "diagram", "photo", "table", "formula_image", "other"] },
+    "text_transcription": { "type": ["string", "null"] },
+    "has_axes_labels":    { "type": ["boolean", "null"] },
+    "reproducible_hint":  { "type": ["string", "null"] },
+
+    "reproduction_kind": { "enum": ["matplotlib", "svg", "cannot_reproduce"] },
+    "reproduction_code": { "type": "string" },
+    "fidelity_estimate": { "type": "number" },
+    "notes":             { "type": ["string", "null"] },
+
+    "referenced_by": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "IDs of concepts/items whose raw_body contains a [FIGURE:asset_id] token for this asset. Populated by splice.py post-processing."
+    },
+
+    "figure_number": {
+      "type": ["string", "null"],
+      "description": "Book-assigned figure/table number parsed from the caption line right after this asset's [FIGURE:] token in book.numbered.md (e.g. '1.1.12', 'Ex-62', 'Table 1.1.3'). Null if no book caption was found. Populated by splice.py."
+    },
+
+    "extraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "alt_text_model":     { "type": "string" },
+        "reproduction_model": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Concept (v2)",
+  "type": "object",
+  "required": ["id", "kind", "title", "source"],
+  "additionalProperties": false,
+  "properties": {
+    "id":    { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$" },
+    "kind":  { "enum": ["definition", "theorem", "technique", "idea"] },
+    "title": { "type": "string", "maxLength": 120 },
+
+    "one_liner":             { "type": "string", "maxLength": 300 },
+    "aliases":               { "type": "array",  "items": { "type": "string" } },
+    "tags":                  { "type": "array",  "items": { "type": "string" } },
+    "content":               { "type": "string", "description": "Light paraphrase of the book's own text for this concept. Same claims, same structure, cleaned-up prose. Preserves [FIGURE:asset_id | alt] tokens and LaTeX inline. Provenance: typically book_paraphrased; book_extracted when raw_body was already clean." },
+    "motivation_md":         { "type": "string", "description": "LLM-generated unless raw_body explicitly motivates." },
+    "recap_md":              { "type": "string", "description": "Bullet cheat-sheet. LLM-generated from raw_body." },
+
+    "item_ids": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "theorems":        { "type": "array", "items": { "type": "string" } },
+        "examples":        { "type": "array", "items": { "type": "string" } },
+        "exercises":       { "type": "array", "items": { "type": "string" } },
+        "exercise_groups": { "type": "array", "items": { "type": "string" } },
+        "figures":         { "type": "array", "items": { "type": "string" } },
+        "tables":          { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "source": {
+      "type": "object",
+      "required": ["file", "spans"],
+      "additionalProperties": false,
+      "properties": {
+        "file":    { "type": "string" },
+        "section": { "type": "string", "description": "e.g. '1.2'" },
+        "label":   { "type": "string", "description": "e.g. 'Theorem 1.2.3'" },
+        "spans": {
+          "type": "array",
+          "minItems": 1,
+          "description": "One or more disjoint line ranges. Most records are single-range; multi-range is used when out-of-sequence material (like a figure caption a few lines after the main body) belongs to the record.",
+          "items": {
+            "type": "object",
+            "required": ["start", "end"],
+            "additionalProperties": false,
+            "properties": {
+              "start": { "type": "string", "pattern": "^L[0-9]{5}$" },
+              "end":   { "type": "string", "pattern": "^L[0-9]{5}$" }
+            }
+          }
+        }
+      }
+    },
+
+    "position": {
+      "type": "object",
+      "description": "Course-ordering metadata derived from source spans.",
+      "additionalProperties": false,
+      "properties": {
+        "chapter":                  { "type": "integer" },
+        "chapter_title":            { "type": "string"  },
+        "section":                  { "type": "string", "description": "e.g. '1.2'; '1.review' for chapter reviews" },
+        "section_title":            { "type": "string"  },
+        "section_order":            { "type": "integer", "description": "Rank among siblings in the same chapter" },
+        "concept_order_in_section": { "type": "integer" },
+        "book_order":               { "type": "integer", "description": "Rank across the entire book" },
+        "first_line":               { "type": "integer" }
+      }
+    },
+
+    "raw_body": {
+      "type": "string",
+      "description": "Verbatim text spliced from source.spans. Present during splice + Pass B as grounding for LLM calls; moved to concepts.raw.jsonl (id-keyed) before the final concepts.jsonl is emitted. Optional in the final file."
+    },
+
+    "_provenance": {
+      "type": "object",
+      "description": "Per-field provenance. Values: 'book_extracted' (verbatim quote), 'book_paraphrased' (LLM rephrasing of raw_body), 'llm_inferred' (LLM generated content not in the book).",
+      "additionalProperties": {
+        "enum": ["book_extracted", "book_paraphrased", "llm_inferred"]
+      }
+    },
+
+    "quality_flags": {
+      "type": "array",
+      "description": "Non-blocking warnings from verifiers (LaTeX edge cases, fuzzy-match misses, etc.).",
+      "items": { "type": "string" }
+    },
+
+    "extraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pass_a_model": { "type": "string" },
+        "pass_b_model": { "type": "string" },
+        "verified":     { "type": "boolean" },
+        "best_effort":  { "type": "boolean" }
+      }
+    }
+  }
+}

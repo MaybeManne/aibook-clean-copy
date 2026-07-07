@@ -1,0 +1,18 @@
+Edge validation report
+concepts: 285
+
+Prereq:
+  in:              424
+  id resolution:   393 ok, 31 dropped
+  dedup:           393 ok, 0 duplicates collapsed
+  DAG:             393 ok, 0 cycle-breakers dropped
+
+Overlay:
+  in:              269
+  id resolution:   249 ok, 20 dropped
+  dedup:           249 ok, 0 duplicates collapsed
+
+review queue: 51
+
+Cycles broken:
+  - WARNING: prereq graph has at least one cycle: idea_derivative_and_function_behavior -> def_4_1_1_increasing_decreasing_constant -> idea_derivative_and_function_behavior

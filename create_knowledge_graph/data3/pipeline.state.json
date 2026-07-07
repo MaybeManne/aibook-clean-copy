@@ -1,0 +1,39 @@
+{
+  "completed": [
+    "parse_structure",
+    "enrich",
+    "number",
+    "chunk",
+    "download_images",
+    "alt_text",
+    "image_reproduce",
+    "pass_a",
+    "verify_pass_a",
+    "salvage",
+    "splice",
+    "dedup",
+    "format_concepts",
+    "format_items",
+    "link_items",
+    "extract_edges",
+    "validate_edges",
+    "split_raw"
+  ],
+  "timings": {
+    "parse_structure": 1778118731,
+    "enrich": 1778116299,
+    "number": 1778116316,
+    "chunk": 1778118731,
+    "pass_a": 1778121918,
+    "verify_pass_a": 1778121918,
+    "salvage": 1778121918,
+    "splice": 1778121919,
+    "dedup": 1778121961,
+    "format_concepts": 1778122067,
+    "format_items": 1778122628,
+    "link_items": 1778122928,
+    "extract_edges": 1778123073,
+    "validate_edges": 1778123073,
+    "split_raw": 1778123074
+  }
+}

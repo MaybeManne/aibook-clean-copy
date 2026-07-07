@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Edge (v3)",
+  "description": "Directed edge between two concept ids. 'requires' edges form a DAG; other kinds may cycle.",
+  "type": "object",
+  "required": ["from", "to", "kind"],
+  "additionalProperties": false,
+  "properties": {
+    "from": { "type": "string" },
+    "to":   { "type": "string" },
+    "kind": {
+      "enum": [
+        "requires",
+        "special_case_of",
+        "generalizes",
+        "formalizes",
+        "illustrates",
+        "used_to_prove",
+        "see_also",
+        "contrast_with",
+        "teaches_after"
+      ]
+    },
+    "strength":   { "type": "number", "minimum": 0, "maximum": 1 },
+    "rationale":  { "type": "string", "maxLength": 600 },
+    "evidence_spans": {
+      "type": "array",
+      "minItems": 1,
+      "description": "One or more line ranges in the source file that justify this edge. Most edges have a single range; a compound justification (e.g., a theorem statement plus a later remark) can use multiple.",
+      "items": {
+        "type": "object",
+        "required": ["file", "start", "end"],
+        "additionalProperties": false,
+        "properties": {
+          "file":  { "type": "string" },
+          "start": { "type": "string", "pattern": "^L[0-9]{5}$" },
+          "end":   { "type": "string", "pattern": "^L[0-9]{5}$" }
+        }
+      }
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "verified":   { "type": "boolean" },
+    "extraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "model": { "type": "string" } }
+    }
+  }
+}
