@@ -1,0 +1,51 @@
+% ===========================================================================
+% FIG: The discrete+continuous video model. The state machine sequences beats
+% (discrete); each beat carries a Storyboard timeline (continuous); ONE clock
+% (beat time t) drives a pure sampleAt(); the same function feeds interactive
+% playback AND offline frame export. Audio/subtitles are slaved to t (no drift).
+% ASCII PREVIEW:
+%
+%   SM (discrete):   [intro] ─► [explain*] ─► [quiz] ─► ...      *timed beat
+%                                  │  beat time t ∈ [0,dur]
+%                                  ▼
+%             Storyboard ── sampleAt(t) ──► SceneSnapshot ─┬─► PLAYER (rAF loop)
+%               tweens, cues                               └─► EXPORT (per frame→mp4)
+%                                  │
+%               audio + word-level subtitles  ── slaved to t (one clock)
+%             at t=dur ► emit beat.done ► SM advances
+% ===========================================================================
+\begin{tikzpicture}[
+  font=\small, >={Stealth[length=2mm]},
+  beat/.style={draw, rounded corners=2pt, fill=blue!8, minimum height=7mm, inner sep=3pt, font=\small},
+  tbeat/.style={beat, fill=blue!16, very thick},
+  proc/.style={draw, rounded corners=2pt, align=center, inner sep=3pt, font=\scriptsize},
+]
+% discrete SM row
+\node[beat] (b0) {intro};
+\node[tbeat, right=6mm of b0] (b1) {explain$^\star$};
+\node[beat, right=6mm of b1] (b2) {quiz};
+\node[right=4mm of b2, font=\scriptsize] (dots) {$\cdots$};
+\draw[->] (b0) -- (b1); \draw[->] (b1) -- (b2); \draw[->] (b2) -- (dots);
+\node[left=2mm of b0, font=\scriptsize, align=right] {SM\\(discrete)};
+
+% timeline of the timed beat
+\node[proc, fill=orange!10, below=10mm of b1, text width=44mm]
+  (sb) {\textbf{Storyboard} (continuous)\\ scene graph + tweens + cues,\; $t\in[0,\mathrm{dur}]$};
+\draw[->] (b1) -- node[right,font=\scriptsize]{enter} (sb);
+
+\node[proc, fill=green!10, below=9mm of sb, text width=40mm]
+  (sample) {\texttt{sampleAt(sb,\,t)} \;(\textbf{pure})\\$\to$ SceneSnapshot};
+\draw[->] (sb) -- (sample);
+
+\node[proc, below left=10mm and -6mm of sample, text width=34mm] (play) {\textbf{Player}\\rAF loop $\cdot$ play/pause/seek};
+\node[proc, below right=10mm and -6mm of sample, text width=34mm] (exp) {\textbf{Export}\\per-frame $\to$ mp4};
+\draw[->] (sample) -- (play);
+\draw[->] (sample) -- (exp);
+
+\node[proc, fill=gray!8, right=10mm of sample, text width=34mm]
+  (audio) {audio + word-level\\subtitles \emph{slaved to }$t$};
+\draw[<->, dashed] (sample) -- (audio);
+
+% beat.done back to SM
+\draw[->] (sb.east) to[bend left=20] node[right,font=\scriptsize,align=left]{$t=\mathrm{dur}$:\\\texttt{beat.done}} (b2.south);
+\end{tikzpicture}
