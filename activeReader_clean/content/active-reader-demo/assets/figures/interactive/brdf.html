@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>html,body{margin:0;height:100%;background:#fff;}body>*:not(canvas):not(script):not(.label){box-sizing:border-box;}</style>
+  <meta charset="UTF-8" />
+  <title>Figure</title>
+  <style>
+    /* ── Reset & canvas fill ─────────────────────────────────────────────── */
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; }
+    #c { width: 100%; height: 100%; display: block; }
+
+    /* ── Floating HTML labels ────────────────────────────────────────────── */
+    .lbl {
+      position: absolute;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      white-space: nowrap;
+      font-family: sans-serif;
+      font-size: 13px;
+      color: #111;
+    }
+
+    /* ── Control panel ───────────────────────────────────────────────────── */
+    #ui {
+      position: absolute;
+      top: 10px; left: 10px;
+      display: flex; flex-direction: column; gap: 6px;
+      font-family: sans-serif; font-size: 13px;
+    }
+    #ui button {
+      padding: 4px 10px; cursor: pointer; border: 1px solid #aaa;
+      background: #f5f5f5; border-radius: 4px;
+    }
+    #ui button:hover { background: #e0e0e0; }
+    #ui button.active { background: #c8e6ff; border-color: #5aabf0; }
+    #ui label { display: flex; flex-direction: column; gap: 2px; }
+    #ui input[type=range] { width: 140px; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="ui">
+    <button id="btnReset">Reset View</button>
+    <!-- ADD YOUR CONTROLS HERE -->
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    /* ── Renderer ────────────────────────────────────────────────────────── */
+    const canvas = document.getElementById('c');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+
+    /* ── Scene ───────────────────────────────────────────────────────────── */
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xffffff);
+
+    /* ── Orthographic camera ─────────────────────────────────────────────── */
+    const d = 3;                              // half-height in world units
+    let aspect = canvas.clientWidth / canvas.clientHeight;
+    const camera = new THREE.OrthographicCamera(
+      -d * aspect, d * aspect, d, -d, 0.1, 100
+    );
+    camera.position.set(4, 4, 4);
+    camera.lookAt(0, 0, 0);
+    camera.zoom = 1.2;
+    camera.updateProjectionMatrix();
+
+    /* ── Controls ────────────────────────────────────────────────────────── */
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+
+    const HOME_POS = camera.position.clone();
+    const HOME_TARGET = new THREE.Vector3(0, 0, 0);
+    document.getElementById('btnReset').addEventListener('click', () => {
+      camera.position.copy(HOME_POS);
+      controls.target.copy(HOME_TARGET);
+      controls.update();
+    });
+
+    /* ── Label system ────────────────────────────────────────────────────── */
+    const _labels = [];
+
+    /**
+     * addLabel(text, position3D, options?) → entry
+     *   text     : HTML string  ('x<sub>1</sub>', '&lambda;', '<b>bold</b>', …)
+     *   position : THREE.Vector3 (world space)
+     *   options  : {
+     *       color     : css color string  (default '#111')
+     *       fontSize  : css string        (default '13px')
+     *       bold      : boolean           (default false)
+     *       offset    : [dx, dy] pixels   (default [0, 0])
+     *       background: css string        (default 'none')
+     *     }
+     *   Returns an entry object; update entry.pos.set(x,y,z) to reposition.
+     */
+    function addLabel(text, position, options = {}) {
+      const div = document.createElement('div');
+      div.className = 'lbl';
+      div.innerHTML = text;
+      if (options.color)      div.style.color      = options.color;
+      if (options.fontSize)   div.style.fontSize   = options.fontSize;
+      if (options.bold)       div.style.fontWeight = 'bold';
+      if (options.background) {
+        div.style.background   = options.background;
+        div.style.padding      = '1px 4px';
+        div.style.borderRadius = '3px';
+      }
+      document.body.appendChild(div);
+      const entry = { div, pos: position.clone(), offset: options.offset || [0, 0] };
+      _labels.push(entry);
+      return entry;
+    }
+
+    /* project labels each frame */
+    const _v = new THREE.Vector3();
+    function _syncLabels() {
+      for (const { div, pos, offset } of _labels) {
+        _v.copy(pos).project(camera);
+        const x = ( _v.x * 0.5 + 0.5) * canvas.clientWidth  + offset[0];
+        const y = (-_v.y * 0.5 + 0.5) * canvas.clientHeight + offset[1];
+        div.style.left = x + 'px';
+        div.style.top  = y + 'px';
+      }
+    }
+
+    /* ── Render loop ─────────────────────────────────────────────────────── */
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+      _syncLabels();
+    }
+    animate();
+
+    /* ── Resize (ResizeObserver on canvas) ───────────────────────────────── */
+    new ResizeObserver(() => {
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      aspect = w / h;
+      camera.left   = -d * aspect;
+      camera.right  =  d * aspect;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h, false);
+    }).observe(canvas);
+
+    // ADD YOUR SCENE OBJECTS, GEOMETRY, LABELS, AND INTERACTION LOGIC BELOW HERE
+
+    camera.position.set(5.8, 3.8, 5.2);
+    camera.zoom = 1.05;
+    camera.updateProjectionMatrix();
+    controls.target.set(0.4, 0.1, 0.2);
+    controls.update();
+
+    const ui = document.getElementById('ui');
+
+    const btnAnimateIncoming = document.createElement('button');
+    btnAnimateIncoming.id = 'btnAnimateIncoming';
+    btnAnimateIncoming.textContent = 'Animate Incoming Ray';
+    btnAnimateIncoming.classList.add('active');
+    ui.appendChild(btnAnimateIncoming);
+
+    const btnToggleNormal = document.createElement('button');
+    btnToggleNormal.id = 'btnToggleNormal';
+    btnToggleNormal.textContent = 'Toggle Surface Normal';
+    btnToggleNormal.classList.add('active');
+    ui.appendChild(btnToggleNormal);
+
+    const wavelengthWrap = document.createElement('label');
+    wavelengthWrap.innerHTML = 'Adjust Wavelength <span id="wlReadout">580 nm</span>';
+    const wavelengthSlider = document.createElement('input');
+    wavelengthSlider.type = 'range';
+    wavelengthSlider.min = '380';
+    wavelengthSlider.max = '700';
+    wavelengthSlider.step = '1';
+    wavelengthSlider.value = '580';
+    wavelengthWrap.appendChild(wavelengthSlider);
+    ui.appendChild(wavelengthWrap);
+
+    function wavelengthToColor(wl) {
+      let r = 0, g = 0, b = 0;
+      if (wl >= 380 && wl < 440) {
+        r = -(wl - 440) / (440 - 380);
+        g = 0;
+        b = 1;
+      } else if (wl < 490) {
+        r = 0;
+        g = (wl - 440) / (490 - 440);
+        b = 1;
+      } else if (wl < 510) {
+        r = 0;
+        g = 1;
+        b = -(wl - 510) / (510 - 490);
+      } else if (wl < 580) {
+        r = (wl - 510) / (580 - 510);
+        g = 1;
+        b = 0;
+      } else if (wl < 645) {
+        r = 1;
+        g = -(wl - 645) / (645 - 580);
+        b = 0;
+      } else if (wl <= 700) {
+        r = 1;
+        g = 0;
+        b = 0;
+      }
+      let factor = 1;
+      if (wl < 420) factor = 0.3 + 0.7 * (wl - 380) / (420 - 380);
+      else if (wl > 645) factor = 0.3 + 0.7 * (700 - wl) / (700 - 645);
+      return new THREE.Color(
+        Math.pow(r * factor, 0.8),
+        Math.pow(g * factor, 0.8),
+        Math.pow(b * factor, 0.8)
+      );
+    }
+
+    const surface = new THREE.Group();
+    scene.add(surface);
+
+    const planeGeom = new THREE.PlaneGeometry(7.2, 4.8);
+    const planeMat = new THREE.MeshBasicMaterial({
+      color: 0x6fff00,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.98
+    });
+    const plane = new THREE.Mesh(planeGeom, planeMat);
+    plane.rotation.x = -Math.PI / 2;
+    surface.add(plane);
+
+    const planeEdges = new THREE.EdgesGeometry(planeGeom);
+    const planeOutline = new THREE.LineSegments(
+      planeEdges,
+      new THREE.LineBasicMaterial({ color: 0x111111, linewidth: 2 })
+    );
+    planeOutline.rotation.x = -Math.PI / 2;
+    surface.add(planeOutline);
+
+    const hitPoint = new THREE.Vector3(0.4, 0, 0.1);
+
+    const hitRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.12, 0.025, 12, 32),
+      new THREE.MeshBasicMaterial({ color: 0x3f5f00 })
+    );
+    hitRing.rotation.x = Math.PI / 2;
+    hitRing.position.copy(hitPoint);
+    scene.add(hitRing);
+
+    const normalDir = new THREE.Vector3(0, 1, 0);
+    const incomingDirAtSurface = new THREE.Vector3(-0.68, -0.62, -0.39).normalize();
+    const outgoingDir = new THREE.Vector3(0.63, 0.72, -0.28).normalize();
+
+    const incomingLength = 4.8;
+    const outgoingLength = 2.2;
+    const normalLength = 1.2;
+    const sampleLength = 1.35;
+
+    const incomingStartBase = hitPoint.clone().sub(incomingDirAtSurface.clone().multiplyScalar(incomingLength));
+    const incomingTipBase = hitPoint.clone();
+
+    let currentWavelength = Number(wavelengthSlider.value);
+    let incomingColor = wavelengthToColor(currentWavelength);
+
+    const incomingArrow = new THREE.ArrowHelper(
+      incomingDirAtSurface.clone(),
+      incomingStartBase.clone(),
+      incomingLength,
+      incomingColor,
+      0.34,
+      0.18
+    );
+    scene.add(incomingArrow);
+
+    const outgoingArrow = new THREE.ArrowHelper(
+      outgoingDir.clone(),
+      hitPoint.clone(),
+      outgoingLength,
+      0x148c10,
+      0.28,
+      0.15
+    );
+    scene.add(outgoingArrow);
+
+    const normalArrow = new THREE.ArrowHelper(
+      normalDir.clone(),
+      hitPoint.clone(),
+      normalLength,
+      0x111111,
+      0.24,
+      0.13
+    );
+    scene.add(normalArrow);
+
+    const normalLegGeom = new THREE.BufferGeometry().setFromPoints([
+      hitPoint.clone().add(new THREE.Vector3(0.22, 0, 0)),
+      hitPoint.clone().add(new THREE.Vector3(0.22, 0.22, 0)),
+      hitPoint.clone().add(new THREE.Vector3(0, 0.22, 0))
+    ]);
+    const normalLeg = new THREE.Line(
+      normalLegGeom,
+      new THREE.LineBasicMaterial({ color: 0x111111 })
+    );
+    scene.add(normalLeg);
+
+    const sprayGroup = new THREE.Group();
+    scene.add(sprayGroup);
+    const sprayDirs = [
+      new THREE.Vector3(0.90, 0.30, 0.10),
+      new THREE.Vector3(0.65, 0.45, -0.55),
+      new THREE.Vector3(0.15, 0.80, -0.20),
+      new THREE.Vector3(-0.20, 0.55, -0.85),
+      new THREE.Vector3(-0.75, 0.28, -0.42),
+      new THREE.Vector3(-0.85, 0.16, 0.05),
+      new THREE.Vector3(-0.55, 0.10, 0.70),
+      new THREE.Vector3(0.00, 0.05, 0.95),
+      new THREE.Vector3(0.55, 0.12, 0.75),
+      new THREE.Vector3(0.20, -0.08, 0.98),
+      new THREE.Vector3(-0.05, -0.22, 0.90)
+    ];
+    sprayDirs.forEach((dir, i) => {
+      const a = new THREE.ArrowHelper(
+        dir.clone().normalize(),
+        hitPoint.clone(),
+        sampleLength + 0.12 * Math.sin(i),
+        0x6fdc00,
+        0.20,
+        0.10
+      );
+      a.line.material.transparent = true;
+      a.line.material.opacity = 0.75;
+      a.cone.material.transparent = true;
+      a.cone.material.opacity = 0.75;
+      sprayGroup.add(a);
+    });
+
+    const pArrow = new THREE.ArrowHelper(
+      incomingDirAtSurface.clone().negate(),
+      hitPoint.clone(),
+      1.25,
+      0x111111,
+      0.24,
+      0.13
+    );
+    scene.add(pArrow);
+
+    const qArrow = new THREE.ArrowHelper(
+      outgoingDir.clone(),
+      hitPoint.clone(),
+      1.15,
+      0x111111,
+      0.22,
+      0.12
+    );
+    scene.add(qArrow);
+
+    const redWedge = new THREE.Mesh(
+      new THREE.ConeGeometry(0.10, 0.55, 16),
+      new THREE.MeshBasicMaterial({ color: 0xff4040, transparent: true, opacity: 0.95 })
+    );
+    redWedge.position.copy(hitPoint.clone().add(new THREE.Vector3(-0.10, 0.26, 0.00)));
+    redWedge.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), incomingDirAtSurface.clone().negate());
+    scene.add(redWedge);
+
+    const ambientGuide = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        hitPoint.clone(),
+        hitPoint.clone().add(normalDir.clone().multiplyScalar(normalLength * 0.95))
+      ]),
+      new THREE.LineDashedMaterial({ color: 0x666666, dashSize: 0.08, gapSize: 0.05 })
+    );
+    ambientGuide.computeLineDistances();
+    scene.add(ambientGuide);
+
+    const linLabel = addLabel('&ell;<sub>in</sub>(&lambda;)', incomingStartBase.clone().lerp(hitPoint, 0.34).add(new THREE.Vector3(0.0, 0.9, 0.0)), {
+      fontSize: '18px',
+      bold: true
+    });
+    const loutLabel = addLabel('&ell;<sub>out</sub>=F(&ell;<sub>in</sub>, n, &lambda;, p, q)', hitPoint.clone().add(new THREE.Vector3(2.25, 2.15, -0.1)), {
+      fontSize: '18px',
+      bold: true
+    });
+    const pLabel = addLabel('p', hitPoint.clone().add(incomingDirAtSurface.clone().negate().multiplyScalar(1.08)).add(new THREE.Vector3(-0.18, 0.06, 0.04)), {
+      fontSize: '16px',
+      bold: true
+    });
+    const qLabel = addLabel('q', hitPoint.clone().add(outgoingDir.clone().multiplyScalar(1.02)).add(new THREE.Vector3(0.16, -0.04, 0.10)), {
+      fontSize: '16px',
+      bold: true
+    });
+    const nLabel = addLabel('n', hitPoint.clone().add(new THREE.Vector3(-0.22, 1.10, 0.0)), {
+      fontSize: '16px',
+      bold: true
+    });
+    const lambdaLabel = addLabel('&lambda;', incomingStartBase.clone().lerp(hitPoint, 0.56).add(new THREE.Vector3(0.22, 0.22, 0.15)), {
+      fontSize: '15px',
+      color: '#444',
+      background: 'rgba(255,255,255,0.65)'
+    });
+
+    function setArrowColor(arrow, color) {
+      arrow.line.material.color.copy(color);
+      arrow.cone.material.color.copy(color);
+    }
+
+    function updateWavelength() {
+      currentWavelength = Number(wavelengthSlider.value);
+      document.getElementById('wlReadout').textContent = `${currentWavelength} nm`;
+      incomingColor = wavelengthToColor(currentWavelength);
+      setArrowColor(incomingArrow, incomingColor);
+      const intensityScale = 0.35 + 0.65 * Math.max(0.08, normalDir.dot(incomingDirAtSurface.clone().negate()));
+      const outColor = incomingColor.clone().lerp(new THREE.Color(0x1a8f12), 0.45).multiplyScalar(intensityScale);
+      setArrowColor(outgoingArrow, outColor);
+    }
+    updateWavelength();
+
+    let animateIncoming = true;
+    let showNormal = true;
+    let pulseTime = 0;
+
+    btnAnimateIncoming.addEventListener('click', () => {
+      animateIncoming = !animateIncoming;
+      btnAnimateIncoming.classList.toggle('active', animateIncoming);
+    });
+
+    btnToggleNormal.addEventListener('click', () => {
+      showNormal = !showNormal;
+      btnToggleNormal.classList.toggle('active', showNormal);
+      normalArrow.visible = showNormal;
+      normalLeg.visible = showNormal;
+      ambientGuide.visible = showNormal;
+      nLabel.div.style.display = showNormal ? '' : 'none';
+    });
+
+    wavelengthSlider.addEventListener('input', updateWavelength);
+
+    const clock = new THREE.Clock();
+
+    renderer.setAnimationLoop(() => {
+      const t = clock.getElapsedTime();
+      controls.update();
+
+      if (animateIncoming) {
+        pulseTime += 0.03;
+        const frac = 0.5 + 0.5 * Math.sin(pulseTime * 2.0);
+        const currentLength = 1.0 + frac * (incomingLength - 1.0);
+        incomingArrow.position.copy(incomingStartBase);
+        incomingArrow.setDirection(incomingDirAtSurface.clone());
+        incomingArrow.setLength(currentLength, 0.34, 0.18);
+
+        const markerPos = incomingStartBase.clone().add(incomingDirAtSurface.clone().multiplyScalar(Math.min(currentLength, incomingLength * 0.88)));
+        lambdaLabel.pos.copy(markerPos.clone().add(new THREE.Vector3(0.16, 0.16, 0.12)));
+
+        const glow = 0.65 + 0.35 * Math.sin(t * 5.0);
+        incomingArrow.cone.material.opacity = glow;
+        incomingArrow.line.material.opacity = glow;
+        incomingArrow.cone.material.transparent = true;
+        incomingArrow.line.material.transparent = true;
+      } else {
+        incomingArrow.position.copy(incomingStartBase);
+        incomingArrow.setDirection(incomingDirAtSurface.clone());
+        incomingArrow.setLength(incomingLength, 0.34, 0.18);
+        lambdaLabel.pos.copy(incomingStartBase.clone().lerp(hitPoint, 0.56).add(new THREE.Vector3(0.22, 0.22, 0.15)));
+        incomingArrow.cone.material.opacity = 1;
+        incomingArrow.line.material.opacity = 1;
+      }
+
+      const lambert = Math.max(0, normalDir.dot(incomingDirAtSurface.clone().negate()));
+      const outIntensity = 0.25 + 0.75 * lambert;
+      outgoingArrow.setLength(outgoingLength * (0.75 + 0.25 * outIntensity), 0.28, 0.15);
+
+      sprayGroup.children.forEach((a, i) => {
+        const phase = t * 1.6 + i * 0.55;
+        a.setLength(sampleLength * (0.82 + 0.16 * Math.sin(phase)), 0.20, 0.10);
+        const op = 0.28 + 0.18 * (0.5 + 0.5 * Math.sin(phase));
+        a.line.material.opacity = op;
+        a.cone.material.opacity = op;
+      });
+
+      hitRing.scale.setScalar(1.0 + 0.06 * Math.sin(t * 4.0));
+
+      renderer.render(scene, camera);
+      _syncLabels();
+    });
+  </script>
+</body>
+</html>

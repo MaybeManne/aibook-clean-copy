@@ -1,0 +1,220 @@
+project:
+  type: book
+
+book:
+  title: Foundations of Computer Vision
+  repo-url: https://github.com/Foundations-of-Computer-Vision/visionbook
+  repo-actions: [edit, issue]
+  repo-subdir: ""
+  site-url: https://visionbook.mit.edu
+  twitter-card: true
+  # author:
+  #   - name: Antonio Torralba
+  #     affiliation: MIT EECS
+
+  #   - name: Phillip Isola
+  #     # affiliation: MIT
+  #   - name: William Freeman
+  # affiliation: MIT
+  # date: "04/16/2024"
+  # date: last-modified
+  # date-format: "DD MMMM YYYY"
+  favicon: Figures/favicon.ico
+  # cover-image: figures/logo.jpg
+
+  chapters:
+    - index.qmd
+    - copyright.qmd
+    - notations.qmd
+    - taxonomy.qmd
+    - part: part_foundations.qmd
+      chapters:
+        - simplesystem.qmd
+        - visionscience.qmd
+        - fairness.qmd
+    - part: part_image_formation.qmd
+      chapters:
+        - imaging.qmd
+        - lenses.qmd
+        - camera_as_linsys.qmd
+        - color.qmd
+    - part: part_foundation_learning.qmd
+      chapters:
+        - intro_to_learning.qmd
+        - gradient_descent.qmd
+        - problem_of_generalization.qmd
+        - neural_nets.qmd
+        - neural_nets_as_distribution_transformers.qmd
+        - backpropagation.qmd
+    - part: part_foundation_image_processing.qmd
+      chapters:
+        - linear_image_filtering.qmd
+        - image_processing_fourier.qmd
+    - part: part_linear_filters.qmd
+      chapters:
+        - blurring_2.qmd
+        - derivatives.qmd
+        - temporal_filters_v2.qmd
+    - part: part_sampling_and_multiscale.qmd
+      chapters:
+        - sampling_and_aliasing.qmd
+        - upsamplig_downsampling_2.qmd
+        - spatial_filter_sets.qmd
+        - pyramids_new_notation.qmd
+    - part: part_neural_architectures.qmd
+      chapters:
+        - convolutional_neural_nets.qmd
+        - recurrent_neural_nets.qmd
+        - transformers.qmd
+    - part: part_statistical_image_models.qmd
+      chapters:
+        - stat_image_models_revised.qmd
+        - textures.qmd
+        - graphical_models.qmd
+    - part: part_generative_models_and_representation.qmd
+      chapters:
+        - representation_learning.qmd
+        - perceptual_organization.qmd
+        - generative_models.qmd
+        - generative_modeling_and_rep_learning.qmd
+        - conditional_generative_models.qmd
+    - part: part_challenges_in_learning_based_vision.qmd
+      chapters:
+        - bias_and_shift.qmd
+        - data_augmentation.qmd
+        - transfer_learning.qmd
+    - part: part_understanding_geometry.qmd
+      chapters:
+        - homogeneous_coordinates.qmd
+        - imaging_geometry.qmd
+        - 3d_scene_understanding_stereo.qmd
+        - homography.qmd
+        - 3d_scene_understanding_single_view.qmd
+        - 3d_learning.qmd
+        - multiview.qmd
+        - nerf.qmd
+    - part: part_understanding_motion.qmd
+      chapters:
+        - motion_estimation_intro.qmd
+        - 2d_motion_from_3d.qmd
+        - optical_flow.qmd
+        - motion_estimation.qmd
+    - part: part_scene_understanding.qmd
+      chapters:
+        - object_recognition_v3.qmd
+        - VLMs.qmd
+    - part: part_on_research.qmd
+      chapters:
+        - how_to_do_research.qmd
+        - how_to_write_papers.qmd
+        - how_to_give_talks.qmd
+    - part: part_closing_remarks.qmd
+      chapters:
+        - simplesystem_final.qmd
+    - references.qmd
+    - series.qmd
+  # reader-mode: true
+  sharing: [twitter, linkedin]
+  sidebar:
+    style: "floating"
+    collapse-level: 2
+    border: true
+    search: true
+  search:
+    keyboard-shortcut: []
+
+  page-footer:
+    left: "All content licensed under [CC-BY-NC-ND](https://creativecommons.org/licenses/by-nc-nd/4.0/)"
+
+    center: © [Antonio Torralba](https://groups.csail.mit.edu/vision/torralbalab/), [Phillip Isola](https://web.mit.edu/phillipi/), and [William Freeman](https://billf.mit.edu/)
+
+    right: Translation to web format by [Shen Shen](https://shenshen.mit.edu) and [Contributors](https://github.com/Foundations-of-Computer-Vision/visionbook/graphs/contributors) with [Quarto](https://quarto.org/)
+  page-navigation: true
+
+bibliography:
+  - all.bib
+  - visionbib.bib
+
+format:
+  html:
+    citation-style: elsevier-with-titles.csl
+    css: visionbook.css
+    anchor-sections: true
+    fontsize: "16px"
+    linestretch: 1.6
+    mainfont: "Palatino"
+    monofont: "Fira Mono"
+    smooth-scroll: true
+    toc-depth: 3
+    # code stuff
+    code-link: true
+    code-fold: false
+    code-tools: false
+    highlight-style: printing
+    code-block-bg: true
+    code-overflow: wrap
+    # css: ./scripts/custom-style.css
+    theme:
+      light: cosmo
+      dark: darkly
+    fig-align: "center"
+    reference-location: margin
+    cap-location: margin
+    mathjax: true
+    lightbox: true
+    crossref:
+      custom:
+        - key: alg
+          kind: float
+          reference-prefix: Algorithm
+    grid:
+      gutter-width: 2em
+
+    # include-before-body: sectionstat.js
+    include-in-header: sectionstat.html
+    other-links:
+      - text: Accessibility
+        href: https://accessibility.mit.edu/
+        icon: universal-access
+  # pdf:
+  # see https://pandoc.org/MANUAL.html for all options
+  # documentclass: src/DL_class
+  # classoption: src/DL_class
+  #         lof: false
+  #         lot: false
+  # toc: true
+  #         toc-depth: 2
+  #         fig-cap-location: bottom
+  #         tbl-cap-location: top
+  #         urlcolor: "blue"
+  #         linkcolor: "black"
+  #         biblio-style: apalike
+  #         keep-tex: true
+  #         code-block-bg: "#f2f2f2"
+  #         code-block-border-left: "#f2f2f2"
+  #         code-overflow: wrap
+  #         mermaid:
+  #             theme: neutral
+  # include-in-header: |
+  #   \usepackage{xcolor}
+  #   - src/setup.tex
+  #   - src/color.tex
+  # - text: |
+  #       \usepackage{makeidx}
+  #       \makeindex
+  # include-after-body:
+  #   text: |
+  #     \printindex
+# # https://christophertkenny.com/posts/2023-07-01-creating-quarto-journal-articles/
+# latex-auto-install: true
+# comments:
+#   hypothesis: true
+resources:
+  - demos/
+filters:
+  - pseudocode
+  - imagify
+# tikz:
+# cache: false
+# save-tex: false # Enable saving intermediate .tex files
+# tex-dir: tikz-tex  # Optional: Specify directory to save .tex files

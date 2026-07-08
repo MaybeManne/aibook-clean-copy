@@ -1,0 +1,190 @@
+{
+  "meta": {
+    "id": "light_ray_definition",
+    "title": "light ray",
+    "concept_kind": "definition",
+    "chapter": 5,
+    "section": "5.2",
+    "tags": [
+      "light_transport",
+      "optics"
+    ],
+    "source": {
+      "file": "book.numbered.md",
+      "spans": [
+        {
+          "start": "L02808",
+          "end": "L02812"
+        }
+      ],
+      "section": "5.2"
+    }
+  },
+  "states": {
+    "hook": {
+      "kind": "HOOK",
+      "payload": {
+        "text": "A light ray is an abstraction describing light radiation heading in a particular direction from a particular location in space.",
+        "concept_title": "light ray"
+      },
+      "is_branch": false
+    },
+    "motivate": {
+      "kind": "MOTIVATE",
+      "payload": {
+        "text": "The concept of a light ray simplifies the complex behavior of light by focusing on its direction, position, and intensity, enabling analysis of light transport without diffraction effects."
+      },
+      "is_branch": false
+    },
+    "explain": {
+      "kind": "EXPLAIN",
+      "payload": {
+        "text": "Introduce the abstraction of a light ray, describing the light radiation heading in a particular direction from a particular location in space (@fig-lightSpray). A light ray is specified by its position, direction, and intensity as a function of wavelength and polarization. In this treatment, we ignore diffraction effects.",
+        "kind_label": "definition",
+        "tags": [
+          "light_transport",
+          "optics"
+        ]
+      },
+      "is_branch": false
+    },
+    "visual_1": {
+      "kind": "VISUAL",
+      "payload": {
+        "kind": "static",
+        "asset_image": "assets/figures/static/photoSphere.jpg",
+        "asset_thumbnail": null,
+        "filename": "photoSphere.jpg",
+        "category": "photograph",
+        "caption": "photoSphere.jpg \u2014 photograph (no 3D version generated)"
+      },
+      "is_branch": false
+    },
+    "key_moment": {
+      "kind": "KEY_MOMENT",
+      "payload": {
+        "quote": "introduce the abstraction of a **light ray**, describing the light radiation heading in a particular direction from a particular location in space. A light ray is specified by its position, direction, and intensity as a function of wavelength and polarization.",
+        "section": "5.2",
+        "source": {
+          "file": "book.numbered.md",
+          "spans": [
+            {
+              "start": "L02808",
+              "end": "L02812"
+            }
+          ],
+          "section": "5.2"
+        }
+      },
+      "is_branch": false
+    },
+    "practice_1": {
+      "kind": "PRACTICE",
+      "payload": {
+        "exercise_id": "synth_ex_light_ray",
+        "prompt": "In geometric optics, a 'light ray' is modeled as\u2026",
+        "choices": [
+          "A wave packet with explicit phase information",
+          "A directed line carrying radiance from one point to another",
+          "A particle with mass and velocity",
+          "A region of high electric field strength"
+        ],
+        "correct_index": 1,
+        "explanation_correct": "Right \u2014 for computer vision we treat a ray as an oriented geometric line carrying a scalar (radiance) along its length.",
+        "explanation_wrong": "Computer vision uses the geometric-optics abstraction: light is a directed line that carries energy. Wave/particle aspects are dropped at this level."
+      },
+      "is_branch": false
+    },
+    "hint_1": {
+      "kind": "HINT",
+      "payload": {
+        "text": "What's the simplest possible model of light for doing 3D geometry? Strip away wavelength and quantum effects.",
+        "ref_figure": "photoSphere.jpg"
+      },
+      "is_branch": true
+    },
+    "retry_1": {
+      "kind": "RETRY",
+      "payload": {
+        "exercise_id": "synth_ex_light_ray",
+        "prompt": "In geometric optics, a 'light ray' is modeled as\u2026",
+        "choices": [
+          "A wave packet with explicit phase information",
+          "A directed line carrying radiance from one point to another",
+          "A particle with mass and velocity",
+          "A region of high electric field strength"
+        ],
+        "correct_index": 1,
+        "note": "Try the question once more, now with the hint in mind."
+      },
+      "is_branch": true
+    },
+    "recap": {
+      "kind": "RECAP",
+      "payload": {
+        "md": "- A light ray describes light traveling from a specific location in a specific direction.\n- It is characterized by position, direction, and intensity (wavelength and polarization).\n- Diffraction effects are ignored in this treatment."
+      },
+      "is_branch": false
+    },
+    "complete": {
+      "kind": "COMPLETE",
+      "payload": {
+        "writes_to_student_model": true
+      },
+      "is_branch": false
+    }
+  },
+  "markers": [
+    {
+      "id": "m_hook_to_motivate",
+      "after_state": "hook",
+      "label": "why does this matter"
+    },
+    {
+      "id": "m_to_explain",
+      "after_state": "motivate",
+      "label": "the idea"
+    },
+    {
+      "id": "m_to_visual",
+      "after_state": "explain",
+      "label": "see it"
+    },
+    {
+      "id": "m_to_key",
+      "after_state": "visual_1",
+      "label": "from the book"
+    },
+    {
+      "id": "m_to_recap",
+      "after_state": "practice_1",
+      "label": "summary"
+    }
+  ],
+  "gates": [
+    {
+      "id": "g_practice_1",
+      "after_state": "practice_1",
+      "kind": "mcq",
+      "payload": {
+        "prompt": "In geometric optics, a 'light ray' is modeled as\u2026",
+        "correct_index": 1
+      },
+      "branch_on_fail": [
+        "hint_1",
+        "retry_1"
+      ],
+      "rejoin_to": "recap"
+    }
+  ],
+  "main_path": [
+    "hook",
+    "motivate",
+    "explain",
+    "visual_1",
+    "key_moment",
+    "practice_1",
+    "recap",
+    "complete"
+  ]
+}

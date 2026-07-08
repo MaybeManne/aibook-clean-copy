@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>html,body{margin:0;height:100%;background:#fff;}body>*:not(canvas):not(script):not(.label){box-sizing:border-box;}</style>
+  <meta charset="UTF-8" />
+  <title>Figure</title>
+  <style>
+    /* ── Reset & canvas fill ─────────────────────────────────────────────── */
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; }
+    #c { width: 100%; height: 100%; display: block; }
+
+    /* ── Floating HTML labels ────────────────────────────────────────────── */
+    .lbl {
+      position: absolute;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      white-space: nowrap;
+      font-family: sans-serif;
+      font-size: 13px;
+      color: #111;
+    }
+
+    /* ── Control panel ───────────────────────────────────────────────────── */
+    #ui {
+      position: absolute;
+      top: 10px; left: 10px;
+      display: flex; flex-direction: column; gap: 6px;
+      font-family: sans-serif; font-size: 13px;
+    }
+    #ui button {
+      padding: 4px 10px; cursor: pointer; border: 1px solid #aaa;
+      background: #f5f5f5; border-radius: 4px;
+    }
+    #ui button:hover { background: #e0e0e0; }
+    #ui button.active { background: #c8e6ff; border-color: #5aabf0; }
+    #ui label { display: flex; flex-direction: column; gap: 2px; }
+    #ui input[type=range] { width: 140px; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="ui">
+    <button id="btnReset">Reset View</button>
+    <!-- ADD YOUR CONTROLS HERE -->
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    /* ── Renderer ────────────────────────────────────────────────────────── */
+    const canvas = document.getElementById('c');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+
+    /* ── Scene ───────────────────────────────────────────────────────────── */
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xffffff);
+
+    /* ── Orthographic camera ─────────────────────────────────────────────── */
+    const d = 3;                              // half-height in world units
+    let aspect = canvas.clientWidth / canvas.clientHeight;
+    const camera = new THREE.OrthographicCamera(
+      -d * aspect, d * aspect, d, -d, 0.1, 100
+    );
+    camera.position.set(4, 4, 4);
+    camera.lookAt(0, 0, 0);
+    camera.zoom = 1.2;
+    camera.updateProjectionMatrix();
+
+    /* ── Controls ────────────────────────────────────────────────────────── */
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+
+    const HOME_POS = camera.position.clone();
+    const HOME_TARGET = new THREE.Vector3(0, 0, 0);
+    document.getElementById('btnReset').addEventListener('click', () => {
+      camera.position.copy(HOME_POS);
+      controls.target.copy(HOME_TARGET);
+      controls.update();
+    });
+
+    /* ── Label system ────────────────────────────────────────────────────── */
+    const _labels = [];
+
+    /**
+     * addLabel(text, position3D, options?) → entry
+     *   text     : HTML string  ('x<sub>1</sub>', '&lambda;', '<b>bold</b>', …)
+     *   position : THREE.Vector3 (world space)
+     *   options  : {
+     *       color     : css color string  (default '#111')
+     *       fontSize  : css string        (default '13px')
+     *       bold      : boolean           (default false)
+     *       offset    : [dx, dy] pixels   (default [0, 0])
+     *       background: css string        (default 'none')
+     *     }
+     *   Returns an entry object; update entry.pos.set(x,y,z) to reposition.
+     */
+    function addLabel(text, position, options = {}) {
+      const div = document.createElement('div');
+      div.className = 'lbl';
+      div.innerHTML = text;
+      if (options.color)      div.style.color      = options.color;
+      if (options.fontSize)   div.style.fontSize   = options.fontSize;
+      if (options.bold)       div.style.fontWeight = 'bold';
+      if (options.background) {
+        div.style.background   = options.background;
+        div.style.padding      = '1px 4px';
+        div.style.borderRadius = '3px';
+      }
+      document.body.appendChild(div);
+      const entry = { div, pos: position.clone(), offset: options.offset || [0, 0] };
+      _labels.push(entry);
+      return entry;
+    }
+
+    /* project labels each frame */
+    const _v = new THREE.Vector3();
+    function _syncLabels() {
+      for (const { div, pos, offset } of _labels) {
+        _v.copy(pos).project(camera);
+        const x = ( _v.x * 0.5 + 0.5) * canvas.clientWidth  + offset[0];
+        const y = (-_v.y * 0.5 + 0.5) * canvas.clientHeight + offset[1];
+        div.style.left = x + 'px';
+        div.style.top  = y + 'px';
+      }
+    }
+
+    /* ── Render loop ─────────────────────────────────────────────────────── */
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+      _syncLabels();
+    }
+    animate();
+
+    /* ── Resize (ResizeObserver on canvas) ───────────────────────────────── */
+    new ResizeObserver(() => {
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      aspect = w / h;
+      camera.left   = -d * aspect;
+      camera.right  =  d * aspect;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h, false);
+    }).observe(canvas);
+
+    // ADD YOUR SCENE OBJECTS, GEOMETRY, LABELS, AND INTERACTION LOGIC BELOW HERE
+
+    camera.position.set(0, 0.4, 8.5);
+    camera.zoom = 1.45;
+    camera.updateProjectionMatrix();
+    controls.target.set(0.2, 0.15, 0);
+    controls.minZoom = 0.8;
+    controls.maxZoom = 3.5;
+    controls.enablePan = false;
+    controls.update();
+
+    const ui = document.getElementById('ui');
+
+    const btnNext = document.createElement('button');
+    btnNext.id = 'btnNext';
+    btnNext.textContent = 'Next';
+    ui.appendChild(btnNext);
+
+    const btnRays = document.createElement('button');
+    btnRays.id = 'btnRays';
+    btnRays.textContent = 'Hide Light Rays';
+    btnRays.classList.add('active');
+    ui.appendChild(btnRays);
+
+    const wallLabelWrap = document.createElement('label');
+    wallLabelWrap.innerHTML = 'Move Wall <input id="wallSlider" type="range" min="-2.2" max="-0.8" step="0.01" value="-1.7">';
+    ui.appendChild(wallLabelWrap);
+
+    const infoBox = document.createElement('div');
+    infoBox.style.marginTop = '6px';
+    infoBox.style.padding = '6px 8px';
+    infoBox.style.background = 'rgba(255,255,255,0.88)';
+    infoBox.style.border = '1px solid #ccc';
+    infoBox.style.borderRadius = '4px';
+    infoBox.style.maxWidth = '260px';
+    infoBox.style.lineHeight = '1.25';
+    ui.appendChild(infoBox);
+
+    const wallSlider = document.getElementById('wallSlider');
+
+    const wallXDefault = -1.7;
+    const apertureX = -0.15;
+    const objectX = 2.3;
+
+    const palette = {
+      wallLine: 0x111111,
+      wallFill: 0xf8f8f8,
+      mask: 0x000000,
+      rayBrown: 0x8a572a,
+      rayGreen: 0x25cc12,
+      treeLeaf1: 0x2aa000,
+      treeLeaf2: 0x37ff00,
+      treeLeaf3: 0x72ff00,
+      trunk: 0x8a572a,
+      ghostLeaf1: 0x7fdb67,
+      ghostLeaf2: 0x95ef7b,
+      ghostLeaf3: 0xb4ff86,
+      vase: 0xc8ad96
+    };
+
+    function makeLine(points, color = 0x000000, dashed = false, dashSize = 0.12, gapSize = 0.08) {
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const material = dashed
+        ? new THREE.LineDashedMaterial({ color, dashSize, gapSize })
+        : new THREE.LineBasicMaterial({ color });
+      const line = new THREE.Line(geometry, material);
+      if (dashed) line.computeLineDistances();
+      return line;
+    }
+
+    function makePolylineTube(points, color, radius = 0.045) {
+      const curve = new THREE.CatmullRomCurve3(points);
+      const geom = new THREE.TubeGeometry(curve, 48, radius, 10, false);
+      const mat = new THREE.MeshBasicMaterial({ color });
+      return new THREE.Mesh(geom, mat);
+    }
+
+    function makeLeaf(x, y, z, r, color) {
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(r, 28, 22),
+        new THREE.MeshBasicMaterial({ color })
+      );
+      mesh.position.set(x, y, z);
+      mesh.scale.set(1.25, 1.0, 0.8);
+      return mesh;
+    }
+
+    function createTree(colors, alpha = 1) {
+      const g = new THREE.Group();
+
+      const trunkShape = new THREE.Shape();
+      trunkShape.moveTo(-0.22, -1.75);
+      trunkShape.bezierCurveTo(-0.02, -1.72, 0.12, -1.63, 0.18, -1.35);
+      trunkShape.bezierCurveTo(0.22, -1.15, 0.18, -0.85, 0.14, -0.45);
+      trunkShape.bezierCurveTo(0.10, 0.02, 0.06, 0.42, 0.02, 0.82);
+      trunkShape.lineTo(0.28, 0.82);
+      trunkShape.bezierCurveTo(0.56, 0.82, 0.68, 0.96, 0.79, 1.18);
+      trunkShape.bezierCurveTo(0.90, 1.42, 0.90, 1.70, 0.82, 1.98);
+      trunkShape.lineTo(1.04, 1.98);
+      trunkShape.bezierCurveTo(1.20, 1.56, 1.21, 1.10, 1.03, 0.74);
+      trunkShape.bezierCurveTo(0.86, 0.42, 0.61, 0.26, 0.28, 0.24);
+      trunkShape.lineTo(-0.01, 0.24);
+      trunkShape.bezierCurveTo(-0.07, 0.82, -0.12, 1.26, -0.15, 1.54);
+      trunkShape.bezierCurveTo(-0.22, 2.02, -0.27, 2.25, -0.38, 2.42);
+      trunkShape.lineTo(-0.64, 2.42);
+      trunkShape.bezierCurveTo(-0.52, 2.24, -0.44, 2.00, -0.38, 1.58);
+      trunkShape.bezierCurveTo(-0.34, 1.31, -0.29, 0.86, -0.21, 0.24);
+      trunkShape.lineTo(-0.56, 0.24);
+      trunkShape.bezierCurveTo(-0.88, 0.25, -1.12, 0.42, -1.27, 0.70);
+      trunkShape.bezierCurveTo(-1.49, 1.10, -1.48, 1.57, -1.28, 1.98);
+      trunkShape.lineTo(-1.05, 1.98);
+      trunkShape.bezierCurveTo(-1.13, 1.71, -1.14, 1.42, -1.04, 1.18);
+      trunkShape.bezierCurveTo(-0.94, 0.96, -0.82, 0.82, -0.56, 0.82);
+      trunkShape.lineTo(-0.14, 0.82);
+      trunkShape.bezierCurveTo(-0.18, 0.41, -0.22, 0.02, -0.26, -0.43);
+      trunkShape.bezierCurveTo(-0.30, -0.82, -0.35, -1.12, -0.31, -1.35);
+      trunkShape.bezierCurveTo(-0.27, -1.62, -0.13, -1.73, 0.06, -1.76);
+      trunkShape.lineTo(-0.22, -1.75);
+      const trunkGeom = new THREE.ShapeGeometry(trunkShape);
+      const trunkMat = new THREE.MeshBasicMaterial({ color: colors.trunk, transparent: alpha < 1, opacity: alpha, side: THREE.DoubleSide });
+      const trunk = new THREE.Mesh(trunkGeom, trunkMat);
+      g.add(trunk);
+
+      const leaves = [
+        makeLeaf(-0.25, 2.2, -0.1, 0.72, colors.leaf1),
+        makeLeaf(0.65, 1.88, 0.05, 0.68, colors.leaf2),
+        makeLeaf(1.35, 1.48, 0.0, 0.60, colors.leaf2),
+        makeLeaf(1.10, 2.35, 0.0, 0.58, colors.leaf1),
+        makeLeaf(0.18, 1.38, 0.12, 0.48, colors.leaf3)
+      ];
+
+      for (const lf of leaves) {
+        lf.material.transparent = alpha < 1;
+        lf.material.opacity = alpha;
+        g.add(lf);
+      }
+      return g;
+    }
+
+    function createWallSurface() {
+      const pts = [
+        new THREE.Vector2(-0.05, 2.6),
+        new THREE.Vector2(-0.05, -2.15),
+        new THREE.Vector2(-2.55, -2.8),
+        new THREE.Vector2(-2.55, 3.25)
+      ];
+      const shape = new THREE.Shape(pts);
+      const geom = new THREE.ShapeGeometry(shape);
+      const mat = new THREE.MeshBasicMaterial({ color: palette.wallFill, side: THREE.DoubleSide });
+      return new THREE.Mesh(geom, mat);
+    }
+
+    function createWallOutline() {
+      const pts = [
+        new THREE.Vector3(-0.05, 2.6, 0.01),
+        new THREE.Vector3(-0.05, -2.15, 0.01),
+        new THREE.Vector3(-2.55, -2.8, 0.01),
+        new THREE.Vector3(-2.55, 3.25, 0.01),
+        new THREE.Vector3(-0.05, 2.6, 0.01)
+      ];
+      return makeLine(pts, palette.wallLine);
+    }
+
+    const wallGroup = new THREE.Group();
+    const wallSurface = createWallSurface();
+    const wallOutline = createWallOutline();
+    wallGroup.add(wallSurface, wallOutline);
+    wallGroup.position.x = wallXDefault;
+    scene.add(wallGroup);
+
+    const wallLabel = addLabel('Wall', new THREE.Vector3(wallXDefault - 2.15, 3.05, 0), { fontSize: '18px', bold: false });
+    const planeLabel = addLabel('Projection surface', new THREE.Vector3(wallXDefault - 1.55, -2.45, 0), { fontSize: '12px', background: 'rgba(255,255,255,0.8)' });
+
+    const tree = createTree({
+      trunk: palette.trunk,
+      leaf1: palette.treeLeaf1,
+      leaf2: palette.treeLeaf2,
+      leaf3: palette.treeLeaf3
+    }, 1);
+    tree.position.set(objectX, 0.0, 0);
+    scene.add(tree);
+
+    const treeLabel = addLabel('Tree', new THREE.Vector3(objectX + 0.45, 2.95, 0), { fontSize: '14px', background: 'rgba(255,255,255,0.75)' });
+
+    const cameraBodyGroup = new THREE.Group();
+    scene.add(cameraBodyGroup);
+
+    const maskShape = new THREE.Shape();
+    maskShape.moveTo(-0.05, 3.15);
+    maskShape.lineTo(1.1, 2.5);
+    maskShape.lineTo(1.1, -2.15);
+    maskShape.lineTo(-0.05, -2.8);
+    maskShape.lineTo(-0.05, 3.15);
+
+    const holePath = new THREE.Path();
+    holePath.absellipse(0.18, 0.22, 0.11, 0.18, 0, Math.PI * 2, false);
+    maskShape.holes.push(holePath);
+
+    const maskMesh = new THREE.Mesh(
+      new THREE.ShapeGeometry(maskShape),
+      new THREE.MeshBasicMaterial({ color: palette.mask, side: THREE.DoubleSide })
+    );
+    cameraBodyGroup.add(maskMesh);
+    cameraBodyGroup.position.x = apertureX;
+
+    const pinholeRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.06, 0.11, 32),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide })
+    );
+    pinholeRing.position.set(apertureX + 0.18, 0.22, 0.01);
+    scene.add(pinholeRing);
+
+    const pinholeDot = new THREE.Mesh(
+      new THREE.CircleGeometry(0.035, 24),
+      new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide })
+    );
+    pinholeDot.position.set(apertureX + 0.18, 0.22, 0.02);
+    scene.add(pinholeDot);
+
+    const pinholeLabel = addLabel('Pinhole', new THREE.Vector3(apertureX + 0.32, 3.08, 0), { fontSize: '18px', background: 'rgba(255,255,255,0.75)' });
+
+    const ghostTree = createTree({
+      trunk: palette.vase,
+      leaf1: palette.ghostLeaf1,
+      leaf2: palette.ghostLeaf2,
+      leaf3: palette.ghostLeaf3
+    }, 0.92);
+    ghostTree.scale.set(0.72, 0.72, 0.72);
+    ghostTree.position.set(wallXDefault - 0.8, -0.2, 0.05);
+    scene.add(ghostTree);
+
+    const imageLabel = addLabel('Inverted image', new THREE.Vector3(wallXDefault - 0.95, -0.05, 0), { fontSize: '12px', background: 'rgba(255,255,255,0.85)' });
+
+    const topObj = new THREE.Vector3(objectX + 0.0, 2.85, 0);
+    const midObj = new THREE.Vector3(objectX + 0.0, 0.25, 0);
+    const bottomObj = new THREE.Vector3(objectX - 0.15, -1.55, 0);
+    const pinhole = new THREE.Vector3(apertureX + 0.18, 0.22, 0);
+
+    function intersectWall(pointObj) {
+      const t = (wallGroup.position.x - pinhole.x) / (pointObj.x - pinhole.x);
+      const y = pinhole.y + t * (pointObj.y - pinhole.y);
+      return new THREE.Vector3(wallGroup.position.x, y, 0);
+    }
+
+    const wallHitTop = intersectWall(topObj);
+    const wallHitMid = intersectWall(midObj);
+    const wallHitBottom = intersectWall(bottomObj);
+
+    const groupNoPinhole = new THREE.Group();
+    const groupPinhole = new THREE.Group();
+    scene.add(groupNoPinhole, groupPinhole);
+
+    function makeArrowRay(start, end, color, head = 0.18, headWidth = 0.12) {
+      const dir = new THREE.Vector3().subVectors(end, start);
+      const len = dir.length();
+      dir.normalize();
+      return new THREE.ArrowHelper(dir, start, len, color, head, headWidth);
+    }
+
+    const noPinholeBrown = [
+      [topObj, wallHitTop.clone().add(new THREE.Vector3(0, 0, 0))],
+      [topObj.clone().add(new THREE.Vector3(0.1, -0.05, 0)), wallHitMid.clone().add(new THREE.Vector3(0.25, 0, 0))],
+      [midObj.clone().add(new THREE.Vector3(0.1, 0.05, 0)), wallHitBottom.clone().add(new THREE.Vector3(0.2, 0, 0))],
+      [bottomObj, wallHitTop.clone().add(new THREE.Vector3(0.35, 0.05, 0))],
+      [bottomObj.clone().add(new THREE.Vector3(0.05, 0.0, 0)), wallHitBottom.clone().add(new THREE.Vector3(0.15, -0.05, 0))]
+    ];
+
+    const noPinholeGreen = [
+      [topObj.clone(), wallHitTop.clone().add(new THREE.Vector3(0.0, 0.12, 0))],
+      [midObj.clone().add(new THREE.Vector3(0.1, -0.05, 0)), wallHitTop.clone().add(new THREE.Vector3(0.02, -0.02, 0))],
+      [topObj.clone().add(new THREE.Vector3(-0.15, -0.05, 0)), wallHitBottom.clone().add(new THREE.Vector3(-0.1, 0.08, 0))]
+    ];
+
+    for (const [s, e] of noPinholeBrown) groupNoPinhole.add(makeArrowRay(s, e, palette.rayBrown));
+    for (const [s, e] of noPinholeGreen) groupNoPinhole.add(makeArrowRay(s, e, palette.rayGreen));
+
+    const pinholeBrownSets = [
+      [topObj, pinhole],
+      [midObj, pinhole],
+      [bottomObj, pinhole],
+      [pinhole, wallHitBottom],
+      [pinhole, wallHitMid],
+      [pinhole, wallHitTop]
+    ];
+    const pinholeGreenSets = [
+      [topObj.clone().add(new THREE.Vector3(-0.05, 0, 0)), pinhole],
+      [pinhole, wallHitBottom.clone().add(new THREE.Vector3(0.0, 0.03, 0))],
+      [midObj.clone().add(new THREE.Vector3(0.0, -0.03, 0)), pinhole],
+      [pinhole, wallHitMid.clone()],
+      [bottomObj.clone().add(new THREE.Vector3(0.0, 0.03, 0)), pinhole],
+      [pinhole, wallHitTop.clone().add(new THREE.Vector3(0.0, -0.02, 0))]
+    ];
+
+    for (let i = 0; i < pinholeBrownSets.length; i++) {
+      const [s, e] = pinholeBrownSets[i];
+      groupPinhole.add(makeArrowRay(s, e, palette.rayBrown, 0.16, 0.1));
+    }
+    for (let i = 0; i < pinholeGreenSets.length; i++) {
+      const [s, e] = pinholeGreenSets[i];
+      groupPinhole.add(makeArrowRay(s, e, palette.rayGreen, 0.16, 0.1));
+    }
+
+    const centralGuide1 = makeLine([topObj, pinhole, wallHitBottom], 0x222222);
+    const centralGuide2 = makeLine([midObj, pinhole, wallHitMid], 0x222222);
+    const centralGuide3 = makeLine([bottomObj, pinhole, wallHitTop], 0x222222);
+    groupPinhole.add(centralGuide1, centralGuide2, centralGuide3);
+
+    const aperturePoint = new THREE.Mesh(
+      new THREE.SphereGeometry(0.03, 20, 16),
+      new THREE.MeshBasicMaterial({ color: 0x222222 })
+    );
+    aperturePoint.position.copy(pinhole);
+    scene.add(aperturePoint);
+
+    const stateMarkerA = addLabel('(a)', new THREE.Vector3(-1.3, -2.95, 0), { fontSize: '22px' });
+    const stateMarkerB = addLabel('(b)', new THREE.Vector3(0.55, -2.95, 0), { fontSize: '22px' });
+
+    function updateProjectedImage() {
+      const magnification = (wallGroup.position.x - pinhole.x) / (objectX - pinhole.x);
+      const scale = Math.abs(magnification);
+      ghostTree.scale.set(0.72 * scale / 0.62, 0.72 * scale / 0.62, 0.72);
+      const imageCenterY = pinhole.y + magnification * (0.55 - pinhole.y);
+      ghostTree.position.set(wallGroup.position.x - 0.82, imageCenterY - 0.45, 0.05);
+
+      wallHitTop.copy(intersectWall(topObj));
+      wallHitMid.copy(intersectWall(midObj));
+      wallHitBottom.copy(intersectWall(bottomObj));
+
+      const raysToUpdate = [];
+      groupNoPinhole.children.forEach(obj => { if (obj.type === 'ArrowHelper') raysToUpdate.push(obj); });
+      groupPinhole.children.forEach(obj => { if (obj.type === 'ArrowHelper') raysToUpdate.push(obj); });
+
+      while (groupNoPinhole.children.length) groupNoPinhole.remove(groupNoPinhole.children[0]);
+      while (groupPinhole.children.length) groupPinhole.remove(groupPinhole.children[0]);
+
+      const newNoPinholeBrown = [
+        [topObj, wallHitTop.clone()],
+        [topObj.clone().add(new THREE.Vector3(0.1, -0.05, 0)), wallHitMid.clone().add(new THREE.Vector3(0.25, 0, 0))],
+        [midObj.clone().add(new THREE.Vector3(0.1, 0.05, 0)), wallHitBottom.clone().add(new THREE.Vector3(0.2, 0, 0))],
+        [bottomObj, wallHitTop.clone().add(new THREE.Vector3(0.35, 0.05, 0))],
+        [bottomObj.clone().add(new THREE.Vector3(0.05, 0.0, 0)), wallHitBottom.clone().add(new THREE.Vector3(0.15, -0.05, 0))]
+      ];
+      const newNoPinholeGreen = [
+        [topObj.clone(), wallHitTop.clone().add(new THREE.Vector3(0.0, 0.12, 0))],
+        [midObj.clone().add(new THREE.Vector3(0.1, -0.05, 0)), wallHitTop.clone().add(new THREE.Vector3(0.02, -0.02, 0))],
+        [topObj.clone().add(new THREE.Vector3(-0.15, -0.05, 0)), wallHitBottom.clone().add(new THREE.Vector3(-0.1, 0.08, 0))]
+      ];
+      for (const [s, e] of newNoPinholeBrown) groupNoPinhole.add(makeArrowRay(s, e, palette.rayBrown));
+      for (const [s, e] of newNoPinholeGreen) groupNoPinhole.add(makeArrowRay(s, e, palette.rayGreen));
+
+      const newPinholeBrownSets = [
+        [topObj, pinhole],
+        [midObj, pinhole],
+        [bottomObj, pinhole],
+        [pinhole, wallHitBottom],
+        [pinhole, wallHitMid],
+        [pinhole, wallHitTop]
+      ];
+      const newPinholeGreenSets = [
+        [topObj.clone().add(new THREE.Vector3(-0.05, 0, 0)), pinhole],
+        [pinhole, wallHitBottom.clone().add(new THREE.Vector3(0.0, 0.03, 0))],
+        [midObj.clone().add(new THREE.Vector3(0.0, -0.03, 0)), pinhole],
+        [pinhole, wallHitMid.clone()],
+        [bottomObj.clone().add(new THREE.Vector3(0.0, 0.03, 0)), pinhole],
+        [pinhole, wallHitTop.clone().add(new THREE.Vector3(0.0, -0.02, 0))]
+      ];
+      for (const [s, e] of newPinholeBrownSets) groupPinhole.add(makeArrowRay(s, e, palette.rayBrown, 0.16, 0.1));
+      for (const [s, e] of newPinholeGreenSets) groupPinhole.add(makeArrowRay(s, e, palette.rayGreen, 0.16, 0.1));
+
+      groupPinhole.add(makeLine([topObj, pinhole, wallHitBottom], 0x222222));
+      groupPinhole.add(makeLine([midObj, pinhole, wallHitMid], 0x222222));
+      groupPinhole.add(makeLine([bottomObj, pinhole, wallHitTop], 0x222222));
+
+      wallLabel.pos.set(wallGroup.position.x - 2.15, 3.05, 0);
+      planeLabel.pos.set(wallGroup.position.x - 1.55, -2.45, 0);
+      imageLabel.pos.set(wallGroup.position.x - 0.95, imageCenterY, 0);
+    }
+
+    let stepState = 0;
+    let showRays = true;
+
+    function applyStep() {
+      const isNoPinhole = stepState === 0;
+      const isPinhole = stepState === 1;
+      const isDistance = stepState === 2;
+
+      cameraBodyGroup.visible = !isNoPinhole;
+      pinholeRing.visible = !isNoPinhole;
+      pinholeDot.visible = !isNoPinhole;
+      pinholeLabel.div.style.display = isNoPinhole ? 'none' : 'block';
+      ghostTree.visible = !isNoPinhole;
+      imageLabel.div.style.display = isNoPinhole ? 'none' : 'block';
+
+      stateMarkerA.div.style.display = isNoPinhole ? 'block' : 'none';
+      stateMarkerB.div.style.display = isNoPinhole ? 'none' : 'block';
+
+      groupNoPinhole.visible = isNoPinhole && showRays;
+      groupPinhole.visible = !isNoPinhole && showRays;
+
+      wallSlider.disabled = !isDistance;
+      wallLabelWrap.style.opacity = isDistance ? '1' : '0.5';
+
+      if (isNoPinhole) {
+        infoBox.innerHTML = 'Step 1: Without a pinhole, many rays from different parts of the tree reach the same place on the wall, so no clear picture appears.';
+      } else if (isPinhole) {
+        wallGroup.position.x = wallXDefault;
+        wallSlider.value = wallXDefault.toString();
+        updateProjectedImage();
+        infoBox.innerHTML = 'Step 2: The pinhole lets only one direction of light reach each point on the wall, producing an inverted image.';
+      } else {
+        infoBox.innerHTML = 'Step 3: Drag <b>Move Wall</b> to change the distance from the pinhole to the projection surface. The image size changes with distance.';
+      }
+    }
+
+    btnNext.addEventListener('click', () => {
+      stepState = (stepState + 1) % 3;
+      applyStep();
+    });
+
+    btnRays.addEventListener('click', () => {
+      showRays = !showRays;
+      btnRays.textContent = showRays ? 'Hide Light Rays' : 'Show Light Rays';
+      btnRays.classList.toggle('active', showRays);
+      applyStep();
+    });
+
+    wallSlider.addEventListener('input', () => {
+      if (stepState !== 2) return;
+      wallGroup.position.x = parseFloat(wallSlider.value);
+      updateProjectedImage();
+    });
+
+    applyStep();
+    updateProjectedImage();
+
+  </script>
+</body>
+</html>

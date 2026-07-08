@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>html,body{margin:0;height:100%;background:#fff;}body>*:not(canvas):not(script):not(.label){box-sizing:border-box;}</style>
+  <meta charset="UTF-8" />
+  <title>Figure</title>
+  <style>
+    /* â”€â”€ Reset & canvas fill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; }
+    #c { width: 100%; height: 100%; display: block; }
+
+    /* â”€â”€ Floating HTML labels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .lbl {
+      position: absolute;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      white-space: nowrap;
+      font-family: sans-serif;
+      font-size: 13px;
+      color: #111;
+    }
+
+    /* â”€â”€ Control panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    #ui {
+      position: absolute;
+      top: 10px; left: 10px;
+      display: flex; flex-direction: column; gap: 6px;
+      font-family: sans-serif; font-size: 13px;
+    }
+    #ui button {
+      padding: 4px 10px; cursor: pointer; border: 1px solid #aaa;
+      background: #f5f5f5; border-radius: 4px;
+    }
+    #ui button:hover { background: #e0e0e0; }
+    #ui button.active { background: #c8e6ff; border-color: #5aabf0; }
+    #ui label { display: flex; flex-direction: column; gap: 2px; }
+    #ui input[type=range] { width: 140px; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="ui">
+    <button id="btnReset">Reset View</button>
+    <!-- ADD YOUR CONTROLS HERE -->
+  </div>
+
+  <script type="module">
+    import * as THREE from 'https://esm.sh/three';
+    import { OrbitControls } from 'https://esm.sh/three/examples/jsm/controls/OrbitControls';
+
+    /* â”€â”€ Renderer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    const canvas = document.getElementById('c');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+
+    /* â”€â”€ Scene â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xffffff);
+
+    /* â”€â”€ Orthographic camera â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    const d = 3;                              // half-height in world units
+    let aspect = canvas.clientWidth / canvas.clientHeight;
+    const camera = new THREE.OrthographicCamera(
+      -d * aspect, d * aspect, d, -d, 0.1, 100
+    );
+    camera.position.set(4, 4, 4);
+    camera.lookAt(0, 0, 0);
+    camera.zoom = 1.2;
+    camera.updateProjectionMatrix();
+
+    /* â”€â”€ Controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+
+    const HOME_POS = camera.position.clone();
+    const HOME_TARGET = new THREE.Vector3(0, 0, 0);
+    document.getElementById('btnReset').addEventListener('click', () => {
+      camera.position.copy(HOME_POS);
+      controls.target.copy(HOME_TARGET);
+      controls.update();
+    });
+
+    /* â”€â”€ Label system â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    const _labels = [];
+
+    /**
+     * addLabel(text, position3D, options?) â†’ entry
+     *   text     : HTML string  ('x<sub>1</sub>', '&lambda;', '<b>bold</b>', â€¦)
+     *   position : THREE.Vector3 (world space)
+     *   options  : {
+     *       color     : css color string  (default '#111')
+     *       fontSize  : css string        (default '13px')
+     *       bold      : boolean           (default false)
+     *       offset    : [dx, dy] pixels   (default [0, 0])
+     *       background: css string        (default 'none')
+     *     }
+     *   Returns an entry object; update entry.pos.set(x,y,z) to reposition.
+     */
+    function addLabel(text, position, options = {}) {
+      const div = document.createElement('div');
+      div.className = 'lbl';
+      div.innerHTML = text;
+      if (options.color)      div.style.color      = options.color;
+      if (options.fontSize)   div.style.fontSize   = options.fontSize;
+      if (options.bold)       div.style.fontWeight = 'bold';
+      if (options.background) {
+        div.style.background   = options.background;
+        div.style.padding      = '1px 4px';
+        div.style.borderRadius = '3px';
+      }
+      document.body.appendChild(div);
+      const entry = { div, pos: position.clone(), offset: options.offset || [0, 0] };
+      _labels.push(entry);
+      return entry;
+    }
+
+    /* project labels each frame */
+    const _v = new THREE.Vector3();
+    function _syncLabels() {
+      for (const { div, pos, offset } of _labels) {
+        _v.copy(pos).project(camera);
+        const x = ( _v.x * 0.5 + 0.5) * canvas.clientWidth  + offset[0];
+        const y = (-_v.y * 0.5 + 0.5) * canvas.clientHeight + offset[1];
+        div.style.left = x + 'px';
+        div.style.top  = y + 'px';
+      }
+    }
+
+    /* â”€â”€ Render loop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+      _syncLabels();
+    }
+    animate();
+
+    /* â”€â”€ Resize (ResizeObserver on canvas) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    new ResizeObserver(() => {
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      aspect = w / h;
+      camera.left   = -d * aspect;
+      camera.right  =  d * aspect;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h, false);
+    }).observe(canvas);
+
+    // ADD YOUR SCENE OBJECTS, GEOMETRY, LABELS, AND INTERACTION LOGIC BELOW HERE
+
+    renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    scene.background = new THREE.Color(0x4a4a4a);
+    camera.position.set(0, 0, 5.6);
+    camera.lookAt(0, 0, 0);
+    camera.zoom = 1.55;
+    camera.updateProjectionMatrix();
+    HOME_POS.copy(camera.position);
+    controls.target.copy(HOME_TARGET);
+    controls.enableRotate = false;
+    controls.enablePan = false;
+    controls.enableZoom = true;
+    controls.update();
+
+    /* â”€â”€ UI controls for textbook shading terms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    const ui = document.getElementById('ui');
+
+    const alphaLabel = document.createElement('label');
+    alphaLabel.innerHTML = 'Specular exponent Î± <span id="alphaVal">30</span>';
+    const alphaSlider = document.createElement('input');
+    alphaSlider.type = 'range';
+    alphaSlider.min = '2';
+    alphaSlider.max = '120';
+    alphaSlider.step = '1';
+    alphaSlider.value = '30';
+    alphaLabel.appendChild(alphaSlider);
+    ui.appendChild(alphaLabel);
+
+    const row1 = document.createElement('div');
+    row1.style.display = 'flex';
+    row1.style.gap = '6px';
+    row1.style.flexWrap = 'wrap';
+    const btnCombined = document.createElement('button');
+    const btnAmbient = document.createElement('button');
+    const btnDiffuse = document.createElement('button');
+    const btnSpecular = document.createElement('button');
+    btnCombined.textContent = 'Combined';
+    btnAmbient.textContent = 'Ambient';
+    btnDiffuse.textContent = 'Diffuse';
+    btnSpecular.textContent = 'Specular';
+    row1.append(btnCombined, btnAmbient, btnDiffuse, btnSpecular);
+    ui.appendChild(row1);
+
+    const row2 = document.createElement('div');
+    row2.style.display = 'flex';
+    row2.style.gap = '6px';
+    row2.style.flexWrap = 'wrap';
+    const btnLight1 = document.createElement('button');
+    const btnLight2 = document.createElement('button');
+    const btnBoth = document.createElement('button');
+    btnLight1.textContent = 'Light 1';
+    btnLight2.textContent = 'Light 2';
+    btnBoth.textContent = 'Both lights';
+    row2.append(btnLight1, btnLight2, btnBoth);
+    ui.appendChild(row2);
+
+    const btnVectors = document.createElement('button');
+    btnVectors.textContent = 'Show vectors';
+    ui.appendChild(btnVectors);
+
+    const hint = document.createElement('div');
+    hint.style.fontSize = '11px';
+    hint.style.color = '#222';
+    hint.style.background = 'rgba(255,255,255,0.78)';
+    hint.style.padding = '4px 6px';
+    hint.style.borderRadius = '4px';
+    hint.style.maxWidth = '250px';
+    hint.innerHTML = 'Drag the colored light dots to move the two sources.';
+    ui.appendChild(hint);
+
+    /* â”€â”€ Textbook-style Phong shader with two additive light sources â”€â”€â”€â”€â”€â”€ */
+    const uniforms = {
+      uAmbient: { value: 0.14 },
+      uKd: { value: 0.72 },
+      uKs: { value: 1.00 },
+      uAlpha: { value: 30.0 },
+      uMode: { value: 0 },          // 0 combined, 1 ambient, 2 diffuse, 3 specular
+      uActiveLights: { value: 3 },  // 1 light1, 2 light2, 3 both
+      uColor: { value: new THREE.Color(0.38, 0.38, 0.38) },
+      uViewPos: { value: camera.position.clone() },
+      uL1Pos: { value: new THREE.Vector3(-1.8, 1.15, 2.25) },
+      uL2Pos: { value: new THREE.Vector3(1.55, 0.55, 2.15) },
+      uL1Color: { value: new THREE.Color(1.0, 1.0, 1.0) },
+      uL2Color: { value: new THREE.Color(1.0, 1.0, 1.0) }
+    };
+
+    const sphereMat = new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: `
+        varying vec3 vWorldPos;
+        varying vec3 vNormalW;
+        void main() {
+          vec4 world = modelMatrix * vec4(position, 1.0);
+          vWorldPos = world.xyz;
+          vNormalW = normalize(mat3(modelMatrix) * normal);
+          gl_Position = projectionMatrix * viewMatrix * world;
+        }
+      `,
+      fragmentShader: `
+        precision highp float;
+        varying vec3 vWorldPos;
+        varying vec3 vNormalW;
+
+        uniform float uAmbient;
+        uniform float uKd;
+        uniform float uKs;
+        uniform float uAlpha;
+        uniform int uMode;
+        uniform int uActiveLights;
+        uniform vec3 uColor;
+        uniform vec3 uViewPos;
+        uniform vec3 uL1Pos;
+        uniform vec3 uL2Pos;
+        uniform vec3 uL1Color;
+        uniform vec3 uL2Color;
+
+        vec3 phongContribution(vec3 lightPos, vec3 lightCol, vec3 N, vec3 V, vec3 P, out vec3 diff, out vec3 spec) {
+          vec3 L = normalize(lightPos - P);
+          float ndotl = max(dot(N, L), 0.0);
+          diff = uKd * ndotl * lightCol;
+
+          vec3 R = reflect(-L, N);
+          float rv = max(dot(R, V), 0.0);
+          spec = (ndotl > 0.0) ? uKs * pow(rv, uAlpha) * lightCol : vec3(0.0);
+          return diff + spec;
+        }
+
+        void main() {
+          vec3 N = normalize(vNormalW);
+          vec3 V = normalize(uViewPos - vWorldPos);
+
+          vec3 ambient = uAmbient * vec3(1.0);
+
+          vec3 d1, s1, d2, s2;
+          phongContribution(uL1Pos, uL1Color, N, V, vWorldPos, d1, s1);
+          phongContribution(uL2Pos, uL2Color, N, V, vWorldPos, d2, s2);
+
+          if (uActiveLights == 1) { d2 = vec3(0.0); s2 = vec3(0.0); }
+          if (uActiveLights == 2) { d1 = vec3(0.0); s1 = vec3(0.0); }
+
+          vec3 diffuse = d1 + d2;
+          vec3 specular = s1 + s2;
+          vec3 result = vec3(0.0);
+
+          if (uMode == 0) result = uColor * (ambient + diffuse) + specular;
+          else if (uMode == 1) result = uColor * ambient;
+          else if (uMode == 2) result = uColor * diffuse;
+          else if (uMode == 3) result = specular;
+
+          result = clamp(result, 0.0, 1.0);
+          gl_FragColor = vec4(result, 1.0);
+        }
+      `
+    });
+
+    const sphere = new THREE.Mesh(
+      new THREE.SphereGeometry(1.25, 128, 128),
+      sphereMat
+    );
+    scene.add(sphere);
+
+    /* â”€â”€ Visual handles for the two lights â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    const lightHandleGeo = new THREE.SphereGeometry(0.07, 20, 20);
+    const light1Handle = new THREE.Mesh(
+      lightHandleGeo,
+      new THREE.MeshBasicMaterial({ color: 0xff8844 })
+    );
+    const light2Handle = new THREE.Mesh(
+      lightHandleGeo,
+      new THREE.MeshBasicMaterial({ color: 0x66aaff })
+    );
+    light1Handle.position.copy(uniforms.uL1Pos.value);
+    light2Handle.position.copy(uniforms.uL2Pos.value);
+    scene.add(light1Handle, light2Handle);
+
+    /* â”€â”€ Sample point and vector diagram: n, p, r, q â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    const vectorGroup = new THREE.Group();
+    scene.add(vectorGroup);
+
+    const sampleMarker = new THREE.Mesh(
+      new THREE.SphereGeometry(0.045, 16, 16),
+      new THREE.MeshBasicMaterial({ color: 0x111111 })
+    );
+    vectorGroup.add(sampleMarker);
+
+    const normalArrow = new THREE.ArrowHelper(
+      new THREE.Vector3(0, 0, 1), new THREE.Vector3(), 0.75, 0x1a8f2a, 0.14, 0.08
+    );
+    const incomingArrow = new THREE.ArrowHelper(
+      new THREE.Vector3(0, 0, 1), new THREE.Vector3(), 0.95, 0xd07020, 0.16, 0.08
+    );
+    const reflectArrow = new THREE.ArrowHelper(
+      new THREE.Vector3(0, 0, 1), new THREE.Vector3(), 0.95, 0x9a40d6, 0.16, 0.08
+    );
+    const viewArrow = new THREE.ArrowHelper(
+      new THREE.Vector3(0, 0, 1), new THREE.Vector3(), 0.9, 0x2060d0, 0.16, 0.08
+    );
+    vectorGroup.add(normalArrow, incomingArrow, reflectArrow, viewArrow);
+
+    const labelN = addLabel('n', new THREE.Vector3(), { color: '#1a8f2a', bold: true, background: 'rgba(255,255,255,0.8)', offset: [10, -8] });
+    const labelP = addLabel('p', new THREE.Vector3(), { color: '#d07020', bold: true, background: 'rgba(255,255,255,0.8)', offset: [10, -8] });
+    const labelR = addLabel('r', new THREE.Vector3(), { color: '#9a40d6', bold: true, background: 'rgba(255,255,255,0.8)', offset: [10, -8] });
+    const labelQ = addLabel('q', new THREE.Vector3(), { color: '#2060d0', bold: true, background: 'rgba(255,255,255,0.8)', offset: [10, -8] });
+    const labelL1 = addLabel('light 1', light1Handle.position, { color: '#a94f13', fontSize: '11px', background: 'rgba(255,255,255,0.8)', offset: [0, -14] });
+    const labelL2 = addLabel('light 2', light2Handle.position, { color: '#2059b0', fontSize: '11px', background: 'rgba(255,255,255,0.8)', offset: [0, -14] });
+
+    /* â”€â”€ Choose a surface point near the right highlight â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    function findSamplePoint() {
+      const P = new THREE.Vector3(0.62, 0.10, 0);
+      const z = Math.sqrt(Math.max(0, 1.25 * 1.25 - P.x * P.x - P.y * P.y));
+      P.z = z;
+      return P;
+    }
+
+    function updateVectors() {
+      const P = findSamplePoint();
+      const N = P.clone().normalize();
+
+      const active = uniforms.uActiveLights.value;
+      const sourcePos = active === 2 ? uniforms.uL2Pos.value : uniforms.uL1Pos.value;
+
+      const L = sourcePos.clone().sub(P).normalize();  // light to surface
+      const pDir = L.clone().negate();                 // textbook p points toward light source from surface? equation uses r=2(pÂ·n)n-p
+      const R = N.clone().multiplyScalar(2 * pDir.dot(N)).sub(pDir).normalize();
+      const Q = camera.position.clone().sub(P).normalize();
+
+      sampleMarker.position.copy(P);
+
+      normalArrow.position.copy(P);
+      normalArrow.setDirection(N);
+      normalArrow.setLength(0.7, 0.14, 0.08);
+
+      incomingArrow.position.copy(P);
+      incomingArrow.setDirection(pDir);
+      incomingArrow.setLength(0.9, 0.16, 0.08);
+
+      reflectArrow.position.copy(P);
+      reflectArrow.setDirection(R);
+      reflectArrow.setLength(0.95, 0.16, 0.08);
+
+      viewArrow.position.copy(P);
+      viewArrow.setDirection(Q);
+      viewArrow.setLength(0.9, 0.16, 0.08);
+
+      labelN.pos.copy(P).add(N.clone().multiplyScalar(0.76));
+      labelP.pos.copy(P).add(pDir.clone().multiplyScalar(0.95));
+      labelR.pos.copy(P).add(R.clone().multiplyScalar(1.0));
+      labelQ.pos.copy(P).add(Q.clone().multiplyScalar(0.95));
+
+      labelL1.pos.copy(light1Handle.position);
+      labelL2.pos.copy(light2Handle.position);
+    }
+
+    function setVectorVisibility(show) {
+      vectorGroup.visible = show;
+      labelN.div.style.display = show ? 'block' : 'none';
+      labelP.div.style.display = show ? 'block' : 'none';
+      labelR.div.style.display = show ? 'block' : 'none';
+      labelQ.div.style.display = show ? 'block' : 'none';
+    }
+
+    /* â”€â”€ Button state helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    function setMode(mode) {
+      uniforms.uMode.value = mode;
+      [btnCombined, btnAmbient, btnDiffuse, btnSpecular].forEach(b => b.classList.remove('active'));
+      [btnCombined, btnAmbient, btnDiffuse, btnSpecular][mode].classList.add('active');
+    }
+    function setLights(which) {
+      uniforms.uActiveLights.value = which;
+      [btnLight1, btnLight2, btnBoth].forEach(b => b.classList.remove('active'));
+      if (which === 1) btnLight1.classList.add('active');
+      if (which === 2) btnLight2.classList.add('active');
+      if (which === 3) btnBoth.classList.add('active');
+      updateVectors();
+    }
+
+    setMode(0);
+    setLights(3);
+
+    btnCombined.addEventListener('click', () => setMode(0));
+    btnAmbient.addEventListener('click', () => setMode(1));
+    btnDiffuse.addEventListener('click', () => setMode(2));
+    btnSpecular.addEventListener('click', () => setMode(3));
+
+    btnLight1.addEventListener('click', () => setLights(1));
+    btnLight2.addEventListener('click', () => setLights(2));
+    btnBoth.addEventListener('click', () => setLights(3));
+
+    let vectorsVisible = false;
+    btnVectors.addEventListener('click', () => {
+      vectorsVisible = !vectorsVisible;
+      btnVectors.classList.toggle('active', vectorsVisible);
+      setVectorVisibility(vectorsVisible);
+    });
+    setVectorVisibility(false);
+
+    alphaSlider.addEventListener('input', () => {
+      uniforms.uAlpha.value = parseFloat(alphaSlider.value);
+      document.getElementById('alphaVal').textContent = alphaSlider.value;
+    });
+
+    /* â”€â”€ Drag light sources in the image plane â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -2.2);
+    let dragged = null;
+
+    function pointerToNDC(event) {
+      const rect = canvas.getBoundingClientRect();
+      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    }
+
+    function projectDrag(event) {
+      pointerToNDC(event);
+      raycaster.setFromCamera(pointer, camera);
+      const hit = new THREE.Vector3();
+      raycaster.ray.intersectPlane(dragPlane, hit);
+      hit.x = THREE.MathUtils.clamp(hit.x, -2.6, 2.6);
+      hit.y = THREE.MathUtils.clamp(hit.y, -1.9, 2.3);
+      hit.z = 2.2;
+      return hit;
+    }
+
+    canvas.addEventListener('pointerdown', (event) => {
+      pointerToNDC(event);
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects([light1Handle, light2Handle], false);
+      if (hits.length) {
+        dragged = hits[0].object;
+        canvas.style.cursor = 'grabbing';
+      }
+    });
+
+    canvas.addEventListener('pointermove', (event) => {
+      if (!dragged) return;
+      const hit = projectDrag(event);
+      dragged.position.copy(hit);
+      if (dragged === light1Handle) uniforms.uL1Pos.value.copy(hit);
+      if (dragged === light2Handle) uniforms.uL2Pos.value.copy(hit);
+      updateVectors();
+    });
+
+    window.addEventListener('pointerup', () => {
+      dragged = null;
+      canvas.style.cursor = 'default';
+    });
+
+    /* â”€â”€ Keep view vector current if camera zoom changes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    const originalUpdate = controls.update.bind(controls);
+    controls.update = function() {
+      originalUpdate();
+      uniforms.uViewPos.value.copy(camera.position);
+      updateVectors();
+    };
+
+    updateVectors();
+  </script>
+</body>
+</html>

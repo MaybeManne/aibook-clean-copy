@@ -1,0 +1,208 @@
+{
+  "meta": {
+    "id": "straw_camera",
+    "title": "soda straw camera",
+    "concept_kind": "definition",
+    "chapter": 5,
+    "section": "5.3",
+    "tags": [
+      "camera_models",
+      "computer_vision",
+      "imaging",
+      "projection"
+    ],
+    "source": {
+      "file": "book.numbered.md",
+      "spans": [
+        {
+          "start": "L03122",
+          "end": "L03141"
+        }
+      ],
+      "section": "5.3"
+    }
+  },
+  "states": {
+    "hook": {
+      "kind": "HOOK",
+      "payload": {
+        "text": "A soda straw camera uses parallel straws to produce an orthographic projection image where object sizes remain constant regardless of distance.",
+        "concept_title": "soda straw camera"
+      },
+      "is_branch": false
+    },
+    "motivate": {
+      "kind": "MOTIVATE",
+      "payload": {
+        "text": "The soda straw camera demonstrates orthographic projection by using parallel straws to allow only parallel rays, producing images where object size does not diminish with distance."
+      },
+      "is_branch": false
+    },
+    "explain": {
+      "kind": "EXPLAIN",
+      "payload": {
+        "text": "One such camera is the **soda straw camera**, shown in @fig-straw, which you can easily build. The example shown in (c) used around 500 straws.\n\n![Straw camera example. (a) View through parallel straws. (b) The subject is a hand in sunlight. (c) The resulting image of the straw camera (using smaller straws than (a)). The image projection is orthographic.](figures/imaging/straw_camera.png){#fig-straw width=\"100%\"}\n\nA set of parallel straws allow parallel light rays to pass from the scene to the projection plane, but extinguish rays passing from all other directions. It works better if the straws are painted black to reduce internal reflections that might capture light rays not parallel to the straws, resulting in a less sharp picture.\n\n@fig-straw (c) shows the resulting image when imagining the scene shown in @fig-straw (b). The straw camera doesn't invert the image as the pinhole camera does and objects do not get smaller as they move away from the camera. The image projection is orthographic, with a unity scale factor; the object sizes on the projection plane are the same as those of the objects in the world.",
+        "kind_label": "definition",
+        "tags": [
+          "camera_models",
+          "computer_vision",
+          "imaging",
+          "projection"
+        ]
+      },
+      "is_branch": false
+    },
+    "visual_1": {
+      "kind": "VISUAL",
+      "payload": {
+        "kind": "static",
+        "asset_image": "assets/figures/static/straw_camera.png",
+        "asset_thumbnail": null,
+        "filename": "straw_camera.png",
+        "category": "photograph",
+        "caption": "straw_camera.png \u2014 photograph (no 3D version generated)"
+      },
+      "is_branch": false
+    },
+    "key_moment": {
+      "kind": "KEY_MOMENT",
+      "payload": {
+        "quote": "One such camera is the **soda straw camera**, shown in which you can easily build.",
+        "section": "5.3",
+        "source": {
+          "file": "book.numbered.md",
+          "spans": [
+            {
+              "start": "L03122",
+              "end": "L03141"
+            }
+          ],
+          "section": "5.3"
+        }
+      },
+      "is_branch": false
+    },
+    "example": {
+      "kind": "EXAMPLE",
+      "payload": {
+        "text": "The example shown in (c) used around 500 straws.",
+        "section": "5.3"
+      },
+      "is_branch": false
+    },
+    "practice_1": {
+      "kind": "PRACTICE",
+      "payload": {
+        "exercise_id": "synth_ex_straw",
+        "prompt": "What does a soda-straw camera record at its output?",
+        "choices": [
+          "A full 2D image of the scene",
+          "A 1D signal \u2014 the light intensity along a single direction over time",
+          "A depth map of the scene",
+          "Nothing \u2014 it has no aperture"
+        ],
+        "correct_index": 1,
+        "explanation_correct": "Right \u2014 the straw passes only one direction of light, so the output is a single scalar intensity per moment. You'd have to scan it to build an image.",
+        "explanation_wrong": "A straw is narrow enough to admit essentially one direction. With only one direction reaching the sensor, you can't form a 2D image at one instant."
+      },
+      "is_branch": false
+    },
+    "hint_1": {
+      "kind": "HINT",
+      "payload": {
+        "text": "A straw lets light through from one direction only. How many dimensions of information can reach the sensor at any instant?",
+        "ref_figure": "straw_camera.png"
+      },
+      "is_branch": true
+    },
+    "retry_1": {
+      "kind": "RETRY",
+      "payload": {
+        "exercise_id": "synth_ex_straw",
+        "prompt": "What does a soda-straw camera record at its output?",
+        "choices": [
+          "A full 2D image of the scene",
+          "A 1D signal \u2014 the light intensity along a single direction over time",
+          "A depth map of the scene",
+          "Nothing \u2014 it has no aperture"
+        ],
+        "correct_index": 1,
+        "note": "Try the question once more, now with the hint in mind."
+      },
+      "is_branch": true
+    },
+    "recap": {
+      "kind": "RECAP",
+      "payload": {
+        "md": "- Soda straw camera uses parallel straws to pass parallel light rays.\n- Produces orthographic projection images with constant object size.\n- Image is not inverted, unlike pinhole cameras."
+      },
+      "is_branch": false
+    },
+    "complete": {
+      "kind": "COMPLETE",
+      "payload": {
+        "writes_to_student_model": true
+      },
+      "is_branch": false
+    }
+  },
+  "markers": [
+    {
+      "id": "m_hook_to_motivate",
+      "after_state": "hook",
+      "label": "why does this matter"
+    },
+    {
+      "id": "m_to_explain",
+      "after_state": "motivate",
+      "label": "the idea"
+    },
+    {
+      "id": "m_to_visual",
+      "after_state": "explain",
+      "label": "see it"
+    },
+    {
+      "id": "m_to_key",
+      "after_state": "visual_1",
+      "label": "from the book"
+    },
+    {
+      "id": "m_to_example",
+      "after_state": "key_moment",
+      "label": "concrete case"
+    },
+    {
+      "id": "m_to_recap",
+      "after_state": "practice_1",
+      "label": "summary"
+    }
+  ],
+  "gates": [
+    {
+      "id": "g_practice_1",
+      "after_state": "practice_1",
+      "kind": "mcq",
+      "payload": {
+        "prompt": "What does a soda-straw camera record at its output?",
+        "correct_index": 1
+      },
+      "branch_on_fail": [
+        "hint_1",
+        "retry_1"
+      ],
+      "rejoin_to": "recap"
+    }
+  ],
+  "main_path": [
+    "hook",
+    "motivate",
+    "explain",
+    "visual_1",
+    "key_moment",
+    "example",
+    "practice_1",
+    "recap",
+    "complete"
+  ]
+}

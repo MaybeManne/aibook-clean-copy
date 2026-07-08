@@ -1,0 +1,25 @@
+# secrets
+.env
+*.env
+
+# OS/editor
+.DS_Store
+.claude/
+.vscode/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# React builds
+apps/*/frontend/build/
+apps/*/frontend/node_modules/.cache/
+
+# Backend local artifacts
+apps/*/backend/.figure-edit-jobs/
+apps/*/backend/student_model/*.jsonl
+apps/*/backend/student_data/*.jsonl
+
+# Python
+__pycache__/
+*.pyc

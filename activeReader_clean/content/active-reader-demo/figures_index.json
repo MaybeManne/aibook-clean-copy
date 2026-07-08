@@ -1,0 +1,168 @@
+{
+  "chapter_slug": "imaging",
+  "chapter_label": "imaging",
+  "total_classified": 8,
+  "total_with_generated_html": 8,
+  "figures": [
+    {
+      "filename": "brdf.png",
+      "category": "diagram_3d_candidate",
+      "classification_confidence": 0.97,
+      "classification_rationale": "Clean perspective surface with 3D directional vectors and spatial geometry.",
+      "interactive_html": "assets/figures/interactive/brdf.html",
+      "static_image": "assets/figures/static/brdf.png",
+      "thumbnail": "assets/figures/thumbnails/brdf.thumb.png",
+      "critique": {
+        "failure_modes": [],
+        "geometry_accuracy": 5,
+        "interactivity_usability": 5,
+        "faithfulness": 5,
+        "label_quality": 5,
+        "concept_accuracy": 5,
+        "notes": "The generated output accurately replicates the original image with all elements, labels, and interactive features implemented effectively.",
+        "visual_aesthetics": 5,
+        "overall_average": 5,
+        "_total": 25
+      },
+      "result_id": "moepi6dx4if2u"
+    },
+    {
+      "filename": "no_picture_on_a_wall_aina.png",
+      "category": "diagram_3d_candidate",
+      "classification_confidence": 0.97,
+      "classification_rationale": "Clean perspective diagram showing wall, pinhole, rays, and spatial scene geometry.",
+      "interactive_html": "assets/figures/interactive/no_picture_on_a_wall_aina.html",
+      "static_image": "assets/figures/static/no_picture_on_a_wall_aina.png",
+      "thumbnail": "assets/figures/thumbnails/no_picture_on_a_wall_aina.thumb.png",
+      "critique": {
+        "failure_modes": [],
+        "geometry_accuracy": 5,
+        "interactivity_usability": 4,
+        "faithfulness": 4,
+        "label_quality": 4,
+        "concept_accuracy": 5,
+        "notes": "The interactive simulation effectively represents the original concept with accurate geometry and useful controls.",
+        "visual_aesthetics": 4.3,
+        "overall_average": 4.4,
+        "_total": 22
+      },
+      "result_id": "moepfgvjpxcpu"
+    },
+    {
+      "filename": "pinhole_geometry2.png",
+      "category": "diagram_3d_candidate",
+      "classification_confidence": 0.98,
+      "classification_rationale": "Clean geometric camera-projection diagram showing 3D coordinates, planes, and spatial perspective relationships.",
+      "interactive_html": "assets/figures/interactive/pinhole_geometry2.html",
+      "static_image": "assets/figures/static/pinhole_geometry2.png",
+      "thumbnail": "assets/figures/thumbnails/pinhole_geometry2.thumb.png",
+      "critique": {
+        "failure_modes": [],
+        "geometry_accuracy": 4,
+        "interactivity_usability": 4,
+        "faithfulness": 4,
+        "label_quality": 5,
+        "concept_accuracy": 5,
+        "notes": "The 3D representation accurately reflects the original structure with functional interactions and clear labels.",
+        "visual_aesthetics": 4.3,
+        "overall_average": 4.4,
+        "_total": 22
+      },
+      "result_id": "mnxoadlomzt4s"
+    },
+    {
+      "filename": "pinhole_names2.png",
+      "category": "diagram_3d_candidate",
+      "classification_confidence": 0.99,
+      "classification_rationale": "Clean computer-generated perspective diagram of 3D camera geometry and coordinate axes.",
+      "interactive_html": "assets/figures/interactive/pinhole_names2.html",
+      "static_image": "assets/figures/static/pinhole_names2.png",
+      "thumbnail": "assets/figures/thumbnails/pinhole_names2.thumb.png",
+      "critique": {
+        "failure_modes": [],
+        "geometry_accuracy": 5,
+        "interactivity_usability": 4,
+        "faithfulness": 5,
+        "label_quality": 4,
+        "concept_accuracy": 5,
+        "notes": "The rendered figure closely matches the original with accurate geometry and interactions, though label placement can be slightly improved.",
+        "visual_aesthetics": 4.7,
+        "overall_average": 4.6,
+        "_total": 23
+      },
+      "result_id": "mnxo9ywt59z4q"
+    },
+    {
+      "filename": "similar_triangles2.png",
+      "category": "diagram_3d_candidate",
+      "classification_confidence": 0.92,
+      "classification_rationale": "Clean vector figure showing 3D coordinate axes, planes, and spatial geometric relationships.",
+      "interactive_html": "assets/figures/interactive/similar_triangles2.html",
+      "static_image": "assets/figures/static/similar_triangles2.png",
+      "thumbnail": "assets/figures/thumbnails/similar_triangles2.thumb.png",
+      "critique": {
+        "failure_modes": [],
+        "geometry_accuracy": 5,
+        "interactivity_usability": 4,
+        "faithfulness": 4,
+        "label_quality": 4,
+        "concept_accuracy": 5,
+        "notes": "The 3D model accurately represents the original with clear labels and functional interactivity.",
+        "visual_aesthetics": 4.3,
+        "overall_average": 4.4,
+        "_total": 22
+      },
+      "result_id": "mnxo9tk6ob7rg"
+    },
+    {
+      "filename": "spherePhongRoughness0.3.png",
+      "category": "diagram_3d_candidate",
+      "classification_confidence": 0.98,
+      "classification_rationale": "Clean computer-rendered shaded sphere showing 3D form and lighting.",
+      "interactive_html": "assets/figures/interactive/spherePhongRoughness0.3.html",
+      "static_image": "assets/figures/static/spherePhongRoughness0.3.png",
+      "thumbnail": "assets/figures/thumbnails/spherePhongRoughness0.3.thumb.png",
+      "critique": {
+        "failure_modes": [],
+        "geometry_accuracy": 5,
+        "interactivity_usability": 5,
+        "faithfulness": 4,
+        "label_quality": 4,
+        "concept_accuracy": 5,
+        "notes": "The sphere and dual-highlight shading closely match the reference and add strong educational interactions, though the visible UI and optional labels slightly reduce exact visual faithfulness.",
+        "visual_aesthetics": 4.3,
+        "overall_average": 4.6,
+        "_total": 23
+      },
+      "result_id": "mn2quwfbxl3hg"
+    },
+    {
+      "filename": "orthogonal_projection.png",
+      "category": "diagram_3d_candidate",
+      "classification_confidence": 0.98,
+      "classification_rationale": "Clean 3D orthographic projection diagram with projection plane and axes.",
+      "interactive_html": "assets/figures/interactive/orthogonal_projection.html",
+      "static_image": "assets/figures/static/orthogonal_projection.png",
+      "thumbnail": "assets/figures/thumbnails/orthogonal_projection.thumb.png",
+      "critique": {
+        "overall_average": 4.0
+      },
+      "result_id": "mnxo9zdnjlrdu",
+      "include_in_clean_gallery": true
+    },
+    {
+      "filename": "sphereDiffuse.png",
+      "category": "diagram_3d_candidate",
+      "classification_confidence": 0.98,
+      "classification_rationale": "Clean shaded 3D object showing volumetric form and lighting.",
+      "interactive_html": "assets/figures/interactive/sphereDiffuse.html",
+      "static_image": "assets/figures/static/sphereDiffuse.png",
+      "thumbnail": "assets/figures/thumbnails/sphereDiffuse.thumb.png",
+      "critique": {
+        "overall_average": 3.8
+      },
+      "result_id": "mnxoayuen7k1g",
+      "include_in_clean_gallery": true
+    }
+  ]
+}

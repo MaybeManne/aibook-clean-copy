@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>html,body{margin:0;height:100%;background:#fff;}body>*:not(canvas):not(script):not(.label){box-sizing:border-box;}</style>
+  <meta charset="UTF-8" />
+  <title>Figure</title>
+  <style>
+    /* ── Reset & canvas fill ─────────────────────────────────────────────── */
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; }
+    #c { width: 100%; height: 100%; display: block; }
+
+    /* ── Floating HTML labels ────────────────────────────────────────────── */
+    .lbl {
+      position: absolute;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      white-space: nowrap;
+      font-family: sans-serif;
+      font-size: 13px;
+      color: #111;
+    }
+
+    /* ── Control panel ───────────────────────────────────────────────────── */
+    #ui {
+      position: absolute;
+      top: 10px; left: 10px;
+      display: flex; flex-direction: column; gap: 6px;
+      font-family: sans-serif; font-size: 13px;
+    }
+    #ui button {
+      padding: 4px 10px; cursor: pointer; border: 1px solid #aaa;
+      background: #f5f5f5; border-radius: 4px;
+    }
+    #ui button:hover { background: #e0e0e0; }
+    #ui button.active { background: #c8e6ff; border-color: #5aabf0; }
+    #ui label { display: flex; flex-direction: column; gap: 2px; }
+    #ui input[type=range] { width: 140px; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="ui">
+    <button id="btnReset">Reset View</button>
+    <!-- ADD YOUR CONTROLS HERE -->
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    /* ── Renderer ────────────────────────────────────────────────────────── */
+    const canvas = document.getElementById('c');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+
+    /* ── Scene ───────────────────────────────────────────────────────────── */
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xffffff);
+
+    /* ── Orthographic camera ─────────────────────────────────────────────── */
+    const d = 3;                              // half-height in world units
+    let aspect = canvas.clientWidth / canvas.clientHeight;
+    const camera = new THREE.OrthographicCamera(
+      -d * aspect, d * aspect, d, -d, 0.1, 100
+    );
+    camera.position.set(4, 4, 4);
+    camera.lookAt(0, 0, 0);
+    camera.zoom = 1.2;
+    camera.updateProjectionMatrix();
+
+    /* ── Controls ────────────────────────────────────────────────────────── */
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+
+    const HOME_POS = camera.position.clone();
+    const HOME_TARGET = new THREE.Vector3(0, 0, 0);
+    document.getElementById('btnReset').addEventListener('click', () => {
+      camera.position.copy(HOME_POS);
+      controls.target.copy(HOME_TARGET);
+      controls.update();
+    });
+
+    /* ── Label system ────────────────────────────────────────────────────── */
+    const _labels = [];
+
+    /**
+     * addLabel(text, position3D, options?) → entry
+     *   text     : HTML string  ('x<sub>1</sub>', '&lambda;', '<b>bold</b>', …)
+     *   position : THREE.Vector3 (world space)
+     *   options  : {
+     *       color     : css color string  (default '#111')
+     *       fontSize  : css string        (default '13px')
+     *       bold      : boolean           (default false)
+     *       offset    : [dx, dy] pixels   (default [0, 0])
+     *       background: css string        (default 'none')
+     *     }
+     *   Returns an entry object; update entry.pos.set(x,y,z) to reposition.
+     */
+    function addLabel(text, position, options = {}) {
+      const div = document.createElement('div');
+      div.className = 'lbl';
+      div.innerHTML = text;
+      if (options.color)      div.style.color      = options.color;
+      if (options.fontSize)   div.style.fontSize   = options.fontSize;
+      if (options.bold)       div.style.fontWeight = 'bold';
+      if (options.background) {
+        div.style.background   = options.background;
+        div.style.padding      = '1px 4px';
+        div.style.borderRadius = '3px';
+      }
+      document.body.appendChild(div);
+      const entry = { div, pos: position.clone(), offset: options.offset || [0, 0] };
+      _labels.push(entry);
+      return entry;
+    }
+
+    /* project labels each frame */
+    const _v = new THREE.Vector3();
+    function _syncLabels() {
+      for (const { div, pos, offset } of _labels) {
+        _v.copy(pos).project(camera);
+        const x = ( _v.x * 0.5 + 0.5) * canvas.clientWidth  + offset[0];
+        const y = (-_v.y * 0.5 + 0.5) * canvas.clientHeight + offset[1];
+        div.style.left = x + 'px';
+        div.style.top  = y + 'px';
+      }
+    }
+
+    /* ── Render loop ─────────────────────────────────────────────────────── */
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+      _syncLabels();
+    }
+    animate();
+
+    /* ── Resize (ResizeObserver on canvas) ───────────────────────────────── */
+    new ResizeObserver(() => {
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      aspect = w / h;
+      camera.left   = -d * aspect;
+      camera.right  =  d * aspect;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h, false);
+    }).observe(canvas);
+
+    // ADD YOUR SCENE OBJECTS, GEOMETRY, LABELS, AND INTERACTION LOGIC BELOW HERE
+
+    const ui = document.getElementById('ui');
+
+    const focalLabel = document.createElement('label');
+    focalLabel.innerHTML = 'Focal length f <input id="fSlider" type="range" min="0.6" max="2.0" step="0.01" value="1.2">';
+    ui.appendChild(focalLabel);
+
+    const stepBtn = document.createElement('button');
+    stepBtn.id = 'btnStep';
+    stepBtn.textContent = 'Show Similar Triangles';
+    ui.appendChild(stepBtn);
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = 'btnVirtual';
+    toggleBtn.textContent = 'Toggle Virtual Plane';
+    toggleBtn.classList.add('active');
+    ui.appendChild(toggleBtn);
+
+    const animBtn = document.createElement('button');
+    animBtn.id = 'btnAnimate';
+    animBtn.textContent = 'Animate Z of P';
+    ui.appendChild(animBtn);
+
+    const dragNote = document.createElement('div');
+    dragNote.textContent = 'Drag cyan point P';
+    dragNote.style.fontFamily = 'sans-serif';
+    dragNote.style.fontSize = '12px';
+    dragNote.style.color = '#333';
+    dragNote.style.background = 'rgba(255,255,255,0.9)';
+    dragNote.style.padding = '4px 6px';
+    dragNote.style.border = '1px solid #ccc';
+    dragNote.style.borderRadius = '4px';
+    ui.appendChild(dragNote);
+
+    camera.position.set(4.6, 3.1, 6.2);
+    controls.target.set(0.2, 0.1, 1.6);
+    camera.zoom = 1.05;
+    camera.updateProjectionMatrix();
+    controls.update();
+
+    const black = 0x1b1b1b;
+    const green = 0x37e80e;
+    const cyan = 0x57d5ff;
+    const paleBlue = 0xb9cfd5;
+    const planeGray = 0xaab7bd;
+    const blue = 0x2337ff;
+    const red = 0xff1f1f;
+    const dashedGray = 0xd8e2e2;
+
+    function makeLine(points, color=black, lw=1) {
+      const g = new THREE.BufferGeometry().setFromPoints(points);
+      const m = new THREE.LineBasicMaterial({ color, linewidth: lw });
+      return new THREE.Line(g, m);
+    }
+
+    function makeDashed(points, color=dashedGray, dash=0.14, gap=0.1) {
+      const g = new THREE.BufferGeometry().setFromPoints(points);
+      const m = new THREE.LineDashedMaterial({ color, dashSize: dash, gapSize: gap });
+      const line = new THREE.Line(g, m);
+      line.computeLineDistances();
+      return line;
+    }
+
+    function setLinePoints(line, points) {
+      line.geometry.dispose();
+      line.geometry = new THREE.BufferGeometry().setFromPoints(points);
+      if (line.computeLineDistances) line.computeLineDistances();
+    }
+
+    function setMeshFromPoints(mesh, pts) {
+      const arr = new Float32Array([
+        pts[0].x, pts[0].y, pts[0].z,
+        pts[1].x, pts[1].y, pts[1].z,
+        pts[2].x, pts[2].y, pts[2].z,
+        pts[0].x, pts[0].y, pts[0].z,
+        pts[2].x, pts[2].y, pts[2].z,
+        pts[3].x, pts[3].y, pts[3].z
+      ]);
+      mesh.geometry.dispose();
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+      g.computeVertexNormals();
+      mesh.geometry = g;
+    }
+
+    const origin = new THREE.Vector3(0, 0, 0);
+
+    /* World coordinate axes */
+    const yAxis = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), origin, 2.6, black, 0.18, 0.1);
+    const zAxis = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), origin, 5.0, black, 0.22, 0.11);
+    const xAxis = new THREE.ArrowHelper(new THREE.Vector3(0.62, 0.78, 0), origin, 2.2, black, 0.18, 0.1);
+    scene.add(yAxis, zAxis, xAxis);
+
+    /* Red focal distance arrows on the optical axis */
+    const fArrowLeft = new THREE.ArrowHelper(new THREE.Vector3(-1, 0, 0), origin, 1.2, red, 0.18, 0.1);
+    const fArrowRight = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), origin, 1.2, red, 0.18, 0.1);
+    scene.add(fArrowLeft, fArrowRight);
+
+    /* Pinhole */
+    const pinhole = new THREE.Mesh(
+      new THREE.SphereGeometry(0.08, 24, 16),
+      new THREE.MeshBasicMaterial({ color: black })
+    );
+    scene.add(pinhole);
+
+    /* Camera plane orientation vectors */
+    const eX = new THREE.Vector3(0.75, 0.62, 0).normalize();
+    const eY = new THREE.Vector3(0, 1, 0);
+    const eZ = new THREE.Vector3(1, 0, 0);
+
+    function planePoint(z, x, y) {
+      return new THREE.Vector3().copy(eZ).multiplyScalar(z).addScaledVector(eX, x).addScaledVector(eY, y);
+    }
+
+    let f = 1.2;
+
+    const virtualPlaneMat = new THREE.MeshBasicMaterial({
+      color: paleBlue,
+      transparent: true,
+      opacity: 0.35,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const projectionPlaneMat = new THREE.MeshBasicMaterial({
+      color: planeGray,
+      transparent: true,
+      opacity: 0.48,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+
+    const virtualPlane = new THREE.Mesh(new THREE.BufferGeometry(), virtualPlaneMat);
+    const projectionPlane = new THREE.Mesh(new THREE.BufferGeometry(), projectionPlaneMat);
+    scene.add(virtualPlane, projectionPlane);
+
+    const vpEdges = new THREE.Group();
+    const ppEdges = new THREE.Group();
+    scene.add(vpEdges, ppEdges);
+
+    const vpGreenX = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), origin, 0.9, green, 0.16, 0.08);
+    const vpGreenY = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), origin, 0.9, green, 0.16, 0.08);
+    scene.add(vpGreenX, vpGreenY);
+
+    const ppGreenX = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), origin, 0.9, green, 0.16, 0.08);
+    const ppGreenY = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), origin, 0.9, green, 0.16, 0.08);
+    scene.add(ppGreenX, ppGreenY);
+
+    const Pmesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.09, 28, 20),
+      new THREE.MeshBasicMaterial({ color: cyan })
+    );
+    scene.add(Pmesh);
+
+    const pVirtualMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.085, 24, 18),
+      new THREE.MeshBasicMaterial({ color: cyan })
+    );
+    scene.add(pVirtualMesh);
+
+    const pProjectionMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.085, 24, 18),
+      new THREE.MeshBasicMaterial({ color: cyan })
+    );
+    scene.add(pProjectionMesh);
+
+    const lineToP = makeLine([origin, new THREE.Vector3(1,1,1)], paleBlue);
+    const lineToPVirt = makeDashed([origin, new THREE.Vector3(1,0.2,1)], dashedGray);
+    const lineToPProj = makeDashed([origin, new THREE.Vector3(-1,-0.2,1)], dashedGray);
+    scene.add(lineToP, lineToPVirt, lineToPProj);
+
+    const stemP = makeLine([new THREE.Vector3(), new THREE.Vector3()], paleBlue);
+    const stemPV = makeLine([new THREE.Vector3(), new THREE.Vector3()], paleBlue);
+    const stemPP = makeLine([new THREE.Vector3(), new THREE.Vector3()], paleBlue);
+    scene.add(stemP, stemPV, stemPP);
+
+    /* Similar-triangle helper rays */
+    const triGroup = new THREE.Group();
+    scene.add(triGroup);
+
+    const triRay1 = makeDashed([origin, new THREE.Vector3()], 0xbfd0d0, 0.1, 0.08);
+    const triRay2 = makeDashed([origin, new THREE.Vector3()], 0xbfd0d0, 0.1, 0.08);
+    const triRay3 = makeDashed([origin, new THREE.Vector3()], 0xbfd0d0, 0.1, 0.08);
+    triGroup.add(triRay1, triRay2, triRay3);
+
+    const similarOutlineVirtual = makeLine([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()], 0x7f8f8f);
+    const similarOutlineProj = makeLine([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()], 0x7f8f8f);
+    triGroup.add(similarOutlineVirtual, similarOutlineProj);
+    triGroup.visible = false;
+
+    /* Right-side image coordinate inset */
+    const inset = new THREE.Group();
+    scene.add(inset);
+
+    const boxMin = new THREE.Vector3(2.85, -1.45, -2.15);
+    const boxMax = new THREE.Vector3(6.45, 1.75, 0.95);
+    const boxPts = [
+      new THREE.Vector3(boxMin.x, boxMin.y, boxMin.z),
+      new THREE.Vector3(boxMax.x, boxMin.y, boxMin.z),
+      new THREE.Vector3(boxMax.x, boxMax.y, boxMin.z),
+      new THREE.Vector3(boxMin.x, boxMax.y, boxMin.z),
+      new THREE.Vector3(boxMin.x, boxMin.y, boxMin.z)
+    ];
+    inset.add(makeLine(boxPts, black));
+
+    const nOrigin = new THREE.Vector3(boxMin.x, boxMin.y, boxMin.z);
+    const nAxis = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), nOrigin, 0.9, blue, 0.16, 0.08);
+    const mAxis = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), nOrigin, 0.9, blue, 0.16, 0.08);
+    inset.add(nAxis, mAxis);
+
+    const camOriginInset = new THREE.Vector3(4.85, 0.05, boxMin.z);
+    const xInset = new THREE.ArrowHelper(new THREE.Vector3(-1,0,0), camOriginInset, 0.65, green, 0.14, 0.08);
+    const yInset = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), camOriginInset, 0.65, green, 0.14, 0.08);
+    inset.add(xInset, yInset);
+
+    const pInset = new THREE.Mesh(
+      new THREE.SphereGeometry(0.09, 24, 18),
+      new THREE.MeshBasicMaterial({ color: cyan })
+    );
+    inset.add(pInset);
+
+    const state = {
+      P: new THREE.Vector3(3.2, 1.25, 1.5),
+      showVirtual: true,
+      animateZ: false,
+      animTime: 0,
+      dragging: false
+    };
+
+    const labelY = addLabel('Y', new THREE.Vector3(0, 2.75, 0), { bold: true, fontSize: '24px', offset: [-8, -6] });
+    const labelXworld = addLabel('X', new THREE.Vector3(1.4, 1.85, 0), { bold: true, fontSize: '24px', offset: [4, -10] });
+    const labelZ = addLabel('Z', new THREE.Vector3(5.15, 0, 0), { bold: true, fontSize: '24px', offset: [0, 18] });
+    const labelWorld = addLabel('World coordinates', new THREE.Vector3(0.95, 2.45, 0), { fontSize: '18px', offset: [40, -12] });
+
+    const labelOrigin = addLabel('(0,0,0)', new THREE.Vector3(0, 0, 0), { fontSize: '18px', offset: [-56, -28] });
+    const labelPinhole = addLabel('Pinhole', new THREE.Vector3(0, 0, 0), { fontSize: '18px', offset: [0, 36] });
+
+    const labelFRight = addLabel('<i>f</i>', new THREE.Vector3(f * 0.55, 0, 0), { fontSize: '22px', offset: [0, 30] });
+    const labelFLeft = addLabel('<i>f</i>', new THREE.Vector3(-f * 0.55, 0, 0), { fontSize: '22px', offset: [0, 30] });
+
+    const labelP = addLabel('<b>P</b>', state.P, { fontSize: '26px', offset: [0, -24] });
+    const labelpVirtual = addLabel('<b>p</b>', new THREE.Vector3(), { fontSize: '26px', offset: [18, -18] });
+    const labelpProjection = addLabel('<b>p</b>', new THREE.Vector3(), { fontSize: '26px', offset: [-18, 20] });
+
+    const labelPlaneVirtual = addLabel('Virtual camera plane', new THREE.Vector3(1.55, -1.55, 1.0), { fontSize: '18px', offset: [0, 8] });
+    const labelPlaneProjection = addLabel('Projection plane', new THREE.Vector3(-2.4, -1.55, 1.5), { fontSize: '18px', offset: [0, 8] });
+
+    const labelxVirt = addLabel('<i>x</i>', new THREE.Vector3(), { fontSize: '22px', offset: [18, -6] });
+    const labelyVirt = addLabel('<i>y</i>', new THREE.Vector3(), { fontSize: '22px', offset: [-10, -22] });
+    const labelxProj = addLabel('<i>x</i>', new THREE.Vector3(), { fontSize: '22px', offset: [-12, 14] });
+    const labelyProj = addLabel('<i>y</i>', new THREE.Vector3(), { fontSize: '22px', offset: [10, 18] });
+
+    const labelCamCoords = addLabel('Camera coordinates', new THREE.Vector3(5.2, 1.05, boxMin.z), { fontSize: '18px', offset: [28, -14] });
+    const labelImgCoords = addLabel('Image coordinates', new THREE.Vector3(4.0, -1.15, boxMin.z), { fontSize: '18px', offset: [0, 0] });
+    const labelVirtualPlaneInset = addLabel('Virtual camera plane', new THREE.Vector3(4.9, -1.55, boxMin.z), { fontSize: '18px', offset: [0, 0] });
+
+    const labelpInset = addLabel('<b>p</b>', new THREE.Vector3(), { fontSize: '26px', offset: [0, 18] });
+    const labelInsetX = addLabel('<i>x</i>', new THREE.Vector3(4.18, 0.05, boxMin.z), { fontSize: '22px', offset: [0, 18] });
+    const labelInsetY = addLabel('<i>y</i>', new THREE.Vector3(4.85, 0.7, boxMin.z), { fontSize: '22px', offset: [16, -8] });
+    const labelInsetNmOrigin = addLabel('(0,0)', nOrigin, { fontSize: '14px', offset: [-26, 12] });
+    const labelInsetCamOrigin = addLabel('(0,0)', camOriginInset, { fontSize: '14px', offset: [32, 16] });
+    const labeln = addLabel('<i>n</i>', new THREE.Vector3(boxMin.x + 0.9, boxMin.y, boxMin.z), { fontSize: '22px', color: '#2337ff', offset: [10, 16] });
+    const labelm = addLabel('<i>m</i>', new THREE.Vector3(boxMin.x, boxMin.y + 0.9, boxMin.z), { fontSize: '22px', color: '#2337ff', offset: [16, -6] });
+
+    function rebuildPlaneEdges(group, pts, dashed=false) {
+      while (group.children.length) {
+        const c = group.children.pop();
+        c.geometry.dispose();
+        c.material.dispose();
+      }
+      const edges = [
+        [pts[0], pts[1]], [pts[1], pts[2]], [pts[2], pts[3]], [pts[3], pts[0]]
+      ];
+      for (const [a,b] of edges) {
+        const line = dashed ? makeDashed([a,b], black, 0.16, 0.1) : makeLine([a,b], black);
+        group.add(line);
+      }
+    }
+
+    function updateSceneGeometry() {
+      const planeW = 1.55;
+      const planeH = 1.95;
+
+      const vpCenter = planePoint(f, 0, 0);
+      const ppCenter = planePoint(-f, 0, 0);
+
+      const vpPts = [
+        planePoint(f, -planeW/2, -planeH/2),
+        planePoint(f,  planeW/2, -planeH/2),
+        planePoint(f,  planeW/2,  planeH/2),
+        planePoint(f, -planeW/2,  planeH/2)
+      ];
+      const ppPts = [
+        planePoint(-f, -planeW/2, -planeH/2),
+        planePoint(-f,  planeW/2, -planeH/2),
+        planePoint(-f,  planeW/2,  planeH/2),
+        planePoint(-f, -planeW/2,  planeH/2)
+      ];
+
+      setMeshFromPoints(virtualPlane, vpPts);
+      setMeshFromPoints(projectionPlane, ppPts);
+      rebuildPlaneEdges(vpEdges, vpPts, false);
+      rebuildPlaneEdges(ppEdges, ppPts, true);
+
+      const P = state.P.clone();
+      Pmesh.position.copy(P);
+
+      const X = P.x;
+      const Y = P.y;
+      const Z = Math.max(0.45, P.z);
+
+      const x = f * X / Z;
+      const y = f * Y / Z;
+
+      const pV = planePoint(f, x, y);
+      const pProj = planePoint(-f, -x, -y);
+
+      pVirtualMesh.position.copy(pV);
+      pProjectionMesh.position.copy(pProj);
+
+      setLinePoints(lineToP, [origin, P]);
+      setLinePoints(lineToPVirt, [origin, pV]);
+      setLinePoints(lineToPProj, [origin, pProj]);
+
+      setLinePoints(stemP, [new THREE.Vector3(P.x, 0, P.z), P]);
+      setLinePoints(stemPV, [new THREE.Vector3(vpCenter.x, 0, vpCenter.z), pV]);
+      setLinePoints(stemPP, [new THREE.Vector3(ppCenter.x, 0, ppCenter.z), pProj]);
+
+      const dirXv = eX.clone();
+      const dirYv = eY.clone();
+
+      vpGreenX.position.copy(vpCenter);
+      vpGreenX.setDirection(dirXv);
+      vpGreenX.setLength(0.95);
+      vpGreenY.position.copy(vpCenter);
+      vpGreenY.setDirection(dirYv);
+      vpGreenY.setLength(0.95);
+
+      ppGreenX.position.copy(ppCenter);
+      ppGreenX.setDirection(dirXv.clone().negate());
+      ppGreenX.setLength(0.95);
+      ppGreenY.position.copy(ppCenter);
+      ppGreenY.setDirection(dirYv.clone().negate());
+      ppGreenY.setLength(0.95);
+
+      const triTopP = planePoint(f, 0, Y * f / Z);
+      const triTopProj = planePoint(-f, 0, -Y * f / Z);
+      const triSideP = planePoint(f, X * f / Z, 0);
+      const triSideProj = planePoint(-f, -X * f / Z, 0);
+
+      setLinePoints(triRay1, [origin, P]);
+      setLinePoints(triRay2, [origin, triTopP]);
+      setLinePoints(triRay3, [origin, triTopProj]);
+      setLinePoints(similarOutlineVirtual, [triTopP, pV, triSideP, triTopP]);
+      setLinePoints(similarOutlineProj, [triTopProj, pProj, triSideProj, triTopProj]);
+
+      const insetScale = 0.42;
+      pInset.position.set(
+        camOriginInset.x - x * insetScale,
+        camOriginInset.y + y * insetScale,
+        boxMin.z
+      );
+
+      labelP.pos.copy(P);
+      labelpVirtual.pos.copy(pV);
+      labelpProjection.pos.copy(pProj);
+
+      labelxVirt.pos.copy(vpCenter.clone().addScaledVector(eX, 0.52));
+      labelyVirt.pos.copy(vpCenter.clone().addScaledVector(eY, 0.55));
+      labelxProj.pos.copy(ppCenter.clone().addScaledVector(eX, -0.52));
+      labelyProj.pos.copy(ppCenter.clone().addScaledVector(eY, -0.55));
+
+      labelFRight.pos.copy(new THREE.Vector3(f * 0.55, 0, 0));
+      labelFLeft.pos.copy(new THREE.Vector3(-f * 0.55, 0, 0));
+
+      labelpInset.pos.copy(pInset.position);
+
+      virtualPlane.visible = state.showVirtual;
+      vpEdges.visible = state.showVirtual;
+      vpGreenX.visible = state.showVirtual;
+      vpGreenY.visible = state.showVirtual;
+      pVirtualMesh.visible = state.showVirtual;
+      lineToPVirt.visible = state.showVirtual;
+      stemPV.visible = state.showVirtual;
+      labelpVirtual.div.style.display = state.showVirtual ? 'block' : 'none';
+      labelPlaneVirtual.div.style.display = state.showVirtual ? 'block' : 'none';
+      labelxVirt.div.style.display = state.showVirtual ? 'block' : 'none';
+      labelyVirt.div.style.display = state.showVirtual ? 'block' : 'none';
+      labelCamCoords.div.style.display = state.showVirtual ? 'block' : 'none';
+      labelImgCoords.div.style.display = state.showVirtual ? 'block' : 'none';
+      labelVirtualPlaneInset.div.style.display = state.showVirtual ? 'block' : 'none';
+      labelpInset.div.style.display = state.showVirtual ? 'block' : 'none';
+      labelInsetX.div.style.display = state.showVirtual ? 'block' : 'none';
+      labelInsetY.div.style.display = state.showVirtual ? 'block' : 'none';
+      labelInsetCamOrigin.div.style.display = state.showVirtual ? 'block' : 'none';
+      inset.visible = state.showVirtual;
+
+      toggleBtn.classList.toggle('active', state.showVirtual);
+      stepBtn.classList.toggle('active', triGroup.visible);
+      animBtn.classList.toggle('active', state.animateZ);
+    }
+
+    updateSceneGeometry();
+
+    /* Slider for focal length */
+    const fSlider = document.getElementById('fSlider');
+    fSlider.addEventListener('input', () => {
+      f = parseFloat(fSlider.value);
+      fArrowLeft.setLength(f);
+      fArrowRight.setLength(f);
+      updateSceneGeometry();
+    });
+
+    /* Toggle virtual plane */
+    toggleBtn.addEventListener('click', () => {
+      state.showVirtual = !state.showVirtual;
+      updateSceneGeometry();
+    });
+
+    /* Step button for similar triangles */
+    stepBtn.addEventListener('click', () => {
+      triGroup.visible = !triGroup.visible;
+      updateSceneGeometry();
+    });
+
+    /* Animate point distance along Z */
+    animBtn.addEventListener('click', () => {
+      state.animateZ = !state.animateZ;
+      updateSceneGeometry();
+    });
+
+    /* Drag interaction for point P */
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const dragPlane = new THREE.Plane(new THREE.Vector3(0,0,1), -state.P.z);
+    const dragHit = new THREE.Vector3();
+
+    function getPointer(event) {
+      const rect = canvas.getBoundingClientRect();
+      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    }
+
+    canvas.addEventListener('pointerdown', (event) => {
+      getPointer(event);
+      raycaster.setFromCamera(pointer, camera);
+      const hit = raycaster.intersectObject(Pmesh, false);
+      if (hit.length) {
+        state.dragging = true;
+        controls.enabled = false;
+        dragPlane.set(new THREE.Vector3(0,0,1), -state.P.z);
+      }
+    });
+
+    canvas.addEventListener('pointermove', (event) => {
+      if (!state.dragging) return;
+      getPointer(event);
+      raycaster.setFromCamera(pointer, camera);
+      if (raycaster.ray.intersectPlane(dragPlane, dragHit)) {
+        state.P.x = THREE.MathUtils.clamp(dragHit.x, 1.0, 4.2);
+        state.P.y = THREE.MathUtils.clamp(dragHit.y, 0.2, 2.2);
+        updateSceneGeometry();
+      }
+    });
+
+    function endDrag() {
+      state.dragging = false;
+      controls.enabled = true;
+    }
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointerleave', endDrag);
+
+    /* Per-frame teaching animation */
+    renderer.setAnimationLoop(() => {
+      if (state.animateZ && !state.dragging) {
+        state.animTime += 0.016;
+        state.P.z = 0.85 + 1.9 * (0.5 + 0.5 * Math.sin(state.animTime));
+        updateSceneGeometry();
+      }
+      controls.update();
+      renderer.render(scene, camera);
+      _syncLabels();
+    });
+  </script>
+</body>
+</html>

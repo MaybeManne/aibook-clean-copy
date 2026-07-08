@@ -1,0 +1,148 @@
+{
+  "chapter": 5,
+  "chapter_title": "Ch 5. Imaging",
+  "concept_count": 14,
+  "figures_index_size": 15,
+  "concepts": [
+    {
+      "id": "reflectance_albedo",
+      "title": "reflectance, or albedo",
+      "kind": "definition",
+      "main_path_length": 10,
+      "gate_count": 1,
+      "visual_count": 2,
+      "interactive_visual_count": 2,
+      "plan_file": "lesson_plans/reflectance_albedo.json"
+    },
+    {
+      "id": "phong_reflection_model",
+      "title": "Phong reflection model",
+      "kind": "definition",
+      "main_path_length": 9,
+      "gate_count": 1,
+      "visual_count": 2,
+      "interactive_visual_count": 2,
+      "plan_file": "lesson_plans/phong_reflection_model.json"
+    },
+    {
+      "id": "pinhole_camera",
+      "title": "pinhole camera",
+      "kind": "definition",
+      "main_path_length": 15,
+      "gate_count": 1,
+      "visual_count": 7,
+      "interactive_visual_count": 2,
+      "plan_file": "lesson_plans/pinhole_camera.json"
+    },
+    {
+      "id": "accidental_cameras",
+      "title": "accidental cameras",
+      "kind": "definition",
+      "main_path_length": 8,
+      "gate_count": 1,
+      "visual_count": 1,
+      "interactive_visual_count": 1,
+      "plan_file": "lesson_plans/accidental_cameras.json"
+    },
+    {
+      "id": "world_coordinates",
+      "title": "World coordinates",
+      "kind": "definition",
+      "main_path_length": 9,
+      "gate_count": 1,
+      "visual_count": 2,
+      "interactive_visual_count": 2,
+      "plan_file": "lesson_plans/world_coordinates.json"
+    },
+    {
+      "id": "camera_coordinates",
+      "title": "Camera coordinates",
+      "kind": "definition",
+      "main_path_length": 10,
+      "gate_count": 1,
+      "visual_count": 2,
+      "interactive_visual_count": 2,
+      "plan_file": "lesson_plans/camera_coordinates.json"
+    },
+    {
+      "id": "image_coordinates",
+      "title": "Image coordinates",
+      "kind": "definition",
+      "main_path_length": 9,
+      "gate_count": 1,
+      "visual_count": 2,
+      "interactive_visual_count": 2,
+      "plan_file": "lesson_plans/image_coordinates.json"
+    },
+    {
+      "id": "similar_triangles",
+      "title": "similar triangles",
+      "kind": "definition",
+      "main_path_length": 9,
+      "gate_count": 1,
+      "visual_count": 1,
+      "interactive_visual_count": 1,
+      "plan_file": "lesson_plans/similar_triangles.json"
+    },
+    {
+      "id": "perspective_projection__book_c013",
+      "title": "perspective projection",
+      "kind": "definition",
+      "main_path_length": 10,
+      "gate_count": 1,
+      "visual_count": 2,
+      "interactive_visual_count": 2,
+      "plan_file": "lesson_plans/perspective_projection__book_c013.json"
+    },
+    {
+      "id": "orthographic_projection",
+      "title": "orthographic projection",
+      "kind": "definition",
+      "main_path_length": 9,
+      "gate_count": 1,
+      "visual_count": 1,
+      "interactive_visual_count": 1,
+      "plan_file": "lesson_plans/orthographic_projection.json"
+    },
+    {
+      "id": "straw_camera",
+      "title": "soda straw camera",
+      "kind": "definition",
+      "main_path_length": 9,
+      "gate_count": 1,
+      "visual_count": 1,
+      "interactive_visual_count": 0,
+      "plan_file": "lesson_plans/straw_camera.json"
+    },
+    {
+      "id": "light_ray_definition",
+      "title": "light ray",
+      "kind": "definition",
+      "main_path_length": 8,
+      "gate_count": 1,
+      "visual_count": 1,
+      "interactive_visual_count": 0,
+      "plan_file": "lesson_plans/light_ray_definition.json"
+    },
+    {
+      "id": "bidirectional_reflection_distribution_function_brdf",
+      "title": "bidirectional reflection distribution function",
+      "kind": "definition",
+      "main_path_length": 9,
+      "gate_count": 1,
+      "visual_count": 1,
+      "interactive_visual_count": 1,
+      "plan_file": "lesson_plans/bidirectional_reflection_distribution_function_brdf.json"
+    },
+    {
+      "id": "lambertian_surfaces",
+      "title": "Lambertian Surfaces",
+      "kind": "definition",
+      "main_path_length": 8,
+      "gate_count": 1,
+      "visual_count": 1,
+      "interactive_visual_count": 1,
+      "plan_file": "lesson_plans/lambertian_surfaces.json"
+    }
+  ]
+}
