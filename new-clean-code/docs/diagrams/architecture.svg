@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1740" height="1080" viewBox="0 0 1740 1080" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#0f172a" flood-opacity="0.14"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+    <style>
+      .title    { font-size: 42px; font-weight: 800; fill: #0f172a; }
+      .tagline  { font-size: 18px; font-weight: 500; fill: #475569; }
+      .subnote  { font-size: 15px; font-weight: 400; fill: #64748b; }
+      .role     { font-size: 12px; font-weight: 700; fill: #94a3b8; letter-spacing: 1.2px; }
+      .boxT     { font-size: 24px; font-weight: 700; }
+      .boxS     { font-size: 14.5px; font-weight: 400; fill: #475569; }
+      .alias    { font-size: 13px; font-weight: 600; fill: #94a3b8; font-family: 'SF Mono', ui-monospace, Menlo, Consolas, monospace; }
+      .banner   { font-size: 17px; font-weight: 500; fill: #334155; }
+      .bannerB  { font-size: 17px; font-weight: 800; fill: #0f172a; }
+    </style>
+  </defs>
+
+  <rect width="1740" height="1080" fill="#f8fafc"/>
+
+  <!-- header -->
+  <text class="title" x="140" y="66">LessonKit</text>
+  <text class="tagline" x="345" y="66">— code architecture</text>
+  <text class="subnote" x="140" y="98">Layered TypeScript engine. Dependencies point downward — each layer imports only the layers beneath it. Runtime is pure browser JS; Node is dev-tooling only.</text>
+
+  <!-- left role labels (absolute coords) -->
+  <text class="role" x="128" y="168" text-anchor="end">EXAMPLES</text>
+  <text class="role" x="128" y="290" text-anchor="end">RENDERING</text>
+  <text class="role" x="128" y="436" text-anchor="end">PLAYBACK</text>
+  <text class="role" x="128" y="582" text-anchor="end">DOMAIN</text>
+  <text class="role" x="128" y="726" text-anchor="end">MEDIA</text>
+  <text class="role" x="128" y="744" text-anchor="end">+ THEME</text>
+  <text class="role" x="128" y="886" text-anchor="end">FOUNDATION</text>
+
+  <!-- content group, shifted right to leave room for role labels -->
+  <g transform="translate(140,0)">
+
+    <!-- connector arrows (centered, imply downward dependency) -->
+    <g stroke="#94a3b8" stroke-width="2.5" marker-end="url(#arrow)">
+      <line x1="800" y1="200" x2="800" y2="226"/>
+      <line x1="800" y1="342" x2="800" y2="380"/>
+      <line x1="800" y1="482" x2="800" y2="520"/>
+      <line x1="800" y1="634" x2="800" y2="672"/>
+      <line x1="800" y1="786" x2="800" y2="824"/>
+    </g>
+
+    <!-- EXAMPLES -->
+    <g filter="url(#shadow)">
+      <rect x="340" y="132" width="920" height="66" rx="14" fill="#fffbeb" stroke="#f59e0b" stroke-width="2"/>
+    </g>
+    <text class="boxT" x="800" y="166" text-anchor="middle" fill="#92400e">examples</text>
+    <text class="boxS" x="800" y="188" text-anchor="middle">turnstile · photosynthesis · amc-nested · figures · narrated</text>
+
+    <!-- RENDERING: render_web + render_video -->
+    <g filter="url(#shadow)">
+      <rect x="48" y="232" width="728" height="108" rx="14" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
+    </g>
+    <text class="boxT" x="72" y="272" fill="#065f46">render_web</text>
+    <text class="alias" x="752" y="258" text-anchor="end">@lessonkit/render-web</text>
+    <text class="boxS" x="72" y="300">React chrome — VideoView · TransportBar · SceneView</text>
+    <text class="boxS" x="72" y="322">VizView · richtext (KaTeX) · Template · audio sink</text>
+
+    <g filter="url(#shadow)">
+      <rect x="824" y="232" width="728" height="108" rx="14" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
+    </g>
+    <text class="boxT" x="848" y="272" fill="#065f46">render_video</text>
+    <text class="alias" x="1528" y="258" text-anchor="end">@lessonkit/render-video</text>
+    <text class="boxS" x="848" y="300">Offline mp4 export — sampleAt → SVG → resvg</text>
+    <text class="boxS" x="848" y="322">raster → ffmpeg mux · burned captions + audio</text>
+
+    <!-- VIDEO -->
+    <g filter="url(#shadow)">
+      <rect x="300" y="384" width="1000" height="96" rx="14" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="2"/>
+    </g>
+    <text class="boxT" x="324" y="424" fill="#5b21b6">video</text>
+    <text class="alias" x="1276" y="410" text-anchor="end">@lessonkit/video</text>
+    <text class="boxS" x="324" y="452">VideoProgram · transport &amp; single clock · play / pause / seek · persistent stage</text>
+    <text class="boxS" x="324" y="472">defineVideo / SceneBuilder authoring · caption track · audio sync</text>
+
+    <!-- LESSON -->
+    <g filter="url(#shadow)">
+      <rect x="240" y="524" width="1120" height="108" rx="14" fill="#faf5ff" stroke="#a855f7" stroke-width="2"/>
+    </g>
+    <text class="boxT" x="264" y="564" fill="#6b21a8">lesson</text>
+    <text class="alias" x="1336" y="550" text-anchor="end">@lessonkit/lesson</text>
+    <text class="boxS" x="264" y="592">beats — Explain · MCQ · FreeResponse · Branch · Animate  |  compile → JSON IR (validate)</text>
+    <text class="boxS" x="264" y="614">Session (history · snapshot / restore · effects · policies · signals) · authoring DSL</text>
+
+    <!-- MEDIA + THEME row: audio | timeline | template -->
+    <g filter="url(#shadow)">
+      <rect x="48" y="676" width="460" height="108" rx="14" fill="#ecfeff" stroke="#06b6d4" stroke-width="2"/>
+    </g>
+    <text class="boxT" x="72" y="716" fill="#155e75">audio</text>
+    <text class="alias" x="484" y="702" text-anchor="end">@lessonkit/audio</text>
+    <text class="boxS" x="72" y="744">TTS adapters · char→word</text>
+    <text class="boxS" x="72" y="766">alignment · subtitles · cache</text>
+
+    <g filter="url(#shadow)">
+      <rect x="570" y="676" width="460" height="108" rx="14" fill="#ecfeff" stroke="#06b6d4" stroke-width="2"/>
+    </g>
+    <text class="boxT" x="594" y="716" fill="#155e75">timeline</text>
+    <text class="alias" x="1006" y="702" text-anchor="end">@lessonkit/timeline</text>
+    <text class="boxS" x="594" y="744">scene graph · Storyboard</text>
+    <text class="boxS" x="594" y="766">pure sampleAt(t) — one clock</text>
+
+    <g filter="url(#shadow)">
+      <rect x="1092" y="676" width="460" height="108" rx="14" fill="#f0fdfa" stroke="#14b8a6" stroke-width="2"/>
+    </g>
+    <text class="boxT" x="1116" y="716" fill="#115e59">template</text>
+    <text class="alias" x="1528" y="702" text-anchor="end">@lessonkit/template</text>
+    <text class="boxS" x="1116" y="744">theme tokens · slots</text>
+    <text class="boxS" x="1116" y="766">component registry</text>
+
+    <!-- FOUNDATION: state_machine | render_contract -->
+    <g filter="url(#shadow)">
+      <rect x="48" y="828" width="728" height="108" rx="14" fill="#eef2ff" stroke="#6366f1" stroke-width="2"/>
+    </g>
+    <text class="boxT" x="72" y="868" fill="#3730a3">state_machine</text>
+    <text class="alias" x="752" y="854" text-anchor="end">@lessonkit/state-machine</text>
+    <text class="boxS" x="72" y="896">Generic hierarchical FSM interpreter — pure (state,event)</text>
+    <text class="boxS" x="72" y="918">→ (state', effects, render). Parameterized &lt;C&gt;, imports nothing.</text>
+
+    <g filter="url(#shadow)">
+      <rect x="824" y="828" width="728" height="108" rx="14" fill="#eef2ff" stroke="#6366f1" stroke-width="2"/>
+    </g>
+    <text class="boxT" x="848" y="868" fill="#3730a3">render_contract</text>
+    <text class="alias" x="1528" y="854" text-anchor="end">@lessonkit/render-contract</text>
+    <text class="boxS" x="848" y="896">Typed render intents (the "what to show" vocabulary)</text>
+    <text class="boxS" x="848" y="918">+ portable rich-text node tree. No renderer, no DOM.</text>
+
+    <!-- core-principle banner -->
+    <rect x="48" y="972" width="1504" height="72" rx="12" fill="#0f172a"/>
+    <text x="76" y="1006" font-size="20" font-weight="800" fill="#fbbf24">⏱  Core principle</text>
+    <text class="banner" x="76" y="1032" fill="#e2e8f0">The state machine sequences <tspan font-weight="800" fill="#ffffff">discrete beats</tspan>; each beat carries a <tspan font-weight="800" fill="#ffffff">continuous timeline</tspan>; one authoritative <tspan font-weight="800" fill="#ffffff">clock (beat-time t)</tspan> drives animation, audio &amp; captions in lock-step.</text>
+  </g>
+</svg>

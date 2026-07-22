@@ -20,6 +20,19 @@ export interface VisualRef {
   data?: unknown;
 }
 
+/** One interactive control in an explorable demo. `button` with key "__next" advances. */
+export interface ControlSpec {
+  key: string;
+  label: string;
+  kind: "slider" | "toggle" | "button";
+  min?: number; // slider
+  max?: number; // slider
+  step?: number; // slider
+  unit?: string; // slider value suffix (e.g. "π")
+}
+
+export type ControlValue = number | boolean;
+
 export type RenderIntent =
   | { kind: "text"; slot: SlotName; content: RichText; emphasis?: "normal" | "muted" | "alert" }
   | { kind: "visual"; slot: SlotName; ref: VisualRef }
@@ -32,6 +45,12 @@ export type RenderIntent =
       feedback?: RichText;
     }
   | { kind: "input"; slot: SlotName; prompt: RichText; value: string }
+  | {
+      kind: "controls";
+      slot: SlotName;
+      controls: ControlSpec[];
+      values: Record<string, ControlValue>;
+    }
   | { kind: string; slot: SlotName; [k: string]: unknown }; // open extension
 
 export interface ViewTransition {

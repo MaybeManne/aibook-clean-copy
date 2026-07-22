@@ -10,6 +10,9 @@ export interface ExplainParams {
   text: string | RichText;
   visual?: VisualRef & { slot?: string };
   textSlot?: string; // default "prose"
+  /** Arbitrary HTML/CSS/SVG card (the escape hatch); emitted as an `html` intent. */
+  html?: string;
+  htmlSlot?: string; // default "stage"
 }
 
 export const ExplainBeat: RenderableBeat<ExplainParams> = {
@@ -31,6 +34,9 @@ export const ExplainBeat: RenderableBeat<ExplainParams> = {
         slot: params.visual.slot ?? "stage",
         ref: { kind: params.visual.kind, src: params.visual.src, data: params.visual.data },
       });
+    }
+    if (params.html) {
+      intents.push({ kind: "html", slot: params.htmlSlot ?? "stage", html: params.html } as unknown as RenderIntent);
     }
     return intents;
   },

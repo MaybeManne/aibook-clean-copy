@@ -10,6 +10,12 @@ import { beatMeta, type RenderableBeat } from "./types.js";
 export interface AnimateParams {
   storyboard: Storyboard;
   slot?: string; // default "stage"
+  /**
+   * Optional narration script. An offline `prepareNarration` pass synthesizes it,
+   * sets the storyboard duration to the audio length, and merges caption cues.
+   * Purely advisory to the beat itself — the baked storyboard is what plays.
+   */
+  narration?: string;
 }
 
 export const AnimateBeat: RenderableBeat<AnimateParams> = {

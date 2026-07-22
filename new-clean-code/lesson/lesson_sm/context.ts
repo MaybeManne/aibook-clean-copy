@@ -12,14 +12,16 @@ export interface EventRecord {
 }
 
 export interface LessonContext {
-  beats: Record<string, Json>;   // per-beat local state, keyed by beat id
-  score: number;                 // cumulative mastery signal
-  vars: Record<string, Json>;    // teacher-defined variables (escape hatch)
-  history: EventRecord[];        // complete audit trail
+  beats: Record<string, Json>;          // per-beat local state, keyed by beat id
+  score: number;                        // cumulative correct count
+  mastery: Record<string, number>;      // skillId → level (0..1+), written by answers
+  misconceptions: Record<string, number>; // misconceptionId → strength; the adaptivity signal
+  vars: Record<string, Json>;           // teacher-defined variables (escape hatch)
+  history: EventRecord[];               // complete audit trail
 }
 
 export function initialContext(vars: Record<string, Json> = {}): LessonContext {
-  return { beats: {}, score: 0, vars, history: [] };
+  return { beats: {}, score: 0, mastery: {}, misconceptions: {}, vars, history: [] };
 }
 
 /** Immutable helper: set one beat's local state, preserving the others. Pure. */

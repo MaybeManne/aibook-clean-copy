@@ -1,65 +1,47 @@
-// SceneView: draws a timeline SceneSnapshot to SVG. Registered for the `scene`
-// intent kind. The same snapshot a Player samples each frame is what this draws,
-// so the interactive preview matches a future frame export exactly.
+// SceneView: draws a timeline SceneSnapshot to SVG for the `scene` intent kind.
+// It delegates the actual node drawing to the SHARED pure `snapshotToSvgInner`
+// (also used by the offline frame exporter), so the interactive preview and an
+// exported video frame are geometry-identical — the design's frame-identical
+// promise, made literal. Imports the pure svg module directly (not the
+// render_video barrel), so no Node-only encoder code reaches the browser bundle.
 import React from "react";
 import type { RenderIntent } from "@lessonkit/render-contract";
-import { asSceneIntent, type SceneNode, type SceneSnapshot } from "@lessonkit/timeline";
+import { asSceneIntent, type SceneSnapshot } from "@lessonkit/timeline";
+import { snapshotToSvgInner } from "@lessonkit/scene-svg";
 import type { Theme } from "@lessonkit/template";
-import { RichTextView } from "../richtext.js";
-import type { ComponentFor } from "./index.js";
+import type { ComponentProps } from "./index.js";
 
-function transform(n: { x?: number; y?: number; scale?: number; rotation?: number }): string {
-  const parts: string[] = [];
-  if (n.x || n.y) parts.push(`translate(${n.x ?? 0} ${n.y ?? 0})`);
-  if (n.rotation) parts.push(`rotate(${n.rotation})`);
-  if (n.scale != null && n.scale !== 1) parts.push(`scale(${n.scale})`);
-  return parts.join(" ");
+/** Cheap structural signature of a scene — two frames that sample identically
+ *  (paused / seek-to-same) share it, so we skip both the SVG rebuild and the DOM
+ *  replace. `sampleAt` returns a fresh object each call, so identity won't do. */
+function sceneSig(intent: RenderIntent): string {
+  const snap = (intent as { snapshot?: SceneSnapshot }).snapshot;
+  if (!snap) return "";
+  const vb = snap.viewBox;
+  return `${vb.x},${vb.y},${vb.w},${vb.h}|${JSON.stringify(snap.nodes)}`;
 }
 
-function Node({ n, theme }: { n: SceneNode; theme: Theme }): React.ReactElement | null {
-  const common = { opacity: n.opacity ?? 1, transform: transform(n) || undefined };
-  const fill = n.fill ?? theme.color.accent;
-  switch (n.kind) {
-    case "rect":
-      return <rect {...common} width={n.w} height={n.h} fill={fill} rx={6} />;
-    case "circle":
-      return <circle {...common} r={n.r} fill={fill} />;
-    case "line":
-    case "arrow":
-      return <line {...common} x1={0} y1={0} x2={n.x2 - (n.x ?? 0)} y2={n.y2 - (n.y ?? 0)} stroke={n.stroke ?? fill} strokeWidth={4} />;
-    case "label":
-      return (
-        <foreignObject {...common} width={400} height={80}>
-          <div style={{ color: fill, fontFamily: theme.font.body, fontSize: n.size ?? 32 }}>
-            <RichTextView value={n.text} />
-          </div>
-        </foreignObject>
-      );
-    case "group":
-      return (
-        <g {...common}>
-          {n.children.map((c, i) => (
-            <Node key={c.id ?? i} n={c} theme={theme} />
-          ))}
-        </g>
-      );
-    default:
-      return null;
-  }
-}
+/** A scene intent may carry a `fit` hint set by the layout: "contain" makes the
+ *  SVG fill (letterbox within) its panel; default "width" keeps natural aspect. */
+type SceneFit = "width" | "contain";
 
-export const SceneView: ComponentFor = ({ intent, theme }) => {
+function SceneViewImpl({ intent, theme }: ComponentProps): React.ReactElement | null {
   const scene = asSceneIntent(intent as RenderIntent);
-  if (!scene) return null;
-  const snap: SceneSnapshot = scene.snapshot;
-  return (
-    <svg
-      viewBox={`0 0 ${snap.viewBox.w} ${snap.viewBox.h}`}
-      style={{ width: "100%", height: "auto", background: theme.color.choiceBg, borderRadius: theme.radius }}
-    >
-      {snap.nodes.map((n, i) => (
-        <Node key={n.id ?? i} n={n} theme={theme} />
-      ))}
-    </svg>
-  );
-};
+  const snap = scene?.snapshot;
+  const fit = (intent as { fit?: SceneFit }).fit ?? "width";
+  // hooks run unconditionally (before any early return)
+  const svg = React.useMemo(() => (snap ? snapshotToSvgInner(snap, theme) : ""), [snap ? sceneSig(intent) : "", theme]);
+  if (!scene || !snap) return null;
+  const vb = snap.viewBox;
+  const style: React.CSSProperties =
+    fit === "contain"
+      ? { width: "100%", height: "100%", maxHeight: "100%", display: "block", background: "transparent" }
+      : { width: "100%", height: "auto", display: "block", aspectRatio: `${vb.w} / ${vb.h}`, background: "transparent" };
+  return <svg viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} preserveAspectRatio="xMidYMid meet" style={style} dangerouslySetInnerHTML={{ __html: svg }} />;
+}
+
+export const SceneView = React.memo(SceneViewImpl, (a, b) => {
+  const ai = a.intent as { fit?: SceneFit };
+  const bi = b.intent as { fit?: SceneFit };
+  return a.theme === b.theme && ai.fit === bi.fit && sceneSig(a.intent) === sceneSig(b.intent);
+});

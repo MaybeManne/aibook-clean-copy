@@ -20,6 +20,8 @@ import { beatMeta, type BeatWireCtx, type BeatWiring, type RenderableBeat } from
 export interface ChoiceSpec {
   text: string;
   correct?: boolean;
+  /** Adaptivity: picking this wrong choice bumps this misconception's strength. */
+  misconception?: string;
 }
 
 export interface McqParams {
@@ -29,6 +31,8 @@ export interface McqParams {
   correctFeedback?: string;
   wrongFeedback?: string;
   promptSlot?: string; // default "prompt"
+  /** Adaptivity: a correct answer raises mastery of this skill (to 1). */
+  skill?: string;
   /** Flow: route a wrong answer to this beat id (a detour). */
   onWrong?: string;
   /** Flow: route a no-answer timeout to this beat id. */
@@ -50,13 +54,22 @@ function readLocal(ctx: LessonContext, id: string): McqLocal {
 function recordAnswer(id: string, params: McqParams): Action<LessonContext> {
   return (ctx, event) => {
     const choice = ((event.payload ?? {}) as { choice?: number }).choice ?? -1;
-    const correct = !!params.choices[choice]?.correct;
+    const picked = params.choices[choice];
+    const correct = !!picked?.correct;
     const prev = readLocal(ctx, id);
     const next: McqLocal = { attempts: prev.attempts + 1, lastPicked: choice, lastCorrect: correct };
+    // Adaptivity signals: correct → raise skill mastery; wrong tagged choice → bump misconception.
+    const mastery = correct && params.skill ? { ...ctx.mastery, [params.skill]: 1 } : ctx.mastery;
+    const misconceptions =
+      !correct && picked?.misconception
+        ? { ...ctx.misconceptions, [picked.misconception]: (ctx.misconceptions[picked.misconception] ?? 0) + 1 }
+        : ctx.misconceptions;
     return {
       context: {
         beats: { ...ctx.beats, [id]: next },          // full sub-object (engine merges shallow)
         score: correct ? ctx.score + 1 : ctx.score,
+        mastery,
+        misconceptions,
       },
     };
   };

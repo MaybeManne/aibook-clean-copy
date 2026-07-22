@@ -123,11 +123,24 @@ function resolve<C>(cur: StateNode, event: MachineEvent, ctx: C, reg: Registry<C
 
 // ── public API ───────────────────────────────────────────────────────────────
 
+/** Enter an arbitrary node by id, running its entry actions, descending to its
+ *  initial leaf. Pure. Used to start a chart and to jump into a node spliced in at
+ *  runtime (a generated beat) without a pre-authored edge. */
+export function enter<C>(
+  chart: Statechart<C>,
+  id: StateId,
+  context: C,
+  reg: Registry<C>,
+  event: MachineEvent = { type: "@enter" },
+): Step<C> {
+  const n = node(chart, id);
+  const { ctx, effects } = applyActions(context, event, reg, n.entry);
+  return { state: resolveInitial(n), context: ctx, effects, done: false };
+}
+
 /** Enter `chart.initial`, run its entry actions. Pure. */
 export function start<C>(chart: Statechart<C>, context: C, reg: Registry<C>): Step<C> {
-  const init = node(chart, chart.initial);
-  const { ctx, effects } = applyActions(context, { type: "@init" }, reg, init.entry);
-  return { state: resolveInitial(init), context: ctx, effects, done: false };
+  return enter(chart, chart.initial, context, reg, { type: "@init" });
 }
 
 /** Advance one event. Pure. */

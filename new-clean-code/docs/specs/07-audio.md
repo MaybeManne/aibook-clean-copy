@@ -2,10 +2,17 @@
 
 Text-to-speech narration + word-level subtitles + caching. Narration timing
 *drives* a timed beat's duration, and a single clock keeps audio/visuals/captions
-in sync. **Phase 2** — specced now for completeness; not built in the Phase 0
-slice. Depends on `timeline` (track/cue types) only.
+in sync. **Phase 2 — ✅ IMPLEMENTED** in `audio/`. Depends on `timeline` (Cue) +
+`render_contract` (RichText) only.
 
-Modules: `tts.ts`, `subtitles.ts`, `cache.ts`, `index.ts`.
+Modules (as built): `tts.ts` (`TtsAdapter`/`WordTiming`/`NarrationAudio`),
+`align.ts` (`charAlignmentToWords`), `subtitles.ts` (`toCaptions`/`captionCues`/
+`activeCaption`), `cache.ts` (`narrationKey`/`fileCache`/`memoryCache`),
+`elevenlabs.ts` (real adapter), `fake.ts` (deterministic test adapter),
+`sink.ts` (`AudioSink`), `narrate.ts` (generic precompile), `index.ts`. The
+`LessonSpec`-aware wrapper `prepareNarration` lives in `lesson/authoring` (lesson
+may depend on audio). Chosen over the runtime-effect path: precompile keeps the
+clock loop pure/deterministic.
 
 ---
 

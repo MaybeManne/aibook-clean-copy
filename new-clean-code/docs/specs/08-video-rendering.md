@@ -5,8 +5,12 @@ additions) and offline as files (`render_video`). Both consume the SAME
 `sampleAt` from `timeline/`; that's what guarantees the interactive preview and
 the exported file match frame-for-frame.
 
-Depends on `render_contract`, `template`, `timeline`. The Phase 0 slice
-implements the **bold** items only.
+Depends on `render_contract`, `template`, `timeline`. **Phase 0 + captions +
+Phase 3 export are now implemented.** The pure drawing lives in
+`rendering/render_video/svg.ts` (`snapshotToSvgInner`/`frameSvg`), exposed as
+`@lessonkit/scene-svg`; `SceneView` and the exporter both consume it so preview
+== export. `CaptionView` renders the `caption` kind. Export = `planFrames` (pure)
+→ `Rasterizer` (`@resvg/resvg-js`) → `Encoder` (`ffmpeg-static`) → `exportLesson`.
 
 ---
 

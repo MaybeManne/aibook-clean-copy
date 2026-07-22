@@ -4,6 +4,7 @@
 // render() and calls send().
 
 import {
+  enter,
   restore,
   snapshot,
   start,
@@ -13,11 +14,20 @@ import {
   type MachineEvent,
   type Snapshot,
   type Step,
+  type TransitionRecord,
 } from "@lessonkit/state-machine";
 import type { RenderModel } from "@lessonkit/render-contract";
 import { leafState, type RenderableBeat } from "../beats/index.js";
-import type { CompiledLesson } from "../lesson_sm/compile.js";
+import { lowerBeat, validateBeatSpec, CompileError, type BeatSpec, type CompiledLesson } from "../lesson_sm/compile.js";
 import { initialContext, type EventRecord, type LessonContext } from "../lesson_sm/context.js";
+
+/**
+ * The event that carries a runtime-authored beat (its `BeatSpec` is the payload).
+ * Session intercepts it: splice the beat into the live chart, then jump into it.
+ * Because the spec rides in the event, it lands in history and is re-created on
+ * replay WITHOUT re-invoking the generator — the "generate → freeze → replay" line.
+ */
+export const GENERATED_BEAT_EVENT = "beat.generated";
 
 // ── pluggable collaborators ──────────────────────────────────────────────────
 
@@ -143,9 +153,30 @@ export class Session {
     this.cancelAll();
   }
 
+  /**
+   * Compile ONE runtime-authored (e.g. LLM-generated) beat into the live chart +
+   * registry. Idempotent and additive — an existing beat is never rewritten, so the
+   * spine and any other Session sharing this CompiledLesson are unaffected. Throws
+   * on a malformed spec (unknown type / dangling target / no id) — LLM output is the
+   * untrusted-input case, so it fails loudly rather than corrupting the chart.
+   */
+  spliceBeat(spec: BeatSpec): void {
+    if (!spec || typeof spec.id !== "string" || !spec.id) throw new Error("spliceBeat: generated beat has no id");
+    if (this.lesson.chart.states[spec.id]) return; // already present → idempotent (replay-safe)
+    const problems = validateBeatSpec(spec, this.lesson.beats, this.lesson.chart);
+    if (problems.length) throw new CompileError(problems);
+    this.lesson.chart.states[spec.id] = lowerBeat(spec, this.lesson.beats[spec.type]!, this.lesson.registry, spec.next ?? null);
+  }
+
   // ── internals ──────────────────────────────────────────────────────────────
 
   private apply(event: MachineEvent, fromPolicy: boolean): void {
+    // Live-agentic path: a generated beat rides in the payload → splice + jump in.
+    if (event.type === GENERATED_BEAT_EVENT && event.payload && typeof event.payload === "object" && !Array.isArray(event.payload)) {
+      this.applyGenerated(event, fromPolicy);
+      return;
+    }
+
     const prev = this.step;
     const next = transition(this.lesson.chart, prev, event, this.lesson.registry);
     if (next === prev) return; // unhandled — ignored by the engine
@@ -163,6 +194,23 @@ export class Session {
     this.cancelStale();
     this.runEffects(this.step.effects);
 
+    if (!fromPolicy) this.consultPolicies();
+  }
+
+  /** Splice a generated beat and jump into it, recording the carrier event in history
+   *  so replay re-creates the same beat as data (no generator re-invocation). */
+  private applyGenerated(event: MachineEvent, fromPolicy: boolean): void {
+    const spec = event.payload as unknown as BeatSpec;
+    this.spliceBeat(spec); // throws on a malformed spec (loud failure)
+    const prev = this.step;
+    const entered = enter(this.lesson.chart, spec.id, prev.context, this.lesson.registry, event);
+    const record: TransitionRecord = { event, from: prev.state, to: entered.state };
+    const rec: EventRecord = { seq: entered.context.history.length, ...record };
+    this.step = { ...entered, context: { ...entered.context, history: [...entered.context.history, rec] }, lastRecord: record };
+    this.markActiveBeat();
+
+    this.cancelStale();
+    this.runEffects(this.step.effects);
     if (!fromPolicy) this.consultPolicies();
   }
 

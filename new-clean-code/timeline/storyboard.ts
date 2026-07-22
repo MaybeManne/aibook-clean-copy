@@ -5,7 +5,26 @@
 import type { RenderIntent, RichText } from "@lessonkit/render-contract";
 import type { AnimProp, NodeId, SceneNode } from "./scene.js";
 
-export type Easing = "linear" | "easeIn" | "easeOut" | "easeInOut";
+export type Easing =
+  | "linear"
+  | "easeIn"
+  | "easeOut"
+  | "easeInOut"
+  | "cubicInOut"
+  | "expoOut"
+  | "backOut"
+  | "elasticOut"
+  | "bounceOut";
+
+/** A camera keyframe: the visible viewBox window at time `at`. Interpolated (eased). */
+export interface CameraKey {
+  at: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  easing?: Easing;
+}
 
 export interface Tween {
   target: NodeId;
@@ -28,5 +47,15 @@ export interface Storyboard {
   initial: SceneNode[]; // scene at t=0
   tweens: Tween[];
   cues?: Cue[];
-  stage?: { w: number; h: number }; // viewBox; default 1920x1080
+  stage?: { w: number; h: number }; // full canvas; default 1920x1080
+  /** Camera track: keyframed viewBox windows (pan/zoom/focus). Absent = whole stage. */
+  camera?: CameraKey[];
+  /**
+   * ESCAPE HATCH: instead of (or alongside) the declarative scene, drive a named
+   * external visualization (arbitrary JS/HTML/CSS/canvas). The renderer looks the
+   * name up in its viz registry and feeds it `props` + the beat clock `t`. Keeps
+   * the engine pure (a declarative pointer) while allowing any visual. Browser
+   * only — arbitrary viz cannot be rasterized for mp4 export (SVG scenes can).
+   */
+  viz?: { name: string; props?: Record<string, unknown> };
 }

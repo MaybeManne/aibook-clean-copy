@@ -70,10 +70,9 @@ export class CompileError extends Error {
 function beatTargets(b: BeatSpec): string[] {
   const out: string[] = [];
   const p = b.params as Record<string, unknown>;
-  if (b.type === "mcq") {
-    if (typeof p.onWrong === "string") out.push(p.onWrong);
-    if (typeof p.onTimeout === "string") out.push(p.onTimeout);
-  }
+  // onWrong/onTimeout detours are declared by gate beats (mcq, freeResponse, …).
+  if (typeof p.onWrong === "string") out.push(p.onWrong);
+  if (typeof p.onTimeout === "string") out.push(p.onTimeout);
   if (b.type === "branch") {
     if (typeof p.then === "string") out.push(p.then);
     if (typeof p.else === "string") out.push(p.else);
@@ -174,6 +173,56 @@ export function baseLessonRegistry(): Registry<LessonContext> {
     .action("incScore", (ctx) => ({ context: { score: ctx.score + 1 } }));
 }
 
+// ── lowering ─────────────────────────────────────────────────────────────────
+
+/**
+ * Lower ONE beat into a StateNode: register its inline guards/actions and wire its
+ * default-next edge. Shared by `compileLesson` (spine order, resolved per beat) and
+ * `Session.spliceBeat` (runtime-generated beats, whose `defaultNext` is just their
+ * own `next`). `defaultNext` is the already-resolved advance target (id, or null =
+ * terminal on advance).
+ */
+export function lowerBeat(
+  b: BeatSpec,
+  beatDef: BeatRegistry[string],
+  reg: Registry<LessonContext>,
+  defaultNext: string | null,
+): StateNode {
+  // register escape-hatch inline guards/actions (e.g. a branch predicate)
+  for (const [name, fn] of Object.entries(b.__guards ?? {})) reg.guard(name, fn);
+  for (const [name, fn] of Object.entries(b.__actions ?? {})) reg.action(name, fn);
+
+  const nodeBase = beatDef.build(b.params, b.id);
+  const node: StateNode = { ...nodeBase, routes: [...(nodeBase.routes ?? []), ...(b.routes ?? [])] };
+
+  if (beatDef.wire) {
+    const wiring = beatDef.wire(b.params, b.id, { registry: reg, defaultNext: () => defaultNext });
+    if (wiring.routes) node.routes = [...wiring.routes, ...(node.routes ?? [])];
+    if (wiring.on) node.on = { ...(node.on ?? {}), ...wiring.on };
+  } else {
+    node.on = { ...(node.on ?? {}), next: defaultNext ? [{ target: defaultNext }] : [] };
+  }
+  return node;
+}
+
+/**
+ * Validate a SINGLE runtime-authored (e.g. LLM-generated) beat before splicing it
+ * into a live chart. Unlike `validate`, targets may point at any beat that already
+ * exists in `chart` OR at the new beat itself. Returns [] when valid. Pure.
+ */
+export function validateBeatSpec(b: BeatSpec, beats: BeatRegistry, chart: Statechart<LessonContext>): CompileProblem[] {
+  const problems: CompileProblem[] = [];
+  if (!beats[b.type]) problems.push({ code: "UNKNOWN_BEAT", beatId: b.id, detail: `unknown beat type "${b.type}"` });
+  const exists = (id: string | null | undefined): boolean => id == null || id === b.id || chart.states[id] !== undefined;
+  if (typeof b.next === "string" && !exists(b.next)) {
+    problems.push({ code: "DANGLING_TARGET", beatId: b.id, detail: `next → "${b.next}" does not exist` });
+  }
+  for (const t of beatTargets(b)) {
+    if (!exists(t)) problems.push({ code: "DANGLING_TARGET", beatId: b.id, detail: `target → "${t}" does not exist` });
+  }
+  return problems;
+}
+
 // ── compile ────────────────────────────────────────────────────────────────────
 
 export function compileLesson(spec: LessonSpec, beats: BeatRegistry): CompiledLesson {
@@ -185,24 +234,7 @@ export function compileLesson(spec: LessonSpec, beats: BeatRegistry): CompiledLe
   const states: Record<StateId, StateNode> = {};
 
   for (const b of spec.flow) {
-    // register escape-hatch inline guards/actions (e.g. a branch predicate)
-    for (const [name, fn] of Object.entries(b.__guards ?? {})) reg.guard(name, fn);
-    for (const [name, fn] of Object.entries(b.__actions ?? {})) reg.action(name, fn);
-
-    const beatDef = beats[b.type]!; // validated to exist
-    const nodeBase = beatDef.build(b.params, b.id);
-    const node: StateNode = { ...nodeBase, routes: [...(nodeBase.routes ?? []), ...(b.routes ?? [])] };
-
-    if (beatDef.wire) {
-      const wiring = beatDef.wire(b.params, b.id, { registry: reg, defaultNext: () => defaultNext(b) });
-      if (wiring.routes) node.routes = [...wiring.routes, ...(node.routes ?? [])];
-      if (wiring.on) node.on = { ...(node.on ?? {}), ...wiring.on };
-    } else {
-      const dn = defaultNext(b);
-      node.on = { ...(node.on ?? {}), next: dn ? [{ target: dn }] : [] };
-    }
-
-    states[b.id] = node;
+    states[b.id] = lowerBeat(b, beats[b.type]!, reg, defaultNext(b));
   }
 
   const chart: Statechart<LessonContext> = {

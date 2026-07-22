@@ -1,6 +1,7 @@
 // Phase 0 acceptance: prove (1) sampleAt interpolates correctly, (2) the Player
 // advances beat time and hands control back to the SM at storyboard end.
-import { createPlayer, createSession } from "@lessonkit/lesson";
+import { createSession } from "@lessonkit/lesson";
+import { createPlayer } from "@lessonkit/video";
 import { sampleAt, type SceneNode } from "@lessonkit/timeline";
 import { demo, intro } from "./lesson.js";
 

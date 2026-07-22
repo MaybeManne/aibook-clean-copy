@@ -5,7 +5,10 @@ playback **and** offline file export — built on LessonKit without reworking th
 engine. Scope (decided): both outputs, a **light scene graph**, TTS + word-level
 subtitles.
 
-Status: design. Nothing implemented yet.
+Status: Phases 0–3 implemented. Phase 0 (timeline + Player), Phase 2 (TTS
+alignment + subtitles + single-clock audio, `audio/` layer), and Phase 3 (offline
+mp4 export, `rendering/render_video/`) are built and covered by `npm run
+anim|narrate|export`. Phase 1 depth (scrub-across-beats, gate cues) is still open.
 
 ---
 
@@ -42,13 +45,23 @@ One function, three consumers → no triple-sync, fully scrubbable, replayable.
 ```
 timeline/         temporal contract: Storyboard + light scene graph + sampleAt(). PURE.
                   deps: render_contract
-audio/            TTS adapter + subtitle track + content-hash cache.
-                  deps: timeline (track types) only
+audio/            TTS adapter + alignment + subtitles + content-hash cache + AudioSink.
+                  deps: timeline (Cue) + render_contract (RichText) only
+video/            THE VIDEO LAYER: single clock + transport (play/pause/seek/restart) +
+                  per-frame VideoFrame {model, caption, transport} + persistent stage +
+                  gate pausing + AudioChannel. Composes a lesson Session (the SM host);
+                  imports NO renderer/template. `createPlayer` compat shim lives here.
+                  deps: lesson (Session), timeline, audio, render_contract, state_machine
 rendering/
-  render_web/     + SceneView component (intent kind "scene") + Player (clock, play/pause/seek)
-  render_video/   frame exporter (SceneSnapshot → canvas → frames → encoder) + audio mux
-                  deps: render_contract, template, timeline
+  render_web/     SceneView + CaptionView + VideoView (theater/notebook chrome) +
+                  TransportBar + htmlAudioSink + speechSink (no-key WebSpeech fallback)
+  render_video/   frame exporter (SceneSnapshot → SVG → resvg → ffmpeg) + audio mux
+                  deps: render_contract, template, timeline, lesson
 ```
+
+Dependency arrow: `state_machine (pure) ← lesson ← video ← render_web (VideoView)`;
+`video` also ← timeline, audio. The state machine never knows about video; the
+template/renderer only consumes `VideoFrame` + `TransportState`.
 
 Beats gain one optional method (below). Everything else — engine, render_contract,
 template, lesson compiler — is unchanged.
@@ -176,10 +189,20 @@ export yet.* Headless test asserts `sampleAt` values at t=0/mid/end.
 **Phase 1 — playback depth.** More primitives + easings; `seek`/scrub via
 replay-to-beat + sample; `gate` cues (interactive question mid-timeline).
 
-**Phase 2 — audio + subtitles.** TTS adapter + word timestamps + cache;
-narration-driven duration; caption track; single-clock audio sync.
+**Phase 2 — audio + subtitles. ✅ IMPLEMENTED.** `audio/` layer: `TtsAdapter`
+(ElevenLabs adapter via `/with-timestamps` + a deterministic `fakeTtsAdapter` for
+tests), `charAlignmentToWords` alignment, `toCaptions`/`captionCues`/`activeCaption`
+subtitles, content-hash cache, and an offline `prepareNarration` precompile that
+sets each storyboard's duration to the audio length and merges caption cues.
+`Player` emits word-highlighted `caption` intents and slaves an `AudioSink`
+(browser: `htmlAudioSink`) to beat time `t`. Test: `examples/narrated`.
 
-**Phase 3 — offline export.** `render_video`: frames → encoder, audio mux → mp4.
+**Phase 3 — offline export. ✅ IMPLEMENTED.** `rendering/render_video`: pure
+`snapshotToSvg`/`frameSvg` (shared with `SceneView` via `@lessonkit/scene-svg`),
+`planFrames` walking the beat path (`sampleAt` per frame, captions burned in),
+injectable `Rasterizer` (`@resvg/resvg-js`) + `Encoder` (`ffmpeg-static`), and
+`exportLesson`. The frame *plan* is pure/dep-free; only real encoding needs the
+two prebuilt binaries.
 
 > Audio is in scope but sequenced after Phase 0/1: the visual timeline must exist
 > before narration can drive it. Phase 0 is the real readiness proof.

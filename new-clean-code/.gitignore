@@ -2,3 +2,4 @@ node_modules/
 .conda-node/
 dist/
 *.tsbuildinfo
+.audio-cache/

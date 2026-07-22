@@ -6,7 +6,7 @@ import type { Guard, Json } from "@lessonkit/state-machine";
 import type { Storyboard } from "@lessonkit/timeline";
 import { compileLesson, type BeatSpec, type CompiledLesson, type LessonSpec } from "../lesson_sm/compile.js";
 import type { LessonContext } from "../lesson_sm/context.js";
-import { defaultBeatRegistry, type ExplainParams, type McqParams } from "../beats/index.js";
+import { defaultBeatRegistry, type ExplainParams, type ExplorableParams, type FreeResponseParams, type McqParams } from "../beats/index.js";
 
 export function defineLesson(spec: LessonSpec): CompiledLesson {
   return compileLesson(spec, defaultBeatRegistry());
@@ -34,10 +34,33 @@ export function animate(p: {
   id: string;
   storyboard: Storyboard;
   slot?: string;
+  narration?: string;
   next?: string | null;
 }): BeatSpec {
   const { id, next, ...params } = p;
   const spec: BeatSpec = { id, type: "scene", params: params as unknown as Json };
+  if (next !== undefined) spec.next = next;
+  return spec;
+}
+
+export interface FreeResponseAuthoring extends FreeResponseParams {
+  id: string;
+  next?: string | null;
+}
+export function freeResponse(p: FreeResponseAuthoring): BeatSpec {
+  const { id, next, ...params } = p; // onWrong rides along in params
+  const spec: BeatSpec = { id, type: "freeResponse", params: params as unknown as Json };
+  if (next !== undefined) spec.next = next;
+  return spec;
+}
+
+export interface ExplorableAuthoring extends ExplorableParams {
+  id: string;
+  next?: string | null;
+}
+export function explorable(p: ExplorableAuthoring): BeatSpec {
+  const { id, next, ...params } = p;
+  const spec: BeatSpec = { id, type: "explorable", params: params as unknown as Json };
   if (next !== undefined) spec.next = next;
   return spec;
 }
