@@ -1,0 +1,55 @@
+% ===========================================================================
+% FIG: Modular decomposition enables small-context agentic generation.
+% A monolithic "generate the whole lesson" prompt overflows context and fails
+% opaquely; beats/acts let each agent author ONE atomic unit, verified locally,
+% composed by the structure.
+% ASCII PREVIEW:
+%
+%   topic + objectives
+%        │
+%        ▼  (planner: outline = ordered beats/acts)
+%   ┌──────────────────────────────────────────────┐
+%   │  act 1        act 2              act 3         │
+%   │  [b1][b2]     [b3][b4][b5]       [b6][b7]      │
+%   └───┬───┬────────┬───┬───┬──────────┬───┬───────┘
+%       ▼   ▼        ▼   ▼   ▼          ▼   ▼     one AGENT per beat
+%      🤖  🤖       🤖  🤖  🤖         🤖  🤖    (small context window)
+%       │   │        │   │   │          │   │
+%       └───┴───►  per-beat VALIDATE / repair  ◄──┴───┘
+%                          │
+%                          ▼
+%                  compile → runnable lesson (statechart)
+% ===========================================================================
+\begin{tikzpicture}[
+  font=\small, >={Stealth[length=2mm]},
+  beat/.style={draw, rounded corners=1.5pt, fill=blue!8, minimum width=7mm, minimum height=6mm, inner sep=1pt, font=\scriptsize},
+  agent/.style={draw, circle, fill=orange!12, inner sep=1pt, minimum size=7mm, font=\tiny},
+  lbl/.style={align=center, font=\scriptsize},
+  stage/.style={align=center, inner sep=3pt},
+]
+\node[stage] (top) {\textbf{topic + objectives}};
+\node[stage, below=5mm of top, draw, rounded corners=2pt, fill=gray!8, text width=70mm]
+  (plan) {\textbf{planner agent} $\to$ outline as ordered \emph{acts} of \emph{beats}};
+
+% beats row
+\node[beat, below=8mm of plan.west, anchor=west, xshift=2mm] (b1) {b1};
+\foreach \i/\p in {2/b1,3/b2,4/b3,5/b4,6/b5,7/b6}{
+  \node[beat, right=2.2mm of b\p] (b\i) {b\i};
+}
+\node[lbl, right=4mm of b7] {\emph{acts group beats}};
+
+% agents under beats
+\foreach \i in {1,...,7}{
+  \node[agent, below=7mm of b\i] (a\i) {LLM};
+  \draw[->] (b\i) -- (a\i);
+}
+\draw[->] (plan.south) -- ($(b4.north)+(0,2mm)$);
+
+\node[stage, below=8mm of a4, draw, rounded corners=2pt, fill=green!8, text width=66mm]
+  (val) {\textbf{per-beat validate / repair} (bounded context; parallel)};
+\foreach \i in {1,...,7}{ \draw[->] (a\i) -- (val.north); }
+
+\node[stage, below=5mm of val, draw, rounded corners=2pt, fill=blue!12, text width=58mm]
+  (comp) {\textbf{compile} $\to$ runnable lesson (statechart)};
+\draw[->] (val) -- (comp);
+\end{tikzpicture}

@@ -1,0 +1,51 @@
+{
+  "name": "lessonkit",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Advanced Manim for interactive educational content",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "litmus": "tsx examples/turnstile/turnstile.ts",
+    "demo": "tsx examples/photosynthesis/run.ts",
+    "render-test": "tsx examples/photosynthesis/render-test.tsx",
+    "anim": "tsx examples/animated/run.ts",
+    "narrate": "tsx examples/narrated/run.ts",
+    "export": "tsx examples/narrated/export.ts",
+    "dev:narrated": "LK_ROOT=examples/narrated-web vite",
+    "dev:amc": "LK_ROOT=examples/amc-nested vite",
+    "dev:figures": "LK_ROOT=examples/figures vite",
+    "dev:interactive": "LK_ROOT=examples/interactive vite",
+    "dev:grad": "LK_ROOT=examples/grad-descent vite",
+    "dev:attention": "LK_ROOT=examples/attention vite",
+    "dev:flagship": "LK_ROOT=examples/flagship vite",
+    "amc": "tsx examples/amc-nested/render.ts",
+    "figures": "tsx examples/figures/render.ts",
+    "interactive": "tsx examples/interactive/run.ts",
+    "grad": "tsx examples/grad-descent/run.ts",
+    "grad:gen": "tsx examples/grad-descent/run-generate.ts",
+    "attention": "tsx examples/attention/run.ts",
+    "flagship": "tsx examples/flagship/run.ts",
+    "flagship:audio": "tsx examples/flagship/gen-audio.ts",
+    "test": "tsx examples/turnstile/turnstile.ts && tsx examples/photosynthesis/run.ts && tsx examples/photosynthesis/render-test.tsx && tsx examples/animated/run.ts && tsx examples/narrated/run.ts && tsx examples/narrated/export.ts && tsx examples/interactive/run.ts && tsx examples/grad-descent/run.ts && tsx examples/grad-descent/run-generate.ts && tsx examples/attention/run.ts && tsx examples/flagship/run.ts",
+    "dev": "vite"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.1",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^6.0.3",
+    "puppeteer": "^25.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vite": "^8.1.0"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/katex": "^0.16.8",
+    "ffmpeg-static": "^5.3.0",
+    "katex": "^0.17.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}

@@ -1,0 +1,55 @@
+% ===========================================================================
+% FIG: Knowledge-graph-as-environment for interactive reading. A book is parsed
+% into a concept KG; the KG becomes the state-machine environment; the reader is
+% the player. Reading position + comprehension signals drive routing to the next
+% concept / explanation / probe — the SAME substrate as interactive video.
+% ASCII PREVIEW:
+%
+%    BOOK / PDF ──parse──►  KNOWLEDGE GRAPH (concepts, prerequisites)
+%                              (o)forces──►(o)energy──►(o)work
+%                                 │            ▲
+%                                 ▼            │ prereq
+%                              (o)vectors ─────┘
+%                              │  mapped to a statechart ENVIRONMENT
+%                              ▼
+%    READER = player ──► position + comprehension signals (gaze/Q&A/LLM)
+%                              ▼
+%                  routing ► next concept · just-in-time explanation · probe
+%                              ▼
+%                   chatbot + PDF, co-driven by the same engine
+% ===========================================================================
+\begin{tikzpicture}[
+  font=\small, >={Stealth[length=2mm]},
+  c/.style={draw, circle, fill=blue!10, inner sep=1.5pt, minimum size=9mm, font=\scriptsize, align=center},
+  box/.style={draw, rounded corners=2pt, align=center, inner sep=3pt, font=\scriptsize},
+]
+\node[box, fill=gray!8, text width=26mm] (book) {\textbf{book / PDF}};
+\node[box, right=10mm of book, fill=orange!10] (parse) {parse};
+\draw[->] (book) -- (parse);
+
+% KG
+\node[c, right=12mm of parse] (vec) {vectors};
+\node[c, above right=5mm and 12mm of vec] (force) {forces};
+\node[c, right=14mm of force] (work) {work};
+\node[c, below=8mm of work] (energy) {energy};
+\draw[->] (parse) -- (vec);
+\draw[->] (vec) -- node[above,font=\tiny,sloped]{prereq} (force);
+\draw[->] (force) -- node[above,font=\tiny]{} (work);
+\draw[->] (work) -- (energy);
+\draw[->] (vec) to[bend right=18] (energy);
+\node[above=1mm of force, font=\scriptsize] {\textbf{knowledge graph} (concepts + prerequisites)};
+
+% mapping to environment
+\node[box, fill=blue!8, below=14mm of energy, text width=58mm]
+  (env) {KG $\to$ statechart \textbf{environment}; concept node $=$ state};
+\draw[->] (energy) -- (env);
+\draw[->] (vec) to[bend right=10] (env.west);
+
+\node[box, fill=orange!10, below=7mm of env, text width=62mm]
+  (sig) {\textbf{reader $=$ player}: position $+$ comprehension signals (gaze / Q\&A / LLM)};
+\draw[->] (env) -- (sig);
+\node[box, fill=green!8, below=7mm of sig, text width=66mm]
+  (out) {routing $\to$ next concept $\cdot$ just-in-time explanation $\cdot$ probe \;(chatbot $+$ PDF)};
+\draw[->] (sig) -- (out);
+\draw[->] (out.east) to[bend left=40] node[right,font=\tiny]{loop} (sig.east);
+\end{tikzpicture}
