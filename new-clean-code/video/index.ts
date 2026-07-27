@@ -8,3 +8,4 @@ export * from "./audio.js";
 export * from "./program.js";
 export * from "./player_compat.js";
 export * from "./authoring.js";
+export * from "./transcript.js";

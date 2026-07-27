@@ -8,6 +8,7 @@
 import type { Effect, Json } from "@lessonkit/state-machine";
 import type { BeatSpec } from "../lesson_sm/compile.js";
 import type { LessonContext } from "../lesson_sm/context.js";
+import { authoringCommand, type AuthoringCommand } from "./commands.js";
 import { GENERATED_BEAT_EVENT, type EffectContext, type EffectRunner } from "./session.js";
 
 /** The effect a beat declares (from an entry action) to request generation. Open payload. */
@@ -28,12 +29,25 @@ export interface GenerateRequest {
 }
 
 /**
+ * What an author may return: a bare `BeatSpec` (the common case — add + jump into a
+ * new beat) or one/many `AuthoringCommand`s (a structural "turn" — e.g. Slice 2's
+ * reroute). A bare BeatSpec is wrapped as `{op:"addBeat", enter:true}`, so existing
+ * offline/Claude authors and their tests are untouched.
+ */
+export type AuthorResult = BeatSpec | AuthoringCommand | AuthoringCommand[];
+
+/** True for an AuthoringCommand or a list of them (vs. a bare BeatSpec, which has no `op`). */
+function isCommandLike(r: AuthorResult): r is AuthoringCommand | AuthoringCommand[] {
+  return Array.isArray(r) || (!!r && typeof r === "object" && "op" in r);
+}
+
+/**
  * The pluggable generator. A real one wraps an LLM client (async); a fake one is
- * deterministic and offline (drives tests), mirroring `fakeTtsAdapter`. It MUST
- * return a valid BeatSpec — Session.spliceBeat validates and throws loudly if not.
+ * deterministic and offline (drives tests), mirroring `fakeTtsAdapter`. A returned
+ * BeatSpec is validated by Session.spliceBeat, which throws loudly if malformed.
  */
 export interface LessonAuthor {
-  generate(req: GenerateRequest): BeatSpec | Promise<BeatSpec>;
+  generate(req: GenerateRequest): AuthorResult | Promise<AuthorResult>;
 }
 
 /**
@@ -47,8 +61,12 @@ export function generatingRunner(author: LessonAuthor, base?: EffectRunner): Eff
     run(effect: Effect, ec: EffectContext): void {
       if (effect.kind === "generate") {
         Promise.resolve(author.generate({ ctx: ec.ctx, effect: effect as GenerateEffect }))
-          .then((spec) => {
-            if (!ec.signal.aborted) ec.send({ type: GENERATED_BEAT_EVENT, payload: spec as unknown as Json });
+          .then((result) => {
+            if (ec.signal.aborted) return; // beat was exited (interrupt/navigation) → drop
+            // Commands go out as `authoring.command`; a bare BeatSpec keeps the legacy
+            // `beat.generated` alias so video/ and existing tests are unaffected.
+            if (isCommandLike(result)) ec.send(authoringCommand(result));
+            else ec.send({ type: GENERATED_BEAT_EVENT, payload: result as unknown as Json });
           })
           .catch((err) => {
             if (typeof console !== "undefined") console.error("[lessonkit] generation failed:", err);

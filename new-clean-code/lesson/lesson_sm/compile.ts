@@ -223,6 +223,62 @@ export function validateBeatSpec(b: BeatSpec, beats: BeatRegistry, chart: Statec
   return problems;
 }
 
+/**
+ * Validate a runtime reroute (rewriting an existing beat's edge) against a live chart:
+ * the beat must exist and the new target must already exist (or be `null` = terminal). An
+ * LLM/agent picks among PRE-AUTHORED beats — it can rewire an edge but never invent a
+ * node — so this is the reroute analogue of `validateBeatSpec`'s dangling-target check.
+ * Returns [] when valid. Pure.
+ */
+export function validateReroute(beatId: string, target: string | null, chart: Statechart<LessonContext>): CompileProblem[] {
+  const problems: CompileProblem[] = [];
+  if (chart.states[beatId] === undefined) {
+    problems.push({ code: "DANGLING_TARGET", beatId, detail: `rerouteBeat: beat "${beatId}" does not exist in the chart` });
+  }
+  if (target !== null && chart.states[target] === undefined) {
+    problems.push({ code: "DANGLING_TARGET", beatId, detail: `rerouteBeat: target "${target}" does not exist` });
+  }
+  return problems;
+}
+
+/** All beats a node can advance/detour to (union of `on` targets and route targets). */
+function outgoing(n: StateNode): string[] {
+  const out: string[] = [];
+  for (const list of Object.values(n.on ?? {})) for (const t of list) if (t.target) out.push(t.target);
+  for (const r of n.routes ?? []) {
+    if (r.target) out.push(r.target);
+    if (r.match) {
+      out.push(...Object.values(r.match.cases));
+      if (r.match.default) out.push(r.match.default);
+    }
+  }
+  return out;
+}
+
+/**
+ * The "level stays completable" invariant, over a LIVE chart: can the learner, standing
+ * at `fromId`, still reach an ENDING? A forward walk following every edge; true iff some
+ * reachable beat is terminal on advance (its `next` edge is present but empty → the engine
+ * sets `done`). Guards are ignored (an over-approximation — if ANY structural path reaches
+ * an ending we allow the reroute), mirroring compile-time `analyze()`. This is the reroute
+ * guardrail: an agent-as-level-designer must never soft-lock the learner. Pure.
+ */
+export function reachesTerminal(chart: Statechart<LessonContext>, fromId: string): boolean {
+  const seen = new Set<string>();
+  const queue = [fromId];
+  while (queue.length) {
+    const id = queue.shift()!;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const n = chart.states[id];
+    if (!n) continue;
+    const nextEdge = n.on?.next;
+    if (nextEdge !== undefined && nextEdge.length === 0) return true; // terminal on advance
+    for (const t of outgoing(n)) if (!seen.has(t)) queue.push(t);
+  }
+  return false;
+}
+
 // ── compile ────────────────────────────────────────────────────────────────────
 
 export function compileLesson(spec: LessonSpec, beats: BeatRegistry): CompiledLesson {

@@ -13,6 +13,12 @@ export interface ExplainParams {
   /** Arbitrary HTML/CSS/SVG card (the escape hatch); emitted as an `html` intent. */
   html?: string;
   htmlSlot?: string; // default "stage"
+  /**
+   * Optional spoken narration. An offline `prepareNarration` pass synthesizes it
+   * to audio+captions; being untimed, the clip plays once when the learner reaches
+   * this beat (it does not auto-advance). Ignored at runtime by the renderer.
+   */
+  narration?: string;
 }
 
 export const ExplainBeat: RenderableBeat<ExplainParams> = {

@@ -50,6 +50,11 @@ export class SceneBuilder {
   colorTo(id: string, to: string, at: number, dur = 500): this {
     return this.tween(id, "fill", undefined, to, at, dur);
   }
+  /** Progressively reveal a path's stroke, left→right (draw-on). The target node
+   * should start `draw: 0` (and carry `len` for export-safe dashing). */
+  drawOn(id: string, at = 0, dur = 900, easing: Easing = "easeInOut"): this {
+    return this.tween(id, "draw", 0, 1, at, dur, easing);
+  }
   reveal(intent: RenderIntent, at: number): this {
     this.cues.push({ at, kind: "reveal", intent });
     this.end = Math.max(this.end, at);

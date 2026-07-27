@@ -164,6 +164,50 @@ const InputComp: ComponentFor = ({ intent, theme, send }) => {
   );
 };
 
+type AskIntent = Extract<RenderIntent, { kind: "ask" }>;
+
+/** Conversational free-text box: the learner asks; on submit fires `ask.submit {text}`
+ *  (the agent then authors an answer). Distinct from `input` — no grading, no Continue. */
+const AskComp: ComponentFor = ({ intent, theme, send }) => {
+  const it = intent as AskIntent;
+  const [value, setValue] = React.useState("");
+  const submit = (): void => {
+    const q = value.trim();
+    if (!q) return;
+    send({ type: "ask.submit", payload: { text: q } });
+    setValue("");
+  };
+  return (
+    <div style={{ display: "grid", gap: theme.space(2) }}>
+      {it.prompt ? (
+        <div style={{ color: theme.color.muted, fontFamily: theme.font.body, fontSize: theme.font.size.label }}>
+          <RichTextView value={it.prompt} />
+        </div>
+      ) : null}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+        style={{ display: "flex", gap: theme.space(2) }}
+      >
+        <input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={it.placeholder ?? "Ask the tutor a question…"}
+          style={{
+            flex: 1, padding: theme.space(3), background: theme.color.choiceBg, color: theme.color.fg,
+            border: `2px solid ${theme.color.choiceBorder}`, borderRadius: theme.radius, fontFamily: theme.font.body, fontSize: 16,
+          }}
+        />
+        <button type="submit" style={{ padding: `${theme.space(2)} ${theme.space(4)}`, background: "transparent", color: theme.color.accent, border: `2px solid ${theme.color.accent}`, borderRadius: theme.radius, cursor: "pointer", fontWeight: 600 }}>
+          Ask ✨
+        </button>
+      </form>
+    </div>
+  );
+};
+
 type ControlsIntent = Extract<RenderIntent, { kind: "controls" }>;
 
 /** Interactive demo controls: sliders/toggles/buttons that emit `demo.set` (or `next`). */
@@ -242,6 +286,7 @@ export const defaultComponents: Record<string, ComponentFor> = {
   visual: React.memo(VisualComp),
   mcq: React.memo(McqComp),
   input: React.memo(InputComp),
+  ask: React.memo(AskComp),
   scene: SceneView,
   caption: React.memo(CaptionView),
   controls: React.memo(ControlsComp),

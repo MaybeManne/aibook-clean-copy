@@ -8,6 +8,9 @@ export * from "./htmlAudioSink.js";
 export * from "./speechSink.js";
 export * from "./viz.js";
 export * from "./TransportBar.js";
+export * from "./conversation.js";
 export * from "./VideoView.js";
+export * from "./StudioView.js";
+export * from "./Composer.js";
 // arbitrary SVG figures (browser + export) — re-exported for author convenience
 export { registerFigure, getFigure, type SvgFigure } from "@lessonkit/scene-svg";

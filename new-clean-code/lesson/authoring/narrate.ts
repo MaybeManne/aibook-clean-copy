@@ -1,9 +1,14 @@
-// Lesson-layer narration precompile. Walks a LessonSpec, synthesizes narration
-// for every animated ("scene") beat that carries a `narration` script, and
-// returns a NEW spec whose storyboards have audio-driven durations + caption
-// cues baked in — plus the audio manifest + caption segments the Player and the
-// video exporter consume. This is the offline step (like SocraticAI's
-// generate_audio.py); it keeps the runtime engine/Player pure and deterministic.
+// Lesson-layer narration precompile. Walks a LessonSpec and synthesizes narration
+// for every beat that carries a `narration` script:
+//   • animated ("scene") beats — the storyboard's duration is rewritten to the
+//     audio length and caption cues are baked in (audio slaved to the beat clock);
+//   • interactive ("explorable"/"explain") beats — UNTIMED, so there's no clock to
+//     drive: we synthesize audio + captions only and leave the beat untouched. The
+//     AudioChannel plays such a clip once on beat entry (learner-paced, not timed).
+// Returns a NEW spec (scene storyboards updated) plus the audio manifest + caption
+// segments the Player and the video exporter consume. This is the offline step
+// (like SocraticAI's generate_audio.py); it keeps the runtime engine/Player pure
+// and deterministic.
 //
 // Layer note: `lesson` may depend on `audio` (both sit above `timeline`); the
 // generic synthesis engine stays in `audio/`, this only maps it onto a LessonSpec.
@@ -34,14 +39,21 @@ interface SceneParams {
   narration?: string;
 }
 
-/** Synthesize narration for a lesson's animated beats. Async (network) — offline. */
+/** Beat types whose narration is UNTIMED — synthesized to audio+captions, played on entry. */
+const UNTIMED_NARRATED = new Set(["explorable", "explain"]);
+
+/** Synthesize narration for a lesson's narrated beats. Async (network) — offline. */
 export async function prepareNarration(spec: LessonSpec, opts: NarrateOptions): Promise<PreparedLesson> {
   const items: NarrationItem[] = [];
   for (const b of spec.flow) {
-    if (b.type !== "scene") continue;
-    const p = b.params as unknown as SceneParams;
-    if (p.narration && p.narration.trim()) {
-      items.push({ id: b.id, text: p.narration, storyboard: p.storyboard });
+    const narration = (b.params as unknown as { narration?: string }).narration;
+    if (!narration || !narration.trim()) continue;
+    if (b.type === "scene") {
+      // timed: carry the storyboard so its duration + caption cues get rewritten.
+      items.push({ id: b.id, text: narration, storyboard: (b.params as unknown as SceneParams).storyboard });
+    } else if (UNTIMED_NARRATED.has(b.type)) {
+      // untimed: audio + captions only; the beat is left untouched (no clock).
+      items.push({ id: b.id, text: narration });
     }
   }
 

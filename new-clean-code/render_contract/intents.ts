@@ -45,6 +45,7 @@ export type RenderIntent =
       feedback?: RichText;
     }
   | { kind: "input"; slot: SlotName; prompt: RichText; value: string }
+  | { kind: "ask"; slot: SlotName; prompt?: RichText; placeholder?: string } // conversational free-text question → ask.submit
   | {
       kind: "controls";
       slot: SlotName;

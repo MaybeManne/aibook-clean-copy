@@ -3,3 +3,5 @@
 export * from "./lesson_sm/index.js";
 export * from "./beats/index.js";
 export * from "./authoring/index.js";
+export * from "./policy/index.js";
+export * from "./transcript.js";

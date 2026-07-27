@@ -8,35 +8,15 @@ import type { MachineEvent } from "@lessonkit/state-machine";
 import type { RenderIntent, RichText } from "@lessonkit/render-contract";
 import { defaultTheme, type Theme } from "@lessonkit/template";
 import type { VideoFrame, VideoProgram } from "@lessonkit/video";
-import { defaultComponents, FallbackComp } from "./components/index.js";
 import { RichTextView } from "./richtext.js";
 import { TransportBar } from "./TransportBar.js";
+// The conversation log + its presentational helpers are shared with the live StudioView.
+import { ConversationLog, nonEmptyStage, renderIntents } from "./conversation.js";
 
 function useFrame(program: VideoProgram): VideoFrame {
   const [frame, setFrame] = React.useState<VideoFrame>(() => program.frame());
   React.useEffect(() => program.subscribe(setFrame), [program]);
   return frame;
-}
-
-function render(intents: RenderIntent[], theme: Theme, send: (e: MachineEvent) => void): React.ReactNode {
-  return intents.map((intent, i) => {
-    const Comp = defaultComponents[intent.kind] ?? FallbackComp;
-    // stable, content-addressed key so React reuses (not remounts) a component
-    // across frames — critical for VizView's imperative mount + memo to hold.
-    return <Comp key={`${intent.kind}:${intent.slot}:${i}`} intent={intent} theme={theme} send={send} />;
-  });
-}
-
-/** A scene intent whose snapshot has no nodes is "empty" — skip drawing it. */
-function nonEmptyStage(intents: RenderIntent[]): RenderIntent[] {
-  return intents.filter((i) => {
-    if (i.slot !== "stage") return false;
-    if (i.kind === "scene") {
-      const snap = (i as { snapshot?: { nodes?: unknown[] } }).snapshot;
-      return !!snap?.nodes && snap.nodes.length > 0;
-    }
-    return true;
-  });
 }
 
 function Caption({ frame, theme }: { frame: VideoFrame; theme: Theme }): React.ReactElement | null {
@@ -120,15 +100,15 @@ export function VideoView(props: VideoViewProps): React.ReactElement {
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: theme.space(5), padding: `${theme.space(4)} ${theme.space(6)}` }}>
         {stage.length ? (
           <div style={{ width: "100%", maxWidth: maxW, maxHeight: "60vh", display: "flex", justifyContent: "center" }}>
-            <div style={{ width: "100%" }}>{render(stage, theme, send)}</div>
+            <div style={{ width: "100%" }}>{renderIntents(stage, theme, send)}</div>
           </div>
         ) : null}
         {prose.length ? (
           <div style={{ maxWidth: 860, textAlign: "center", color: theme.color.fg, fontSize: theme.font.size.heading, lineHeight: 1.6 }}>
-            {render(prose, theme, send)}
+            {renderIntents(prose, theme, send)}
           </div>
         ) : null}
-        {prompt.length ? <div style={{ width: "100%", maxWidth: 620 }}>{render(prompt, theme, send)}</div> : null}
+        {prompt.length ? <div style={{ width: "100%", maxWidth: 620 }}>{renderIntents(prompt, theme, send)}</div> : null}
       </div>
       <div style={{ minHeight: 64, display: "flex", alignItems: "center", justifyContent: "center", padding: `0 ${theme.space(6)}` }}>
         {cc ? <Caption frame={frame} theme={theme} /> : null}
@@ -138,11 +118,13 @@ export function VideoView(props: VideoViewProps): React.ReactElement {
   );
 }
 
-// Split shell: a 3-row layout (top problem/eyebrow bar · 50/50 viz + reading panel ·
-// full-width control bar) modeled on SocraticAI. The viz panel is persistent and
-// fills its half (fit="contain"); the right panel is either an authored `article`
-// reader (flowing book/blog document, active section tracked) or, as a fallback, a
-// caption-style `transcript` (one card per visited beat). Captions sit over the viz.
+// Split shell: a 3-row layout (top problem/eyebrow bar · 50/50 viz + document panel ·
+// full-width control bar) modeled on SocraticAI. The viz panel is persistent and fills
+// its half (fit="contain"); the right panel is the UNIFIED DOCUMENT — one append-only,
+// role-attributed conversation log (tutor prose · learner answers/questions · agent
+// explanations + gestures) projected from session history. Hosts layer their authored
+// prose per beat via `article` (preferred) or `transcript`. The current beat's live
+// interactive surface renders inside its own turn. Captions sit over the viz.
 function Split({
   program, frame, theme, send, controls, title, eyebrow, transcript, article, cc,
 }: {
@@ -151,17 +133,9 @@ function Split({
   article?: Record<string, RichText>; cc: boolean;
 }): React.ReactElement {
   const t = frame.transport;
-  // The program owns the visited trail (so Back/Next + click-to-revisit stay
-  // consistent and stepping backward never produces duplicate section keys).
-  const visited = program.visitedBeats();
-  const scroller = React.useRef<HTMLDivElement>(null);
-  const activeRef = React.useRef<HTMLDivElement>(null);
-  const useArticle = !!article;
-  React.useEffect(() => {
-    // article: keep the active section in view; transcript: follow to the bottom.
-    if (useArticle) activeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    else scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
-  }, [t.beatId, visited.length, useArticle]);
+  // A host layers its authored prose on top: `article` (book/blog) preferred, else the
+  // caption-style `transcript`. Learner turns carry their own words, so never a body.
+  const bodyOf = (id: string): RichText | undefined => (article ? article[id] : undefined) ?? transcript[id];
 
   // stage fills its panel (letterboxed) via a per-intent fit hint the layout adds.
   const stage = nonEmptyStage(frame.model.intents).map((i) => (i.kind === "scene" ? ({ ...i, fit: "contain" } as RenderIntent) : i));
@@ -170,52 +144,13 @@ function Split({
 
   const barBg: React.CSSProperties = { background: theme.color.surface, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" };
 
-  const readerPanel = (
-    <div style={{ maxWidth: theme.font.measure, margin: "0 auto", fontSize: theme.font.size.article, lineHeight: theme.font.lineHeight, color: theme.color.fg }}>
-      {title ? <div style={{ fontSize: theme.font.size.heading, fontWeight: theme.font.weight.bold, lineHeight: 1.25, margin: `0 0 ${theme.space(5)}` }}><RichTextView value={title} /></div> : null}
-      {visited.map((id) => {
-        const active = id === t.beatId;
-        const body = (article ?? {})[id];
-        const showPrompt = active && prompt.length > 0;
-        const showProse = active && prose.length > 0;
-        if (!body && !showPrompt && !showProse) return null;
-        return (
-          <section
-            key={id}
-            ref={active ? activeRef : undefined}
-            onClick={active ? undefined : () => program.goToBeat(id)}
-            title={active ? undefined : "revisit"}
-            style={{ margin: `0 0 ${theme.space(5)}`, padding: `${theme.space(2)} ${theme.space(4)}`, borderLeft: `2px solid ${active ? theme.color.accent : "transparent"}`, background: active ? theme.color.cardBgActive : "transparent", borderRadius: 8, transition: theme.transition.card, opacity: active ? 1 : 0.82, cursor: active ? "default" : "pointer" }}
-          >
-            {body ? <RichTextView value={body} /> : null}
-            {showProse ? <div style={{ marginTop: body ? theme.space(3) : 0 }}>{render(prose, theme, send)}</div> : null}
-            {showPrompt ? <div style={{ marginTop: body || showProse ? theme.space(4) : 0 }}>{render(prompt, theme, send)}</div> : null}
-          </section>
-        );
-      })}
-      {t.done ? <div style={{ color: theme.color.muted, padding: theme.space(2) }}>Lesson complete ✓</div> : null}
+  // The current beat's live interactive surface — hosted inside its own turn by ConversationLog.
+  const liveBlock = prose.length || prompt.length ? (
+    <div style={{ marginTop: theme.space(3), display: "flex", flexDirection: "column", gap: theme.space(3) }}>
+      {prose.length ? renderIntents(prose, theme, send) : null}
+      {prompt.length ? renderIntents(prompt, theme, send) : null}
     </div>
-  );
-
-  const transcriptPanel = (
-    <div style={{ display: "flex", flexDirection: "column", gap: theme.space(3) }}>
-      {visited.map((id) => {
-        const active = id === t.beatId;
-        const body = transcript[id];
-        const showPrompt = active && prompt.length > 0;
-        const showProse = active && prose.length > 0;
-        if (!body && !showPrompt && !showProse) return null;
-        return (
-          <div key={id} ref={active ? activeRef : undefined} onClick={active ? undefined : () => program.goToBeat(id)} title={active ? undefined : "revisit"} style={{ background: showPrompt || showProse ? theme.color.cardBgActive : theme.color.cardBg, borderLeft: `3px solid ${active ? theme.color.accent : "transparent"}`, borderRadius: 10, padding: `${theme.space(3)} ${theme.space(4)}`, opacity: active ? 1 : 0.5, transition: theme.transition.card, fontSize: theme.font.size.body, lineHeight: theme.font.lineHeight, cursor: active ? "default" : "pointer" }}>
-            {body ? <div><RichTextView value={body} /></div> : null}
-            {showProse ? <div style={{ marginTop: body ? theme.space(2) : 0 }}>{render(prose, theme, send)}</div> : null}
-            {showPrompt ? <div style={{ marginTop: body || showProse ? theme.space(3) : 0 }}>{render(prompt, theme, send)}</div> : null}
-          </div>
-        );
-      })}
-      {t.done ? <div style={{ color: theme.color.muted, padding: theme.space(2), fontSize: theme.font.size.body }}>Lesson complete ✓</div> : null}
-    </div>
-  );
+  ) : null;
 
   return (
     <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", background: theme.color.bg, color: theme.color.fg, fontFamily: theme.font.body }}>
@@ -230,16 +165,24 @@ function Split({
       {/* Row 2 — split body: persistent viz | reading panel */}
       <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden" }}>
         <div style={{ flex: "0 0 50%", boxSizing: "border-box", position: "relative", display: "flex", alignItems: "center", justifyContent: "center", padding: theme.space(5), minWidth: 0, minHeight: 0 }}>
-          {stage.length ? <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>{render(stage, theme, send)}</div> : null}
+          {stage.length ? <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>{renderIntents(stage, theme, send)}</div> : null}
           {cc ? (
             <div style={{ position: "absolute", left: "50%", bottom: theme.space(4), transform: "translateX(-50%)", maxWidth: "92%", background: theme.color.subtitleBg, borderRadius: 10, padding: `${theme.space(1)} ${theme.space(3)}`, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
               <Caption frame={frame} theme={theme} />
             </div>
           ) : null}
         </div>
-        <div ref={scroller} data-lk-scroll style={{ flex: "0 0 50%", boxSizing: "border-box", minWidth: 0, overflowY: "auto", overflowX: "hidden", minHeight: 0, borderLeft: `1px solid ${theme.color.borderSubtle}`, padding: `${theme.space(6)} ${theme.space(6)} ${theme.space(10)}` }}>
-          {useArticle ? readerPanel : transcriptPanel}
-        </div>
+        <ConversationLog
+          turns={program.transcript()}
+          theme={theme}
+          send={send}
+          liveBlock={liveBlock}
+          done={t.done}
+          title={title}
+          bodyOf={bodyOf}
+          onRevisit={(beatId) => program.goToBeat(beatId)}
+          scrollerStyle={{ flex: "0 0 50%", boxSizing: "border-box", minWidth: 0, overflowY: "auto", overflowX: "hidden", minHeight: 0, borderLeft: `1px solid ${theme.color.borderSubtle}`, padding: `${theme.space(6)} ${theme.space(6)} ${theme.space(10)}` }}
+        />
       </div>
 
       {/* Row 3 — Back · transport · Next (beat-level revisit for untimed lessons) */}

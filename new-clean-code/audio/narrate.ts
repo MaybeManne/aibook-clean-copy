@@ -13,7 +13,14 @@ import type { NarrationAudio, TtsAdapter } from "./tts.js";
 export interface NarrationItem {
   id: string;
   text: string;
-  storyboard: Storyboard;
+  /**
+   * The beat's storyboard, for TIMED (scene) beats: its duration is rewritten to
+   * the audio length and caption cues are merged in. OMIT for untimed interactive
+   * beats (explorable/explain) — they have no clock, so we synthesize audio +
+   * captions only and leave the beat untouched (see the AudioChannel, which plays
+   * an untimed beat's clip once on entry).
+   */
+  storyboard?: Storyboard;
 }
 
 /** id → synthesized audio (bytes stay here, out of the visual timeline). */
@@ -50,11 +57,14 @@ export async function narrate(items: NarrationItem[], opts: NarrateOptions): Pro
     const segments = toCaptions(na.words, { maxWords: opts.maxWords });
     out.audio[item.id] = na;
     out.captions[item.id] = segments;
-    out.storyboards[item.id] = {
-      ...item.storyboard,
-      duration: na.durationMs || item.storyboard.duration,
-      cues: [...(item.storyboard.cues ?? []), ...captionCues(segments)],
-    };
+    // Only timed beats carry a storyboard to rewrite; untimed ones get audio+captions.
+    if (item.storyboard) {
+      out.storyboards[item.id] = {
+        ...item.storyboard,
+        duration: na.durationMs || item.storyboard.duration,
+        cues: [...(item.storyboard.cues ?? []), ...captionCues(segments)],
+      };
+    }
   }
   return out;
 }

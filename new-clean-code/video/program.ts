@@ -22,6 +22,7 @@ import { restoreSession, type Session } from "@lessonkit/lesson";
 import { createAudioChannel, type AudioChannel } from "./audio.js";
 import type { CaptionTrack, VideoFrame } from "./render_model.js";
 import type { TimelineEntry, TransportState } from "./transport.js";
+import { projectTranscript, type Turn } from "./transcript.js";
 
 type Snapshot = ReturnType<Session["toSnapshot"]>;
 
@@ -71,6 +72,12 @@ export class VideoProgram {
    *  sit at global time 0.) Forward progress truncates any "future" and appends. */
   private visited: string[] = [];
   private cursor = 0;
+  /** True while we're driving sess.send() ourselves — suppresses the step-observer
+   *  so our own send()/tick() (which already record + emit) don't double-fire. */
+  private driving = false;
+  private detachSession?: () => void;
+  /** transcript() memo — history is append-only, so (length, activeBeat) is a sound key. */
+  private trCache: { len: number; active: string; turns: Turn[] } | null = null;
 
   constructor(
     private readonly sess: Session,
@@ -93,6 +100,12 @@ export class VideoProgram {
     this.captureSnapshot();
     this.visited = [this.sess.activeBeatId()];
     this.audioChannel?.reconcile(this.computeTransport(this.storyboard()), true);
+
+    // Observe effect-driven transitions (a resolved `generate`, a `timer`, a
+    // SignalSource) that re-enter through the Session's own send — bypassing our
+    // send()/tick(). Without this the agent's background output would mutate the
+    // Session invisibly and the frame would freeze on the "thinking" placeholder.
+    this.detachSession = this.sess.subscribe(() => this.onSessionStep());
   }
 
   // ── public API ─────────────────────────────────────────────────────────────
@@ -120,6 +133,17 @@ export class VideoProgram {
     return this.spine.slice();
   }
 
+  /** The unified conversation log — a pure projection of the session's event history.
+   *  Memoized by (history length, active beat), both of which change on any transition. */
+  transcript(): Turn[] {
+    const history = this.sess.context.history;
+    const active = this.sess.activeBeatId();
+    if (this.trCache && this.trCache.len === history.length && this.trCache.active === active) return this.trCache.turns;
+    const turns = projectTranscript(this.sess.lesson, history, active);
+    this.trCache = { len: history.length, active, turns };
+    return turns;
+  }
+
   subscribe(fn: (f: VideoFrame) => void): () => void {
     this.subscribers.add(fn);
     fn(this.frame());
@@ -142,7 +166,12 @@ export class VideoProgram {
     if (this.t >= sb.duration) {
       this.t = sb.duration; // hold the final frame
       const prev = this.sess.activeBeatId();
-      this.sess.send(this.opts.advanceEvent ?? { type: "next" });
+      this.driving = true;
+      try {
+        this.sess.send(this.opts.advanceEvent ?? { type: "next" });
+      } finally {
+        this.driving = false;
+      }
       const now = this.sess.activeBeatId();
       if (now !== prev) {
         this.t = 0; // moved to a new beat
@@ -197,7 +226,12 @@ export class VideoProgram {
     // Release an in-storyboard gate whose event just arrived, then resume.
     const t = this.transport;
     const prevBeat = this.sess.activeBeatId();
-    this.sess.send(e);
+    this.driving = true;
+    try {
+      this.sess.send(e);
+    } finally {
+      this.driving = false;
+    }
     this.sbCache = null; // context may have changed (answer recorded, beat advanced)
     if (t.atGate && t.gateEvent && e.type === t.gateEvent) {
       this.resolvedGates.add(t.gateEvent);
@@ -272,6 +306,8 @@ export class VideoProgram {
 
   dispose(): void {
     this.disarm();
+    this.detachSession?.();
+    this.detachSession = undefined;
     this.audioChannel?.dispose();
     this.subscribers.clear();
   }
@@ -375,6 +411,27 @@ export class VideoProgram {
     this.visited = this.visited.slice(0, this.cursor + 1);
     this.visited.push(now);
     this.cursor = this.visited.length - 1;
+  }
+
+  /**
+   * The Session transitioned outside our own send()/tick() — an effect-driven
+   * re-entry (a resolved `generate` splicing a beat, a `timer`, a SignalSource). Sync
+   * the video: fold a new beat into the visited trail (resetting the beat clock),
+   * reconcile audio, and emit. A same-beat change (e.g. an agent `workspace.set` that
+   * self-transitions to re-render the viz) just invalidates caches and re-emits.
+   * Guarded by `driving` so our own send()/tick() don't double-record or double-emit.
+   */
+  private onSessionStep(): void {
+    if (this.driving) return;
+    const prevBeat = this.visited[this.cursor] ?? this.sess.activeBeatId();
+    const now = this.sess.activeBeatId();
+    this.sbCache = null; // beat and/or context changed
+    if (now !== prevBeat) {
+      this.t = 0; // entered a new beat — reset the clock (keep the frozen stage)
+      this.recordForward(prevBeat);
+    }
+    this.reconcile(true);
+    this.emit();
   }
 
   /** Move the cursor to a visited index and restore that beat's snapshot. */

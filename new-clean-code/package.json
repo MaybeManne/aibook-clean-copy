@@ -6,6 +6,8 @@
   "description": "Advanced Manim for interactive educational content",
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "lesson": "node scripts/lesson.mjs",
+    "lesson:audio": "tsx author/gen-audio.ts",
     "litmus": "tsx examples/turnstile/turnstile.ts",
     "demo": "tsx examples/photosynthesis/run.ts",
     "render-test": "tsx examples/photosynthesis/render-test.tsx",
