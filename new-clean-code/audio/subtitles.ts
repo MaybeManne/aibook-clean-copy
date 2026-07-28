@@ -3,8 +3,8 @@
 // interactive Player and the offline exporter (single clock; mirrors
 // SocraticAI subtitles.js:_renderWords, but sampled from ONE beat clock `t`).
 
-import { text, type RichText } from "@lessonkit/render-contract";
-import type { Cue } from "@lessonkit/timeline";
+import { text, type RichText } from "@lessonstudio/render-contract";
+import type { Cue } from "@lessonstudio/timeline";
 import type { WordTiming } from "./tts.js";
 
 export interface CaptionSegment {

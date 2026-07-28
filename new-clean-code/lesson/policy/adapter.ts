@@ -8,7 +8,7 @@
 // This is the only file in the policy layer that references the authoring layer, and
 // only as a type (`Policy`) — so it erases at runtime and introduces no cycle.
 
-import type { MachineEvent, Step } from "@lessonkit/state-machine";
+import type { MachineEvent, Step } from "@lessonstudio/state-machine";
 import type { LessonContext } from "../lesson_sm/context.js";
 import type { Policy } from "../authoring/session.js";
 import type { AgentIntent, PolicyView, TeachingPolicy } from "./contracts.js";

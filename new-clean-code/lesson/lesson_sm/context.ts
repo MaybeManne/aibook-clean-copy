@@ -1,7 +1,7 @@
 // The concrete context (blackboard) the engine is instantiated with for lessons.
 // This is the `C` in Statechart<C> / Registry<C> at the lesson layer.
 
-import type { Json, MachineEvent, StateValue } from "@lessonkit/state-machine";
+import type { Json, MachineEvent, StateValue } from "@lessonstudio/state-machine";
 
 /** One recorded transition, with a monotonic sequence number. Owned by the Session. */
 export interface EventRecord {

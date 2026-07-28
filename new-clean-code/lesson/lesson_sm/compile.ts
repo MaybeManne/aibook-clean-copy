@@ -13,7 +13,7 @@ import {
   type StateId,
   type StateNode,
   type Statechart,
-} from "@lessonkit/state-machine";
+} from "@lessonstudio/state-machine";
 import type { BeatRegistry } from "../beats/index.js";
 import type { LessonContext } from "./context.js";
 

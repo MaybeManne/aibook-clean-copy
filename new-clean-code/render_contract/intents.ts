@@ -24,11 +24,24 @@ export interface VisualRef {
 export interface ControlSpec {
   key: string;
   label: string;
-  kind: "slider" | "toggle" | "button";
+  kind: "slider" | "toggle" | "button" | "choice" | "matrix";
   min?: number; // slider
   max?: number; // slider
   step?: number; // slider
   unit?: string; // slider value suffix (e.g. "π")
+  /** choice: a labelled row of buttons; the selected value is the numeric option value. */
+  options?: { value: number; label: string }[];
+  // matrix: a grid of number inputs (e.g. an editable convolution kernel) + a divisor field.
+  // Each cell and the divisor is its own value key, so edits flow through the same
+  // `demo.set {key,value}` channel a slider does; a preset loads them all in one `demo.setMany`.
+  rows?: number; // matrix, default 3
+  cols?: number; // matrix, default 3
+  /** matrix: row-major value keys, one per cell (length rows*cols), e.g. ["k0",…,"k8"]. */
+  cellKeys?: string[];
+  /** matrix: value key for the divisor field, e.g. "kdiv". */
+  divisorKey?: string;
+  /** matrix: labelled "load" buttons; the one whose values+div match the current cells is selected. */
+  presets?: { label: string; values: number[]; div: number }[];
 }
 
 export type ControlValue = number | boolean;

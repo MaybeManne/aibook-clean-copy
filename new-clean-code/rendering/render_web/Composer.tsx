@@ -6,7 +6,7 @@
 // enabled while the agent is thinking (a second submit IS the interrupt).
 
 import React from "react";
-import { defaultTheme, type Theme } from "@lessonkit/template";
+import { defaultTheme, type Theme } from "@lessonstudio/template";
 
 export interface ComposerProps {
   /** Called with the trimmed, non-empty draft when the learner sends. */

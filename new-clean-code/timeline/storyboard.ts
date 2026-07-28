@@ -2,10 +2,22 @@
 // sub-beat cues (reveal an intent, set a caption, pause at a gate). Serializable
 // and AI-authorable — no functions, no eval.
 
-import type { RenderIntent, RichText } from "@lessonkit/render-contract";
+import type { RenderIntent, RichText } from "@lessonstudio/render-contract";
 import type { AnimProp, NodeId, SceneNode } from "./scene.js";
 
+// Rate functions. The first block mirrors ManimCE's canonical vocabulary (rate_functions.py)
+// — `smooth` is Manim's near-universal default (an S-curve with zero velocity at both ends).
+// The second block is the easings.net set, kept as convenient aliases. Names are camelCase to
+// match the codebase (Manim's snake_case rush_into → rushInto, there_and_back → thereAndBack).
 export type Easing =
+  // Manim canonical
+  | "smooth" // 3t²−2t³ smoothstep — Manim's default; gentle start AND end
+  | "smootherstep" // 6t⁵−15t⁴+10t³ — zero velocity AND acceleration at ends
+  | "rushInto" // slow start, accelerating (first half of the S-curve)
+  | "rushFrom" // fast start, decelerating (second half of the S-curve)
+  | "slowInto" // eases into the end (√(1−(1−t)²))
+  | "thereAndBack" // 0→1→0 in one tween (Manim there_and_back) — pulses/indicate
+  // easings.net aliases
   | "linear"
   | "easeIn"
   | "easeOut"

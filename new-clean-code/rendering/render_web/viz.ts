@@ -6,7 +6,7 @@
 //
 // `MachineEvent` is a TYPE-ONLY import (like the component registry) — this file
 // carries no runtime dependency on the engine.
-import type { MachineEvent } from "@lessonkit/state-machine";
+import type { MachineEvent } from "@lessonstudio/state-machine";
 
 export interface VizProps {
   /** Beat clock (ms) when this viz is driven by a timed beat. */
@@ -34,6 +34,14 @@ export interface VizApi {
 export interface VizHandle {
   /** Called on every frame/prop change. Read props.t for time-driven animation. */
   update?(props: VizProps): void;
+  /**
+   * OPTIONAL export bridge. A registered viz is opaque to the engine — it is not a
+   * SceneNode tree, so `sampleAt` cannot rasterize it and a canvas/WebGL beat would
+   * otherwise be a hole in any static export (and give lessonForge's screenshot
+   * reviewer nothing to look at). Returning a data URL or an SVG string for the
+   * CURRENT state closes that hole at the viz's own discretion.
+   */
+  poster?(): string | null;
   /** Tear down listeners/timers/DOM. */
   destroy?(): void;
 }

@@ -3,8 +3,8 @@
 // compiler (from the DSL's escape-hatch predicate); this beat only references it
 // by name. Renders nothing.
 
-import type { StateId, StateNode } from "@lessonkit/state-machine";
-import type { RenderIntent } from "@lessonkit/render-contract";
+import type { StateId, StateNode } from "@lessonstudio/state-machine";
+import type { RenderIntent } from "@lessonstudio/render-contract";
 import type { BeatWiring, RenderableBeat } from "./types.js";
 
 export interface BranchParams {

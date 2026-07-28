@@ -11,9 +11,9 @@ import type {
   StateId,
   StateNode,
   Transition,
-} from "@lessonkit/state-machine";
-import type { Choice, RenderIntent, RichText } from "@lessonkit/render-contract";
-import { text } from "@lessonkit/render-contract";
+} from "@lessonstudio/state-machine";
+import type { Choice, RenderIntent, RichText } from "@lessonstudio/render-contract";
+import { md } from "@lessonstudio/render-contract";
 import type { LessonContext } from "../lesson_sm/context.js";
 import { beatMeta, type BeatWireCtx, type BeatWiring, type RenderableBeat } from "./types.js";
 
@@ -28,8 +28,9 @@ export interface McqParams {
   prompt: string | RichText;
   choices: ChoiceSpec[];
   maxAttempts?: number;
-  correctFeedback?: string;
-  wrongFeedback?: string;
+  /** Feedback prose. A string is parsed as inline markdown+`$math$`, so it can carry symbols. */
+  correctFeedback?: string | RichText;
+  wrongFeedback?: string | RichText;
   promptSlot?: string; // default "prompt"
   /** Adaptivity: a correct answer raises mastery of this skill (to 1). */
   skill?: string;
@@ -37,6 +38,12 @@ export interface McqParams {
   onWrong?: string;
   /** Flow: route a no-answer timeout to this beat id. */
   onTimeout?: string;
+  /**
+   * Optional spoken narration. An offline `prepareNarration` pass synthesizes it to
+   * audio+captions; the generic reader picks up `params.narration` for any beat, so a
+   * checkpoint question can speak its prompt. Ignored at runtime by the renderer.
+   */
+  narration?: string;
 }
 
 interface McqLocal extends Record<string, Json> {
@@ -116,15 +123,16 @@ export const McqBeat: RenderableBeat<McqParams> = {
       picked: answered && l.lastPicked === i,
       revealedCorrect: answered && !!c.correct,
     }));
-    const prompt = typeof params.prompt === "string" ? text(params.prompt) : params.prompt;
+    const prompt = typeof params.prompt === "string" ? md(params.prompt) : params.prompt;
+
+    // Authored strings are inline markdown+`$math$` (see freeresponse.ts) — feedback that
+    // names a symbol should typeset and colour it, not print raw dollar signs.
+    const rich = (v: string | RichText | undefined, dflt: string): RichText =>
+      v === undefined ? md(dflt) : typeof v === "string" ? md(v) : v;
 
     let feedback: RichText | undefined;
     if (answered) {
-      feedback = text(
-        l.lastCorrect
-          ? params.correctFeedback ?? "Correct!"
-          : params.wrongFeedback ?? "Not quite — let's revisit this.",
-      );
+      feedback = l.lastCorrect ? rich(params.correctFeedback, "Correct!") : rich(params.wrongFeedback, "Not quite — let's revisit this.");
     }
 
     return [

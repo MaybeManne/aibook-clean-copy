@@ -8,10 +8,10 @@
 // visualization is a registered figure/viz referenced by name — declarative controls
 // + a registered visual, per the chosen "declarative + JS escape hatch" model.
 
-import type { Action, Json, MachineEvent, StateId, StateNode, Transition } from "@lessonkit/state-machine";
-import type { ControlSpec, ControlValue, RenderIntent, RichText } from "@lessonkit/render-contract";
-import { article, text } from "@lessonkit/render-contract";
-import { vizIntent } from "@lessonkit/timeline";
+import type { Action, Json, MachineEvent, StateId, StateNode, Transition } from "@lessonstudio/state-machine";
+import type { ControlSpec, ControlValue, RenderIntent, RichText } from "@lessonstudio/render-contract";
+import { article, md } from "@lessonstudio/render-contract";
+import { vizIntent } from "@lessonstudio/timeline";
 import type { LessonContext } from "../lesson_sm/context.js";
 import { beatMeta, type BeatWireCtx, type BeatWiring, type RenderableBeat } from "./types.js";
 
@@ -52,6 +52,19 @@ export function askSubmit(textValue: string): MachineEvent {
   return { type: ASK_SUBMIT_EVENT, payload: { text: textValue } };
 }
 
+/**
+ * The learner setting SEVERAL control values at once — e.g. loading a kernel preset into a
+ * `matrix` control's nine cells + divisor. Emitted as ONE event so the transcript and replay
+ * see a single atomic gesture ("loaded the Gaussian preset") instead of ten separate `demo.set`s.
+ * Per-cell hand-edits stay on the single-key `demo.set` channel.
+ */
+export const DEMO_SET_MANY_EVENT = "demo.setMany";
+
+/** Build a `demo.setMany` event carrying a batch of learner control values. */
+export function demoSetMany(values: Record<string, ControlValue>): MachineEvent {
+  return { type: DEMO_SET_MANY_EVENT, payload: { values } };
+}
+
 /** A declarative success condition over a control value — turns a demo into a task. */
 export interface DemoGoal {
   key: string;
@@ -64,8 +77,9 @@ export interface DemoGoal {
 export interface ExplorableParams {
   /** Interactive controls; include a `{kind:"button", key:"__next"}` to let the learner advance. */
   controls: ControlSpec[];
-  /** Registered visualization: a figure (SVG, exportable) or viz (JS/canvas, browser-only) by name. */
-  viz: { name: string; props?: Record<string, unknown> };
+  /** Registered visualization: a figure (SVG, exportable) or viz (JS/canvas, browser-only) by name.
+   *  `persistent` ⇒ one shared mounted instance, not a per-turn copy (see VizIntent.persistent). */
+  viz: { name: string; props?: Record<string, unknown>; persistent?: boolean };
   /** Stage slot for the visualization (default "stage"). */
   slot?: string;
   /** Initial control values (else sliders start at min, toggles at false). */
@@ -129,7 +143,19 @@ function readMerged(
   const values: DemoLocal = {};
   for (const [k, v] of Object.entries(defaults)) if (k !== WORKSPACE_KEY) values[k] = v as ControlValue;
   for (const c of params.controls) {
-    if (values[c.key] === undefined) values[c.key] = c.kind === "toggle" ? false : c.min ?? 0;
+    if (c.kind === "matrix") {
+      // Seed each cell + the divisor (from the first preset if any); the control's own
+      // `c.key` is not a value key, so it is never seeded (no phantom viz prop).
+      const preset = c.presets?.[0];
+      (c.cellKeys ?? []).forEach((k, i) => {
+        if (values[k] === undefined) values[k] = preset?.values[i] ?? 0;
+      });
+      if (c.divisorKey && values[c.divisorKey] === undefined) values[c.divisorKey] = preset?.div ?? 1;
+      continue;
+    }
+    if (values[c.key] === undefined) {
+      values[c.key] = c.kind === "toggle" ? false : c.kind === "choice" ? c.options?.[0]?.value ?? 0 : c.min ?? 0;
+    }
   }
   for (const [k, v] of Object.entries(stored)) if (k !== WORKSPACE_KEY) values[k] = v as ControlValue;
   const ws: Record<string, unknown> = {
@@ -146,6 +172,18 @@ function setValue(id: string): Action<LessonContext> {
     if (key === undefined || value === undefined) return {};
     const prev = (ctx.beats[id] as Record<string, Json> | undefined) ?? {};
     const nextLocal = { ...prev, [key]: value as Json };
+    return { context: { beats: { ...ctx.beats, [id]: nextLocal } } };
+  };
+}
+
+/** Action factory: write SEVERAL learner control values into beats[id] in one shot (preset load). */
+function setValues(id: string): Action<LessonContext> {
+  return (ctx, event) => {
+    const { values } = (event.payload ?? {}) as { values?: Record<string, ControlValue> };
+    if (!values || typeof values !== "object") return {};
+    const prev = (ctx.beats[id] as Record<string, Json> | undefined) ?? {};
+    const nextLocal: Record<string, Json> = { ...prev };
+    for (const [k, v] of Object.entries(values)) if (v !== undefined) nextLocal[k] = v as Json;
     return { context: { beats: { ...ctx.beats, [id]: nextLocal } } };
   };
 }
@@ -185,14 +223,17 @@ export const ExplorableBeat: RenderableBeat<ExplorableParams> = {
 
   wire(_params, id: StateId, { registry, defaultNext }: BeatWireCtx): BeatWiring {
     const setRef = `demo.set:${id}`;
+    const setManyRef = `demo.setMany:${id}`;
     const wsRef = `workspace.set:${id}`;
     const askRef = `ask.submit:${id}`;
     registry.action(setRef, setValue(id));
+    registry.action(setManyRef, setValues(id));
     registry.action(wsRef, setWorkspace(id));
     registry.action(askRef, requestAsk(id));
     const dn = defaultNext();
     const on: Record<string, Transition[]> = {
       "demo.set": [{ target: id, actions: [setRef] }], // learner: record value + re-render viz
+      [DEMO_SET_MANY_EVENT]: [{ target: id, actions: [setManyRef] }], // learner: load a preset atomically
       [WORKSPACE_SET_EVENT]: [{ target: id, actions: [wsRef] }], // agent: annotate/zoom the same viz
       [ASK_SUBMIT_EVENT]: [{ target: id, actions: [askRef] }], // learner: ask → generate answer → resume here
       next: dn ? [{ target: dn }] : [],
@@ -206,7 +247,11 @@ export const ExplorableBeat: RenderableBeat<ExplorableParams> = {
     const slot = params.slot ?? "stage";
     const met = goalMet(params.goal, values);
     // Viz sees learner controls AND the agent's workspace patch; controls UI sees only `values`.
-    const intents: RenderIntent[] = [vizIntent(slot, params.viz.name, { ...(params.viz.props ?? {}), ...values, ...ws }, 0)];
+    const intents: RenderIntent[] = [
+      vizIntent(slot, params.viz.name, { ...(params.viz.props ?? {}), ...values, ...ws }, 0, {
+        persistent: params.viz.persistent,
+      }),
+    ];
 
     // Tutor prose attached to this demo (e.g. a generated, viz-annotating explanation).
     // A string is parsed as prose (markdown + `$…$` KaTeX) via `article` — the SAME
@@ -230,7 +275,7 @@ export const ExplorableBeat: RenderableBeat<ExplorableParams> = {
     if (params.ask) {
       const opt = params.ask === true ? {} : params.ask;
       const promptSrc = opt.prompt;
-      const prompt = promptSrc === undefined ? undefined : typeof promptSrc === "string" ? text(promptSrc) : promptSrc;
+      const prompt = promptSrc === undefined ? undefined : typeof promptSrc === "string" ? md(promptSrc) : promptSrc;
       intents.push({ kind: "ask", slot: "prompt", prompt, placeholder: opt.placeholder } as unknown as RenderIntent);
     }
     return intents;

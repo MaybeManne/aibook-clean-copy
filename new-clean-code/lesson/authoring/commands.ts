@@ -11,7 +11,7 @@
 // must not soft-lock the learner (`reachesTerminal`, the "level stays completable"
 // invariant). The union stays open so future ops are additive.
 
-import type { Json, MachineEvent } from "@lessonkit/state-machine";
+import type { Json, MachineEvent } from "@lessonstudio/state-machine";
 import type { BeatSpec } from "../lesson_sm/compile.js";
 
 /**

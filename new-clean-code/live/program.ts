@@ -13,9 +13,9 @@
 // Layering: live → { lesson (Session host), render_contract, state_machine }. Nothing
 // here depends on a renderer, the clock, or the timeline.
 
-import type { MachineEvent } from "@lessonkit/state-machine";
-import type { RenderModel } from "@lessonkit/render-contract";
-import { projectTranscript, type Session, type Turn } from "@lessonkit/lesson";
+import type { MachineEvent } from "@lessonstudio/state-machine";
+import type { RenderModel } from "@lessonstudio/render-contract";
+import { projectTranscript, type Session, type Turn } from "@lessonstudio/lesson";
 import type { LiveFrame } from "./frame.js";
 
 /** Active-leaf prefix marking the synthesized "thinking" beat (see Session.applyMessage). */

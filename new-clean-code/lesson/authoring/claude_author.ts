@@ -16,7 +16,7 @@
 // live model exactly as it does with the fake one.
 //
 // The `@anthropic-ai/sdk` import is LAZY (a runtime `import()` of a non-literal
-// specifier) so the core `@lessonkit/lesson` package keeps NO hard dependency on it:
+// specifier) so the core `@lessonstudio/lesson` package keeps NO hard dependency on it:
 // `tsc --noEmit` and headless `tsx` never touch the SDK, and it is only loaded when
 // a live generation actually fires with a key present.
 
@@ -77,7 +77,10 @@ export interface ClaudeAuthorOptions {
   complete?: Completer;
 }
 
-const DEFAULT_MODEL = "claude-opus-4-8";
+// A default, not a decision: every caller can pass `model`. Kept at the current top-tier
+// model because a tutor's voice is the one thing the model owns here (the engine owns the
+// facts), and one short paragraph is a few dozen output tokens either way.
+const DEFAULT_MODEL = "claude-opus-5";
 const DEFAULT_MAX_TOKENS = 2048;
 
 /** Read the API key from the environment (Node); undefined in a browser (no `process`). */
@@ -91,8 +94,12 @@ export function envApiKey(): string | undefined {
  * model is a sentence — structure and facts are the engine's job. Non-streaming: the
  * output is a few dozen tokens, well under any request-timeout risk. The SDK is loaded
  * lazily through a non-literal specifier so it is never a static dependency of core.
+ *
+ * Exported because the dev proxy (`dev_author.ts`) is the SERVER end of exactly this
+ * call: browser → `httpCompleter` → `/api/author` → here. One implementation of the
+ * Anthropic request, whichever side of the wire it runs on.
  */
-const anthropicComplete: Completer = async (req) => {
+export const anthropicCompleter: Completer = async (req) => {
   const specifier: string = "@anthropic-ai/sdk"; // widened to `string` ⇒ tsc won't resolve it
   // `@vite-ignore`: leave this runtime import as-is (the SDK is never bundled for the
   // browser — see vite.config `optimizeDeps.exclude`); silences Vite's dep-scan warning.
@@ -164,7 +171,7 @@ export function offlineAuthor(plan: (req: GenerateRequest) => AuthorPlan): Lesso
  * back to the deterministic `fallbackText`, so a learner's question never dead-ends.
  */
 export function claudeAuthor(opts: ClaudeAuthorOptions): LessonAuthor {
-  const complete = opts.complete ?? anthropicComplete;
+  const complete = opts.complete ?? anthropicCompleter;
   const model = opts.model ?? DEFAULT_MODEL;
   const maxTokens = opts.maxTokens ?? DEFAULT_MAX_TOKENS;
   const thinking = opts.thinking === false ? undefined : ({ type: "adaptive" } as const);

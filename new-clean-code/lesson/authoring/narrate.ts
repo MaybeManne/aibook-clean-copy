@@ -13,15 +13,15 @@
 // Layer note: `lesson` may depend on `audio` (both sit above `timeline`); the
 // generic synthesis engine stays in `audio/`, this only maps it onto a LessonSpec.
 
-import type { Json } from "@lessonkit/state-machine";
-import type { Storyboard } from "@lessonkit/timeline";
+import type { Json } from "@lessonstudio/state-machine";
+import type { Storyboard } from "@lessonstudio/timeline";
 import {
   narrate,
   type AudioManifest,
   type CaptionSegment,
   type NarrateOptions,
   type NarrationItem,
-} from "@lessonkit/audio";
+} from "@lessonstudio/audio";
 import type { LessonSpec } from "../lesson_sm/compile.js";
 
 export interface PreparedLesson {

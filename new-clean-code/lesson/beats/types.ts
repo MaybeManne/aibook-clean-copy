@@ -11,9 +11,9 @@ import type {
   StateValue,
   Transition,
   Route,
-} from "@lessonkit/state-machine";
-import type { RenderIntent } from "@lessonkit/render-contract";
-import type { Storyboard } from "@lessonkit/timeline";
+} from "@lessonstudio/state-machine";
+import type { RenderIntent } from "@lessonstudio/render-contract";
+import type { Storyboard } from "@lessonstudio/timeline";
 import type { LessonContext } from "../lesson_sm/context.js";
 
 /** Context handed to a beat's `wire()` during compilation. */

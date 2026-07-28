@@ -5,7 +5,19 @@
 import type { NodeBase, SceneNode, SceneSnapshot } from "./scene.js";
 import type { CameraKey, Cue, Easing, Storyboard, Tween } from "./storyboard.js";
 
+// Manim's smoothstep — the reference `smooth`. Zero velocity at both ends. rushInto/rushFrom/
+// thereAndBack are built from it exactly as Manim builds rush_into/rush_from/there_and_back.
+const smooth = (p: number): number => p * p * (3 - 2 * p);
+
 export const easings: Record<Easing, (p: number) => number> = {
+  // ── Manim canonical rate functions ──
+  smooth,
+  smootherstep: (p) => p * p * p * (p * (p * 6 - 15) + 10), // 6p⁵−15p⁴+10p³
+  rushInto: (p) => 2 * smooth(p / 2), // accelerate: first half of the S-curve
+  rushFrom: (p) => 2 * smooth(p / 2 + 0.5) - 1, // decelerate: second half
+  slowInto: (p) => Math.sqrt(1 - (1 - p) * (1 - p)), // ease into the end
+  thereAndBack: (p) => (p < 0.5 ? smooth(2 * p) : smooth(2 * (1 - p))), // 0→1→0
+  // ── easings.net aliases ──
   linear: (p) => p,
   easeIn: (p) => p * p,
   easeOut: (p) => 1 - (1 - p) * (1 - p),
@@ -38,10 +50,14 @@ function clamp01(x: number): number {
   return x > 1 ? 1 : x;
 }
 
-/** Progress of a tween at time t: 0 before start, 1 after end, eased in between. */
+/** Eased progress of a tween at time t. Before start → 0. Otherwise apply the easing to the
+ * clamped linear fraction — INCLUDING at/after the end (fraction clamps to 1), so easing(1) is
+ * honored. Monotonic easings have easing(1)==1 (holds the final value); non-monotonic ones like
+ * `thereAndBack` have easing(1)==0, returning the node to its base — that's how a one-tween pulse
+ * (indicate) resolves instead of getting stuck at its peak. */
 function progress(tw: Tween, t: number): number {
   if (t <= tw.start) return 0;
-  if (t >= tw.start + tw.duration || tw.duration <= 0) return 1;
+  if (tw.duration <= 0) return 1;
   const p = clamp01((t - tw.start) / tw.duration);
   return easings[tw.easing ?? "linear"](p);
 }

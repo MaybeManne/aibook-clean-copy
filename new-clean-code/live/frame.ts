@@ -4,8 +4,8 @@
 // UI needs (is the lesson over, and is the agent mid-thought). Depends only on
 // render_contract + the lesson-layer transcript type.
 
-import type { RenderModel } from "@lessonkit/render-contract";
-import type { Turn } from "@lessonkit/lesson";
+import type { RenderModel } from "@lessonstudio/render-contract";
+import type { Turn } from "@lessonstudio/lesson";
 
 export interface LiveFrame {
   /** stage / prompt / prose intents for the shared workspace (same shape as video). */

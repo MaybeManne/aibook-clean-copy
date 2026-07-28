@@ -3,7 +3,7 @@
 // video renderer would consume the same tree and emit tweenable spans instead.
 import React from "react";
 import katex from "katex";
-import type { Mark, RichNode, RichText } from "@lessonkit/render-contract";
+import type { Mark, RichNode, RichText } from "@lessonstudio/render-contract";
 
 function withMarks(marks: Mark[] | undefined, content: React.ReactNode): React.ReactNode {
   let node = content;

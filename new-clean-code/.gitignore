@@ -1,5 +1,8 @@
 node_modules/
-.conda-node/
-dist/
-*.tsbuildinfo
 .audio-cache/
+.author-cache/
+dist/
+.conda-node/
+*.log
+.DS_Store
+/tmp/

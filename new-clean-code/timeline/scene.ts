@@ -1,7 +1,7 @@
 // Light scene graph — declarative nodes, never code. The resolved scene at one
 // instant (SceneSnapshot) is what a renderer draws.
 
-import type { RichText } from "@lessonkit/render-contract";
+import type { RichText } from "@lessonstudio/render-contract";
 
 export type NodeId = string;
 
@@ -32,7 +32,17 @@ export type SceneNode =
   | (NodeBase & { kind: "rect"; w: number; h: number })
   | (NodeBase & { kind: "circle"; r: number; stroke?: string; strokeWidth?: number })
   | (NodeBase & { kind: "line" | "arrow"; x2: number; y2: number; stroke?: string })
-  | (NodeBase & { kind: "label"; text: RichText; size?: number })
+  | (NodeBase & {
+      kind: "label";
+      text: RichText;
+      size?: number;
+      /** Horizontal anchor (default "start"); "middle"/"end" for centered/right labels (axes ticks). */
+      anchor?: "start" | "middle" | "end";
+      /** Vertical baseline (default "hanging"); "middle" centers on y, "auto" sits on it. */
+      baseline?: "hanging" | "middle" | "auto";
+      /** Font weight (default 500). */
+      weight?: number;
+    })
   // Arbitrary SVG path in local coords. `draw` (0..1) reveals the stroke
   // progressively (draw-on) — animate it with a tween. Supply `len` (the path's
   // length) to make draw-on EXPORT-safe (resvg ignores the pathLength fallback).

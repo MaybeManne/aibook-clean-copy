@@ -7,10 +7,9 @@ export * from "./richtext.js";
 export * from "./htmlAudioSink.js";
 export * from "./speechSink.js";
 export * from "./viz.js";
-export * from "./TransportBar.js";
 export * from "./conversation.js";
-export * from "./VideoView.js";
 export * from "./StudioView.js";
 export * from "./Composer.js";
-// arbitrary SVG figures (browser + export) — re-exported for author convenience
-export { registerFigure, getFigure, type SvgFigure } from "@lessonkit/scene-svg";
+// arbitrary SVG figures (browser + export) — re-exported for author convenience.
+// `registerSceneFigure` authors a figure from declarative SceneNodes (visuals vocabulary).
+export { registerFigure, registerSceneFigure, sceneFigure, getFigure, type SvgFigure, type SceneFigureOpts } from "@lessonstudio/scene-svg";

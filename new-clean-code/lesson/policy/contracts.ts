@@ -14,7 +14,7 @@
 // policies live in the `lesson` layer over EventRecord/LessonContext; render_web
 // never imports them (it only renders the frame it is handed).
 
-import type { Json, MachineEvent } from "@lessonkit/state-machine";
+import type { Json, MachineEvent } from "@lessonstudio/state-machine";
 import type { EventRecord, LearnerSignals, LessonContext } from "../lesson_sm/context.js";
 
 export type { LearnerSignals } from "../lesson_sm/context.js";

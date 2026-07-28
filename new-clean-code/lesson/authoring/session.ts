@@ -16,8 +16,8 @@ import {
   type StateNode,
   type Step,
   type TransitionRecord,
-} from "@lessonkit/state-machine";
-import type { RenderIntent, RenderModel } from "@lessonkit/render-contract";
+} from "@lessonstudio/state-machine";
+import type { RenderIntent, RenderModel } from "@lessonstudio/render-contract";
 import { leafState, type RenderableBeat } from "../beats/index.js";
 import { lowerBeat, reachesTerminal, validateBeatSpec, validateReroute, CompileError, type BeatSpec, type CompiledLesson } from "../lesson_sm/compile.js";
 import { initialContext, type EventRecord, type LearnerRuntime, type LessonContext } from "../lesson_sm/context.js";
@@ -208,6 +208,9 @@ export class Session {
     if (opts?.autoplay === false) {
       return {
         intents: intents.map((i) => {
+          // A past/inactive step holds its FINAL frame: viz stops self-animating, and a
+          // scene renders statically at its storyboard end (see SceneView's local clock).
+          if (i.kind === "scene") return { ...i, autoplay: false } as RenderIntent;
           if (i.kind !== "viz") return i;
           const props = (i as { props?: Record<string, unknown> }).props ?? {};
           return { ...i, props: { ...props, autoplay: false } } as RenderIntent;

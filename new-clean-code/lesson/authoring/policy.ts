@@ -9,7 +9,7 @@
 // signal to a PRE-AUTHORED target (remediation / challenge). The policy only
 // SELECTS among the teacher's edges — it never invents a destination.
 
-import type { MachineEvent, Step } from "@lessonkit/state-machine";
+import type { MachineEvent, Step } from "@lessonstudio/state-machine";
 import type { LessonContext } from "../lesson_sm/context.js";
 import type { Policy } from "./session.js";
 

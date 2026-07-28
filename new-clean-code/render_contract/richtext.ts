@@ -43,19 +43,42 @@ function parseInline(str: string): RichNode[] {
   return out;
 }
 
-/** Inline nodes: `$...$`/`$$...$$` math interleaved with `**bold**`/`*em*` runs. */
-function parseRich(s: string): RichNode[] {
-  const children: RichNode[] = [];
-  const re = /\$\$([^$]+)\$\$|\$([^$]+)\$/g;
+/** Placeholder for an extracted math span. NUL can't occur in authored prose. */
+const MATH_MASK = "\u0000";
+
+/** Put the extracted math spans back, inheriting the marks of the run they sit in. */
+function expandMath(node: RichNode, math: RichNode[]): RichNode[] {
+  if (node.type !== "text" || !node.text.includes(MATH_MASK)) return [node];
+  const out: RichNode[] = [];
+  const re = /\u0000(\d+)\u0000/g;
+  const keep = (t: string): void => {
+    if (t) out.push(node.marks ? { type: "text", text: t, marks: node.marks } : { type: "text", text: t });
+  };
   let last = 0;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(s))) {
-    if (m.index > last) children.push(...parseInline(s.slice(last, m.index)));
-    children.push({ type: "math", tex: (m[1] ?? m[2] ?? "").trim(), display: m[1] != null });
+  while ((m = re.exec(node.text))) {
+    keep(node.text.slice(last, m.index));
+    const found = math[Number(m[1])];
+    if (found) out.push(found);
     last = re.lastIndex;
   }
-  if (last < s.length) children.push(...parseInline(s.slice(last)));
-  return children;
+  keep(node.text.slice(last));
+  return out;
+}
+
+/** Inline nodes: `$...$`/`$$...$$` math interleaved with `**bold**`/`*em*` runs. */
+function parseRich(s: string): RichNode[] {
+  // Math comes out FIRST, because a `$…$` body is LaTeX and not markdown — `*` in it is
+  // multiplication, `_` a subscript. But emphasis routinely WRAPS math, as in
+  // `**Push the screen out to $v \ge 12$**`, so extraction leaves a placeholder behind and
+  // the emphasis pass runs over the whole line. Parsing each side of the math separately
+  // (the obvious implementation) leaves the `**` unpaired and prints it to the learner.
+  const math: RichNode[] = [];
+  const masked = s.replace(/\$\$([^$]+)\$\$|\$([^$]+)\$/g, (_all, display: string | undefined, inline: string | undefined) => {
+    math.push({ type: "math", tex: (display ?? inline ?? "").trim(), display: display != null });
+    return `${MATH_MASK}${math.length - 1}${MATH_MASK}`;
+  });
+  return parseInline(masked).flatMap((n) => expandMath(n, math));
 }
 
 /**

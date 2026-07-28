@@ -14,19 +14,17 @@
     "declaration": true,
     "baseUrl": ".",
     "paths": {
-      "@lessonkit/author": ["author/index.ts"],
-      "@lessonkit/state-machine": ["state_machine/index.ts"],
-      "@lessonkit/render-contract": ["render_contract/index.ts"],
-      "@lessonkit/timeline": ["timeline/index.ts"],
-      "@lessonkit/audio": ["audio/index.ts"],
-      "@lessonkit/lesson": ["lesson/index.ts"],
-      "@lessonkit/video": ["video/index.ts"],
-      "@lessonkit/live": ["live/index.ts"],
-      "@lessonkit/template": ["template/index.ts"],
-      "@lessonkit/render-web": ["rendering/render_web/index.ts"],
-      "@lessonkit/render-video": ["rendering/render_video/index.ts"],
-      "@lessonkit/scene-svg": ["rendering/render_video/svg.ts"]
+      "@lessonstudio/state-machine": ["state_machine/index.ts"],
+      "@lessonstudio/render-contract": ["render_contract/index.ts"],
+      "@lessonstudio/timeline": ["timeline/index.ts"],
+      "@lessonstudio/visuals": ["visuals/index.ts"],
+      "@lessonstudio/audio": ["audio/index.ts"],
+      "@lessonstudio/lesson": ["lesson/index.ts"],
+      "@lessonstudio/live": ["live/index.ts"],
+      "@lessonstudio/template": ["template/index.ts"],
+      "@lessonstudio/scene-svg": ["scene_svg/index.ts"],
+      "@lessonstudio/render-web": ["rendering/render_web/index.ts"]
     }
   },
-  "include": ["state_machine", "render_contract", "timeline", "audio", "lesson", "video", "live", "template", "rendering", "author", "dev/host", "examples"]
+  "include": ["state_machine", "render_contract", "timeline", "visuals", "audio", "lesson", "live", "template", "scene_svg", "rendering", "examples"]
 }

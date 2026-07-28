@@ -9,10 +9,10 @@
 // templates share one conversation renderer without either importing the other.
 
 import React from "react";
-import type { MachineEvent } from "@lessonkit/state-machine";
-import type { RenderIntent, RichText } from "@lessonkit/render-contract";
-import type { Theme } from "@lessonkit/template";
-import type { Turn, TurnRole } from "@lessonkit/video";
+import type { MachineEvent } from "@lessonstudio/state-machine";
+import type { RenderIntent, RichText } from "@lessonstudio/render-contract";
+import type { Theme } from "@lessonstudio/template";
+import type { Turn, TurnRole } from "@lessonstudio/lesson";
 import { defaultComponents, FallbackComp } from "./components/index.js";
 import { RichTextView } from "./richtext.js";
 

@@ -4,9 +4,9 @@
 // The submitted value is normalized and matched against `accept`. Answered-ness +
 // last result live on the blackboard under beats[id] (flat node, v1).
 
-import type { Action, Json, StateId, StateNode, Transition } from "@lessonkit/state-machine";
-import type { RenderIntent, RichText } from "@lessonkit/render-contract";
-import { text } from "@lessonkit/render-contract";
+import type { Action, Json, StateId, StateNode, Transition } from "@lessonstudio/state-machine";
+import type { RenderIntent, RichText } from "@lessonstudio/render-contract";
+import { md } from "@lessonstudio/render-contract";
 import type { LessonContext } from "../lesson_sm/context.js";
 import { beatMeta, type BeatWireCtx, type BeatWiring, type RenderableBeat } from "./types.js";
 
@@ -14,9 +14,10 @@ export interface FreeResponseParams {
   prompt: string | RichText;
   /** Accepted answers (matched after normalization: trim, lowercase, collapse spaces). */
   accept: string[];
-  hint?: string;
-  correctFeedback?: string;
-  wrongFeedback?: string;
+  /** Feedback prose. A string is parsed as inline markdown+`$math$`, so it can carry symbols. */
+  hint?: string | RichText;
+  correctFeedback?: string | RichText;
+  wrongFeedback?: string | RichText;
   promptSlot?: string; // default "prompt"
   /** Adaptivity: a correct answer raises mastery of this skill (to 1). */
   skill?: string;
@@ -86,13 +87,19 @@ export const FreeResponseBeat: RenderableBeat<FreeResponseParams> = {
   render(params, _state, ctx): RenderIntent[] {
     const id = (ctx.vars.__activeBeat as string) ?? "";
     const l = readLocal(ctx, id);
-    const prompt = typeof params.prompt === "string" ? text(params.prompt) : params.prompt;
+    const prompt = typeof params.prompt === "string" ? md(params.prompt) : params.prompt;
+
+    // Feedback is authored prose, so a string goes through `md()`: inline `$math$` and
+    // `**bold**` work here exactly as in a beat's body. (`text()` would print the dollar
+    // signs verbatim — a gate that says "$m = 15/5 = 3$" has to typeset, and colour, the m.)
+    const rich = (v: string | RichText | undefined, dflt: string): RichText =>
+      v === undefined ? md(dflt) : typeof v === "string" ? md(v) : v;
 
     let feedback: RichText | undefined;
     if (l.answered) {
-      feedback = text(
-        l.lastCorrect ? params.correctFeedback ?? "Correct!" : params.wrongFeedback ?? params.hint ?? "Not quite — try again.",
-      );
+      feedback = l.lastCorrect
+        ? rich(params.correctFeedback, "Correct!")
+        : rich(params.wrongFeedback ?? params.hint, "Not quite — try again.");
     }
 
     return [

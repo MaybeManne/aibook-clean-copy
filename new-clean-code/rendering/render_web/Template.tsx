@@ -2,9 +2,9 @@
 // RenderModel through a different template lays out/styles differently with zero
 // lesson changes. Stateless: all state lives in the host; events go out via send.
 import React from "react";
-import type { MachineEvent } from "@lessonkit/state-machine"; // type-only
-import { bySlot, type RenderModel } from "@lessonkit/render-contract";
-import { defaultTheme, type Template } from "@lessonkit/template";
+import type { MachineEvent } from "@lessonstudio/state-machine"; // type-only
+import { bySlot, type RenderModel } from "@lessonstudio/render-contract";
+import { defaultStudioLayout, defaultTheme, type Template } from "@lessonstudio/template";
 import { defaultComponents, FallbackComp, type ComponentFor } from "./components/index.js";
 
 export type WebTemplate = Template<ComponentFor>;
@@ -23,6 +23,9 @@ export const defaultTemplate: WebTemplate = {
       / 1fr
     `,
   },
+  // The default lesson layout is the split-screen studio (visuals | md+KaTeX). Swapping
+  // this out re-lays-out any lesson without touching the lesson spec.
+  studio: defaultStudioLayout,
   components: defaultComponents,
   theme: defaultTheme,
 };

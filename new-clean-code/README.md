@@ -1,288 +1,213 @@
-# LessonKit
+# lessonStudio
 
-*Advanced Manim for interactive educational content.* A declarative, replayable
-engine for **interactive, adaptive, agentic lessons** — read an explainer, play with
-live demos, answer questions, *ask* a tutor that explains back and annotates the shared
-visualization, and have the lesson adapt — all recorded into one scrollable, replayable
-document. Lessons run on a generic state machine, render through swappable templates,
-export to video, and are authored by humans **and** LLM agents at the very same seam.
+A **high-level language for interactive lessons** — Manim, but rendered in the browser so
+lessons are interactive. This is the **engine** half (deterministic, replayable, browser-rendered).
+The AI-authoring half lives in a separate repo (`lessonForge`, TBD).
 
-The flagship, [`examples/attention`](examples/attention/) ("Attention, felt"), is the
-whole idea in one screen: a live softmax-attention visualization the learner and the
-tutor share, a pinned reference article, an "ask the tutor" box, and an append-only
-conversation log — one unified live interface (`npm run dev:attention`).
+**New here?** Start with [`docs/OVERVIEW.md`](docs/OVERVIEW.md) — the vision, objective, features and
+applications, written for a senior engineer or a PM, with no implementation detail. Then
+[`docs/ROADMAP.md`](docs/ROADMAP.md) for the architecture and milestones, and
+[`docs/COMPARISON.md`](docs/COMPARISON.md) for how this was distilled from three prior attempts
+(lessonkit, SocraticAI, activeReader).
 
-North star: [`docs/VISION.md`](docs/VISION.md). Design notes:
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) ·
-[`docs/VIDEO.md`](docs/VIDEO.md) · per-layer contracts in [`docs/specs/`](docs/specs/).
+## Status
 
----
+- **M0 — scaffold + plan.** ✅ Done.
+- **M1 — headless engine lifted.** ✅ Done & verified. `state_machine + render_contract + timeline +
+  audio + lesson + live` transferred from lessonkit's spine (namespace `@lessonstudio/*`), pruned to
+  one authoring surface. `tsc --noEmit` clean; `examples/smoke/headless.ts` passes (compile → route
+  on answers → remediation branch → replay).
+- **M2 — data-driven split-screen template.** ✅ Done & verified in-browser. Lifted the render
+  layer (`template + scene_svg + render_web`, minus the video-clock views), made the split-screen
+  geometry a swappable `StudioLayout` in the template DATA (no more hardcoded flex — the point-4
+  fix), and drove it via the clockless `live` runtime. `examples/split-demo` is now an **interactive
+  "But what is a convolution?" explorable**: two distributions + guiding text → a student-driven
+  **slider** that flips-and-slides `g` across `f`, highlights the overlap products, and builds up the
+  `(f∗g)` output bar-by-bar (a live `registerFigure` figure) → an MCQ check. Puppeteer confirms the
+  split, live layout swap (left 50% / right 60% / single column) with zero lesson changes, KaTeX,
+  the slider updating the figure live (math verified: `(f∗g)[2]=1.34`), and the event-sourced
+  transcript. Run: `LS_ROOT=examples/split-demo vite`. Screenshots: `examples/shot-conv.mjs`.
+  - *Scenes self-animate:* a `scene` intent carries its `Storyboard`, and `SceneView` runs a
+    **local rAF clock** that plays it 0→duration on entry (past steps hold the final frame). So the
+    clockless runtime shows real Manim-style motion without the heavy video transport. Verified: the
+    demo's kernel dot slides left→right with easing (`examples/shot-anim.mjs`).
+  - *Known live-path gap — CLOSED in M4.5:* a plain `explain` beat had no "Continue" affordance in the
+    clockless model (the video model relied on the clock), so the demos used a debug Next button.
+    `StudioView` now derives one for any beat that renders nothing into the `prompt` slot.
+- **M3 — the visual vocabulary, reconciled against ManimCE.** ✅ Done & verified. `visuals/` maps
+  math space onto the declarative scene graph as pure, export-safe `SceneNode`s: `coords`
+  (Axes.coords_to_point, y-flipped for SVG), `nodes` (axes/numberLine/plot/area/areaBetween/
+  **riemannRectangles**/polygon/star/arc/brace+braceTip), `anim` verbs (fadeIn/drawOn/slideTo/spin/
+  indicate/stagger/moveAlongPoints), and a Manim-canonical rate-function set (`smooth` default +
+  `smootherstep`/`rushInto`/`rushFrom`/`slowInto`/`thereAndBack`). Cross-checked against the real
+  ManimCE docs (not the second-hand SocraticAI port). **Two correctness fixes fell out of it:**
+  (1) `plot` now breaks at discontinuities into subpaths (Manim ParametricFunction) instead of
+  drawing a line across an asymptote; (2) the sampler's `progress()` now applies easing at/after a
+  tween's end, so non-monotonic rate functions like `thereAndBack` resolve (a one-tween `indicate`
+  pulse returns to base instead of sticking at its peak). Shape factories build around a local
+  origin so `scale`/`rotation` happen about the center, like Manim mobjects. `examples/showcase`
+  asserts 9 geometry invariants through the same pure SVG path the exporter uses; verified visually
+  (`examples/rasterize.mjs`). **ValueTracker/always_redraw → no new node kind** (a changing scalar
+  is a control/param; per-frame recompute IS `sampleAt` + `registerFigure`; keeps export-safety).
+  Run: `./node_modules/.bin/tsx examples/showcase/showcase.ts`.
+- **M4 — the 3b1b reproduction slice** (fluency proof). ✅ Done & verified in-browser — reproduces the
+  **narrative spine** of 3Blue1Brown's **"But what is a convolution?"**, not just the mechanical recipe.
+  A **12-beat flow** walks the video's arc: **combine** (hook — three ways to combine `a=(1,2,3,4)`,
+  `b=(5,6,7,8)`: add and multiply stay the same length, `∗` is the odd one out that mixes every pair and
+  runs longer) → **dice** (goal-gated 6×6 sum grid — drag to the likeliest total; the highlighted
+  diagonal is a convolution of the uniform die with itself, `P(sum=7)=6/36`) → **dice-formula** (that
+  diagonal sum → the definition `(a∗b)[n]=Σₖ a[k]b[n−k]`) → **intro** (small worked example) → **flip**
+  scene (b's ends arc-swap so it reads 6,5,4) → **slide** scene (the flipped strip slides under a; each
+  output box pops in) → **explore gate** (a slider flips-and-slides b, floats `a[i]·b[j]`, fills the
+  output row; goal-gated on shift 4) → **product-grid** (goal-gated 3×3 grid of `a_r·b_c` — its
+  anti-diagonals ARE `a∗b=[4,13,28,27,18]`) → **polynomial** (the hidden identity: `∗` = multiplying
+  `1+2x+3x²` by `4+5x+6x²`) → **MCQ** (wrong → step-by-step reteach) → **the 2-D image payoff** (three
+  more beats, below) → **summary** (one operation, *many* faces). Colors match the video (a=blue, b=red,
+  products=green, result=yellow).
+  - *Refactor that made the two new grids cheap (done first):* a **`sceneFigure()`/`registerSceneFigure()`
+    bridge** (`scene_svg`) lets a slider-driven figure be authored as declarative `SceneNode`s and drawn
+    by the same pure snapshot renderer as the scripted scenes (no renderer changes), plus a **`grid()`
+    primitive** (`visuals/`) with per-cell fill/value/highlight. `dice-grid` and `prod-grid` are built on
+    this; `conv-setup`/`conv-boxes` stay raw `registerFigure`. `examples/convolution/verify.ts` asserts
+    the math (incl. an independent `polyMul` identity), the flip/slide geometry, and both grids'
+    highlight-counts + readouts through the same pure paths the browser uses (plus the 2-D kernel math
+    below); Puppeteer walks all **16** beats end-to-end — figures, KaTeX, goal-gates, the image
+    playgrounds (canvas drag+wheel→zoom round-trip, the kernel matrix editor + presets + "Custom"
+    flip), and 14/14 narration clips (`examples/shot-m4.mjs`, **48/48**). Run:
+    `LS_ROOT=examples/convolution vite`.
+  - *Sampler contract surfaced by this slice:* `sampleAt` applies **every** tween and each overwrites
+    its property, so the **last tween on a given (node, property) wins at all times** — even before
+    its start (it writes its `from`). Sequential per-segment tweens (`moveAlongPoints`, or N stepwise
+    slides on one node) therefore collapse to the last segment. The fix is **one tween per property
+    per node**: the flip arc = x (smooth) + y (`thereAndBack` bump); the slide = one continuous
+    x-tween with reveal times derived from the strip's linear position.
+  - *The 2-D image payoff — the video's "hard visuals" (latest round):* a real 3×3 kernel sliding over a
+    raster image, a **plug-and-try filter bank** (identity / box blur / Gaussian / sharpen / **Sobel
+    edges**), and zoom — first on a code-built pixel-art sprite (the "an image is a grid of numbers"
+    close-up, with the `1/9` weights and the one output pixel drawn), then on three real photos the learner
+    switches between. Built as a Canvas2D **`registerViz("conv2d")`** (browser-only, `poster()` for export;
+    pure edge-clamped kernel math in a DOM-free `kernels.ts` that `verify.ts` tests headless). Three beats —
+    `image-2d` (closeup) → `image-blur` (a sweep wipe develops the blur) → `image-filters` (real photos).
+    Added a reusable **`choice`** control (labelled picker buttons; value flows through the same `demo.set`
+    channel as sliders, so 2 touch-points), and **fixed the sometimes-empty viz panel** — the four `explain`
+    beats now drive a figure via `ExplainParams.viz` so the stage is never a black void while narration plays.
+  - *Making the two image beats real PLAYGROUNDS (latest round):* the viz went from *showing* to
+    *hands-on*, still fully declarative — every gesture leaves as a replayable `demo.set`. **`image-2d`**
+    captures pointer + wheel on the canvas: **drag to place** the 3×3 window (`demo.set{kx,ky}`), **scroll
+    to zoom** (coexisting with a zoom slider), with an eased follow-camera that tracks the placed window
+    (frozen mid-drag, recentred on release). **`image-filters`** became a live kernel **EDITOR** via a new
+    reusable **`matrix` control kind** (a grid of number-input cells + divisor + preset load buttons):
+    per-cell edits are single-key `demo.set`, a preset load is one atomic **`demo.setMany`**, and the viz
+    runs a **live custom linear convolution** from the nine weights ÷ divisor. One shared
+    `EDITOR_PRESETS`/`matchPreset` in `kernels.ts` labels both the control and the canvas, so loading
+    Gaussian never reads "Custom" on the picture; the editor seeds the **directional Sobel-X** (linear,
+    div 1) while `summary` keeps the `|∇|` magnitude Sobel. The free editor/placement beats have no
+    single-key goal, so they advance via a `__next` button.
+- **M4.5 — the pinhole slice: audible narration + a live 3-D apparatus.** ✅ Done & verified
+  in-browser (**41/41** checks then; the same walk now runs **62/62** with M5a's authoring loop
+  folded in, `examples/shot-pinhole.mjs`). Rebuilds a 7.7K-line / 1.5 MB
+  single-file reference explainer as `examples/pinhole/`: 13 beats across 5 parts, two gates with
+  remediation detours that rejoin the main line, **real ElevenLabs narration** (13 clips, 143 s), and
+  one persistent WebGL apparatus — object → barrier with a pinhole → screen, rays crossing at the
+  hole to paint an inverted image of height `h' = h·v/u`. The learner can drag the tree or the screen
+  along the optical axis, and that drag flows back into the session as `demo.set {u|v}`, so a
+  manipulation is recorded, replayable state a policy can observe.
+  - *Four engine gaps this slice closed:* **narration is now audible** (`StudioView` had always POSTed
+    `/api/tts`, but nothing served it — `audio/dev_tts.ts` + a vite plugin answer it, key server-side,
+    every line content-hash cached to `.audio-cache/`); a **first-class Continue affordance**, derived
+    rather than authored, which retires the M2 gap below and both debug harnesses; **`VizIntent.persistent`**
+    so one apparatus is shared instead of copied per turn (N turns of WebGL would exhaust the browser's
+    ~16-context limit) and survives the gates, which contribute no stage content; and
+    **`VizHandle.poster()`** so a canvas beat is not a hole in export.
+  - *3-D decision (mirrors M3's ValueTracker one):* **no 3-D scene-graph node kind.** 3-D lives behind
+    `registerViz`, and beats drive it with DECLARED STATE (`u`, `v`, camera, what's visible), never
+    imperative verbs — the reference fired 11 GSAP verbs at a global timeline, which has no meaning in
+    a clockless host where a beat may be entered by advancing, by a detour, or by replay. The viz eases
+    between states using `easings` from `@lessonstudio/timeline`, so 3-D motion speaks the same Manim
+    rate functions as every 2-D storyboard. Run: `LS_ROOT=examples/pinhole vite`.
+- **M4.6 — colour-keyed symbols + a learner-facing narration control.** ✅ Done & verified in the same
+  walk. The reference colour-codes every variable and keeps figure and prose in one hue;
+  `examples/pinhole/palette.ts` is now the single source of that mapping — the WebGL sprite labels and
+  the KaTeX `\textcolor{…}` read the same table, so a figure/prose divergence is no longer expressible.
+  Colour lives with the lesson because it is authored CONTENT (*which symbol is this*), not `Theme`,
+  which owns reusable roles.
+  - **Pause the narration** — a control left of the Composer (or `P`). `AudioSink` grew
+    `status()`/`subscribe()`, and the label is derived from the audio element itself, so it can never
+    advertise "Pause" over silence an autoplay policy blocked. A pause is a STANDING preference, not a
+    one-clip pause: later beats stay quiet (their clips still preload, so resuming is instant) until the
+    learner resumes — one control, one meaning: narration on / off.
+  - *Four markup leaks this exposed, all one bug:* authored strings reaching the DOM unparsed.
+    `projectTranscript` wrapped a past turn's prose in `text()`, `explain` did the same for a string
+    body, `explorable`'s ask-prompt too, and the gates printed feedback/hints literally — so an
+    authored `$h' = h\,v/u$` showed its dollar signs. Each now uses the parser its own live renderer
+    uses (`article` / `md`); learner-typed and engine-derived strings deliberately still do not parse.
+    Separately, `parseRich` extracted math first and ran emphasis on each fragment, so a `**bold**`
+    *wrapping* a `$math$` span never paired — it now masks math spans, runs emphasis over the whole
+    line, and re-expands. The walk asserts both invariants: no literal `$…$` and no literal `**…**`
+    anywhere in the accumulated transcript.
+- **M5a — the live authoring loop: the learner asks, the agent AUTHORS a beat.** ✅ Done & verified
+  headlessly (**58/58**, `examples/pinhole/authoring.ts`) and in the browser (the pinhole walk is now
+  **62/62**). The always-on Composer used to be a dead end — it raised a `generate` effect nothing
+  served. Now `message.submit` parks the learner on an **ephemeral "thinking" leaf** that clones the
+  interrupted beat's viz (the workspace never blanks), `generatingRunner(author, defaultRunner())`
+  hands the effect to a `LessonAuthor`, and the assembled beat rides back as a **`beat.generated`
+  event** — so it is spliced in, entered, *and* recorded. **generate → freeze → replay:** a replayed
+  session rebuilds the same answer from the log with the model never called again (a counting stub
+  asserts the call count, so that claim is a test rather than a comment).
+  - *The division of labour is the design* (`examples/pinhole/author.ts`): the **engine owns facts and
+    structure** — the physics, the beat's id and type, where Continue returns to, and the learner's
+    CURRENT apparatus state; the **model owns only voice**, one short paragraph. It cannot emit an
+    invalid beat, reroute the lesson, or contradict a number, because it never produces any of those.
+    So a bad generation degrades to flat prose, not a broken lesson. The numbers are appended by the
+    engine as a colour-keyed footer through the same `palette.ts` the figure labels use — which is
+    what makes a generated turn look native to the lesson instead of like a chat reply pasted in.
+  - *Grounding is the whole point.* The walk asks its question one slider-drag into the explorable, so
+    the answer must be about `v = 13` and `m = 13/7 = 1.86` — numbers that appear nowhere in the lesson
+    source (the authored default is `v = 7`, `m = 1`). That state is exactly what a chat window beside
+    the lesson structurally cannot see, and the engine structurally can.
+  - *Interrupt for free.* Entering a new leaf makes in-flight generation stale, so a second question
+    **drops** the first answer instead of yanking the learner back — while both questions stay in the
+    log, because an interrupt is a discourse move, not an erasure. The two entry points differ on
+    purpose: the Composer is an interruption (thinking leaf, then resume); an explorable's own ask box
+    is a self-transition, so the learner keeps fiddling with the controls while the answer is authored.
+  - *Keys stay server-side.* `/api/author` mirrors `/api/tts` — structurally-typed vite plugin, key in
+    the dev process only, content-hash disk cache (`.author-cache/`). The browser talks only to the
+    proxy, and the walk asserts that **no request to a provider host ever leaves the page**. With no
+    `ANTHROPIC_API_KEY` the endpoint answers `{error}` and `claudeAuthor` assembles the plan's
+    deterministic `fallbackText`, so the entire loop plays keyless — which is how it is verified here,
+    and why every browser assertion is about what the engine owns rather than about the prose.
+- **M5 — productionize the AI seam + export the IR JSON Schema** (the contract lessonForge targets).
+  Also open: single-file/offline export, a `barChart` visuals factory, and rewind-by-transcript-prefix.
 
-## 1. The big idea
+## Dev setup
 
-Five principles hold the whole system together:
-
-1. **The state machine sequences; it never computes or animates.** A lesson is a
-   generic hierarchical state machine of *beats*. Beats are discrete; each beat may
-   carry a continuous *timeline*.
-2. **One authoritative clock.** During video playback a single beat-time `t` drives
-   visuals, audio, and captions — all are pure functions of `t`. No triple-sync.
-3. **Generate → freeze → replay.** Generation is non-deterministic (user input, a
-   policy, an LLM agent); the *frozen artifact* replays deterministically. A generated
-   beat is emitted as a `beat.generated` event carrying its full spec, spliced into the
-   live chart and recorded — so replay reconstructs it from data and **never re-invokes
-   the generator**. This is why sessions snapshot, seek, and export frame-identically,
-   and why no code is `eval`'d — animations and interactions are declarative data.
-4. **The teacher owns the flow.** Branching/adaptivity is authored data. A policy
-   (or gaze/LLM signal) is a *selector* over the teacher's graph, never an author of
-   arbitrary jumps.
-5. **One recorded conversation; the engine owns facts, the agent owns voice.** Tutor
-   prose, learner answers/questions, and agent moves (a generated explanation, an
-   annotation on the shared viz) are all events in one append-only history that a pure
-   projection folds into a scrollable, role-attributed transcript — the "document" side
-   of the live video, a mirror of state, never a second source of truth. When an LLM
-   authors a beat it supplies only the *prose*; the engine computes the structure and
-   the grounded facts (which token attends where, the viz props, the beat id/`next`), so
-   the model can neither emit an invalid beat nor hallucinate the visualization.
-
----
-
-## 2. Layers & dependency graph (strict one-way)
-
-Each directory is a package aliased as `@lessonkit/<name>` (see `tsconfig.json`
-`paths`, mirrored in `vite.config.ts`). Arrows mean **depends on**; there are no
-cycles and no upward edges.
-
-```
-  state_machine ────────────────┐         render_contract ──────────────┐
-  (imports nothing)             │         (imports nothing)             │
-        ▲                       │               ▲   ▲   ▲               │
-        │                       │               │   │   │               │
-        │              template ┘               │   │   └── timeline ───┘
-        │              (theme + slots)          │   │        (scene graph,
-        │                                       │   │         Storyboard, sampleAt)
-        │                                       │   │             ▲
-        │                                       │   │             │
-        │                                       │   └── audio ─────┤
-        │                                       │       (TTS, subtitles)
-        │                                       │             ▲
-        └──────────── lesson ───────────────────┘             │
-                      (context, compile, beats, authoring) ────┘
-                          ▲
-                          │
-                        video  ──────────► (lesson, timeline, audio, render_contract,
-                      (single clock,        state_machine) — imports NO renderer
-                       transport, seek)
-                          ▲
-                          │
-   rendering/render_web ──┘   →  render_contract, template, timeline, audio,
-   (React player chrome)          video, scene-svg, state-machine(type-only)
-   rendering/render_video     →  render_contract, template, timeline, lesson,
-   (offline mp4 frames)           audio, state-machine  (+ @resvg/resvg-js, ffmpeg-static)
-```
-
-| Package (`@lessonkit/…`) | Directory | Depends on | Role |
-|---|---|---|---|
-| `state-machine` | `state_machine/` | — | Generic hierarchical FSM over a Context `<C>`. Pure. |
-| `render-contract` | `render_contract/` | — | `RenderIntent`/`RenderModel` + `RichText`. The "what to show", never pixels. |
-| `template` | `template/` | render-contract | Presentation tokens (`Theme`) + slot layout (`Template<Comp>`). Pure data. |
-| `timeline` | `timeline/` | render-contract | Light scene graph + `Storyboard` + pure `sampleAt(sb,t)`. Video's temporal contract. |
-| `audio` | `audio/` | timeline, render-contract | TTS adapters, word alignment, subtitles, caching. |
-| `lesson` | `lesson/` | state-machine, render-contract, timeline, audio | Lesson semantics: context, compiler, beats, authoring DSL, Session, policies. |
-| `video` | `video/` | lesson, timeline, audio, render-contract, state-machine | The video layer: single clock, transport, seek, gate-pausing, audio channel. **No renderer import.** |
-| `render-web` | `rendering/render_web/` | render-contract, template, timeline, audio, video, scene-svg, state-machine(type-only) | React player chrome + component registry. **Lesson-free.** |
-| `render-video` | `rendering/render_video/` | render-contract, template, timeline, lesson, audio, state-machine | Offline frame plan → SVG → PNG (resvg) → mp4 (ffmpeg). |
-| `scene-svg` | `rendering/render_video/svg.ts` | render-contract, template | Pure `snapshotToSvgInner` + `registerFigure`, shared by preview **and** export (preview == export). |
-
----
-
-## 3. Component-by-component
-
-### `state_machine/` — the generic engine (pure)
-- `types.ts` — `Statechart<C>`, `StateNode`, `Transition` (`guard?`/`target?`/`actions?`), `Route` (`on` pattern + `match` sugar), `MachineEvent`, `Snapshot<C>`.
-- `interpreter.ts` — pure `start` / `transition(chart, step, event, registry)` / `snapshot` / `restore`. Resolves `routes` (pattern-matched, supports `signal.*` prefix) **before** exact `on[event]`. O(1) snapshot/restore.
-- `registry.ts` — name → guard/action lookup. `effects.ts` — `Effect` type.
-- Knows nothing about lessons, rendering, or video. Litmus: `examples/turnstile`.
-
-### `render_contract/` — what to show (pure)
-- `intents.ts` — the **open** `RenderIntent` union keyed by `slot` (`"stage"`/`"prose"`/`"prompt"`) and `kind`. Closed members: `text`, `visual`, `mcq`, `input`, `ask` (free-text question box), `controls`; anything else rides `{ kind: string; slot; [k]: unknown }`. `ControlSpec` (slider/toggle/button) lives here.
-- `richtext.ts` — portable node tree: `text`(+marks), `math` (KaTeX), `paragraph`, and block nodes `heading`/`list`/`callout`. `text()`/`math()`/`md()` (inline) + `article()` (block-level book/blog parser) + `toPlain()`.
-
-### `template/` — presentation tokens (pure data)
-- `theme.ts` — `Theme`: colors, type scale (incl. `eyebrow`/`label`/`article`), weights, `measure` (reading width), `transition`, `space(n)`. **Reskin = swap this object.**
-- `template.ts` — `Template<Comp>`: slot layout + component map, renderer-generic.
-
-### `timeline/` — the temporal contract (pure)
-- `scene.ts` — `SceneNode` primitives (`rect`,`circle`,`line`/`arrow`,`ring`,`label`,`group`) + gradients/glow; `SceneSnapshot`.
-- `storyboard.ts` — `Storyboard { duration, initial, tweens, cues?, stage?, viz? }`; `Cue` kinds (`reveal`/`caption`/`gate`/`narrationMark`).
-- `sample.ts` — the linchpin **`sampleAt(sb, t) → SceneSnapshot`** (pure, deterministic) + `cuesUpTo`/`activeGate`. Shared by playback, seek, and export → frame-identical.
-- `intent.ts` — `sceneIntent`/`captionIntent`/`vizIntent` (+ `asSceneIntent` etc.), the open-kind extensions defined here (not render-contract, to keep the arrow one-way).
-
-### `audio/` — narration & subtitles
-- `tts.ts` (adapter interface), `elevenlabs.ts` (real `/with-timestamps`), `fake.ts` (deterministic, offline, drives tests), `align.ts` (char→word), `subtitles.ts` (`toCaptions`/`activeCaption` — one pure fn for word-highlight), `cache.ts` (content-hash), `sink.ts` (`AudioSink`), `narrate.ts` (generic precompile).
-
-### `lesson/` — lesson semantics
-- `lesson_sm/context.ts` — `LessonContext { beats, score, mastery, misconceptions, vars, history }` + `initialContext` + `withBeatState`.
-- `lesson_sm/compile.ts` — `compileLesson(spec, registry)`: lowers a teacher `flow` of `BeatSpec`s into a `Statechart`; computes the default **spine** (flow order minus detour targets); `validate()` (DANGLING/UNREACHABLE/NO_TERMINAL…); `beatTargets()` harvests `onWrong`/`branch`/`routes` targets for reachability + spine exclusion.
-- `beats/` — the beat catalog (see §5): `types.ts` (`BeatDef`/`RenderableBeat`/`beatMeta`/`leafState`), `explain`, `mcq`, `freeresponse`, `branch`, `animate` (timed `scene`), `explorable` (interactive demo), `index.ts` (`builtinBeats`/`defaultBeatRegistry`). `explorable` also carries the **live-interaction channels**: `demo.set` (learner nudges a control), `workspace.set`/`workspaceSet()` (the AGENT points/annotates/zooms the *same* viz — a distinct event, so the transcript attributes it to the agent), `ask.submit`/`askSubmit()` (learner free-text question → a `generate` effect that answers and *resumes* the beat), a `note` prose slot, and guided `goal`/`task`/`success` (hide Continue until the task is done).
-- `authoring/` — `dsl.ts` (`defineLesson` + `explain`/`mcq`/`freeResponse`/`animate`/`explorable`/`branch` builders → `BeatSpec` IR); `session.ts` (the one stateful object: drives the pure interpreter, owns history, runs effects with cancellation, consults `Policy`/`SignalSource`; `subscribe(onStep)` for a passive per-step observer — how the video layer sees async, effect-driven transitions); `generate.ts` (the **LLM/agent authoring seam**: `GenerateEffect`/`generate()`, the `LessonAuthor` interface, and `generatingRunner(author, base)` — a `generate` effect → the author → a recorded `beat.generated` event); `claude_author.ts` (a real Claude author as an opt-in drop-in at that seam via `pickAuthor`/`claudeAuthor`, with `offlineAuthor` the deterministic default; `AuthorPlan` splits *facts+structure* (the engine's `assemble`) from *voice* (the model's prose); `@anthropic-ai/sdk` is loaded lazily so core keeps no hard dependency); `narrate.ts` (`prepareNarration`); `policy.ts` (`decisionPolicy`/`topMisconception` adaptivity helpers).
-
-### `video/` — the video layer (no renderer)
-- `program.ts` — **`VideoProgram`**: composes a `Session`, owns the single clock `t`, transport (`play`/`pause`/`setRate`/`seekInBeat`/**`seek`** across beats), a **persistent stage** (visuals never blank on gates), gate-cue pausing, and per-frame assembly. Precomputes the **spine** + **spine snapshots** (policy-free replay) so seeking forward to an unvisited beat is O(1); live-visited snapshots win over spine snapshots. `subscribe`s to the `Session` so effect-driven transitions (a resolved `generate`, a timer, a signal) drive a frame; exposes `transcript()` (memoized) → the conversation `Turn[]`. Emits `VideoFrame` to subscribers.
-- `transcript.ts` — **`projectTranscript(lesson, history, activeBeatId) → Turn[]`**: a pure fold of the event log into an append-only, role-attributed (`tutor`/`learner`/`agent`) conversation, the opening beat pinned as reference; drops learner slider-fiddling (`demo.set`) and coalesces consecutive agent gestures. The "scroll-up document" side of the live video — a deterministic mirror of history.
-- `transport.ts` (`TransportState`, `TimelineEntry`), `render_model.ts` (`VideoFrame {model, caption, transport}`), `audio.ts` (`AudioChannel` slaves an `AudioSink` to `t`), `authoring.ts` (`defineVideo`/`SceneBuilder`), `player_compat.ts` (`createPlayer` shim).
-
-### `rendering/render_web/` — React player (lesson-free)
-- `VideoView.tsx` — the chrome. Two layouts: **`theater`** (full-bleed cinematic) and **`notebook`** (the polished 3-row split: problem/eyebrow bar · 50/50 persistent-viz + reading panel · full-width control bar). The reading panel is the **append-only conversation log** — `program.transcript()` turns rendered as role-attributed bubbles (tutor left, learner right, agent inline), with the current beat's turn "live"; a host layers its authored **`article`** (book/blog prose) or a caption-style `transcript` on top per beat. Subscribes to a `VideoProgram`.
-- `components/index.tsx` — the component **registry** (`defaultComponents`, all `React.memo`'d): `TextComp`, `McqComp`, `InputComp`, `ControlsComp` (sliders/toggles/buttons → `demo.set`/`next`), **`AskComp`** (the free-text "ask the tutor" box → `ask.submit`), `HtmlComp`, `FallbackComp`. `SceneView.tsx` (memoized SVG via shared `scene-svg`), `CaptionView.tsx` (word-highlight), `VizView.tsx` (registered figure/viz).
-- `TransportBar.tsx` (play/scrub/chapter dots/speed/CC), `richtext.tsx` (`RichTextView`), `htmlAudioSink.ts`/`speechSink.ts`, `viz.ts` (`registerViz` — browser JS/canvas escape hatch), `Template.tsx`/`TemplateView` (static, non-video render path).
-
-### `rendering/render_video/` — offline export
-- `svg.ts` (= `@lessonkit/scene-svg`): pure `snapshotToSvgInner` + `registerFigure`/`getFigure` (SVG figures, browser **and** export). `frames.ts` (`planFrames` — pure, walks the beat path, samples per frame, burns captions), `rasterize.ts` (resvg), `encode.ts` (ffmpeg-static), `export.ts` (`exportLesson`).
-
----
-
-## 4. How it all interacts (runtime flows)
-
-**Authoring → compile → run.** `defineLesson({ id, version, flow: BeatSpec[] })`
-(`authoring/dsl.ts`) → `compileLesson` lowers each beat's `build()`/`wire()` into a
-`Statechart` and computes the spine → `createSession(lesson, { policies })` drives
-the pure interpreter and owns history/effects. The IR is plain JSON — an agent could
-emit it directly.
-
-**Static render.** `Session.render()` asks the active beat's `render()` for
-`RenderIntent[]`; `TemplateView`/`VideoView` dispatch each intent by `kind` to a
-component and place it by `slot`. Events go back via `send`.
-
-**Video playback (single clock).** `VideoProgram.tick(dt)` advances `t`; each frame it
-`sampleAt(storyboard, t)` for the stage, computes the active caption, and the
-`AudioChannel` seeks the audio to `t` — all from one clock. At `duration` it sends the
-advance event; the SM moves to the next beat. `VideoView` re-renders only on real
-change (memoized components; a no-op-frame guard). **Seek** resolves the target beat's
-snapshot (live-visited ?? precomputed spine) → `restore` → `seekInBeat` — O(1) both
-directions.
-
-**Interactivity (demos).** `ControlsComp` emits `demo.set {key,value}`; the
-`ExplorableBeat`'s self-transition writes it to `beats[id]`; `program.send` re-renders
-and the registered figure/viz redraws from the new value. The beat is untimed, so the
-video waits there (a gate) until the learner presses Continue (`__next` → `next`).
-
-**Adaptivity (authored paths + policy).** A wrong/right answer records
-`misconceptions`/`mastery` (from `skill`/`misconception` tags). On a decision-node beat,
-a pure `Policy` reads the blackboard and emits a `signal.*` event; the beat's authored
-`routes` map it to a pre-authored remediation/challenge beat. Policy events are recorded
-in history and replayed with policies off → deterministic. No engine changes.
-
-**Agentic generation & live conversation.** A beat requests generation by declaring a
-`generate` effect (from an entry action, or from a learner's `ask.submit`). A
-`generatingRunner(author)` hands the settled context to a `LessonAuthor`; the author
-returns a `BeatSpec`, which the runner emits as a `beat.generated` event that `Session`
-validates, splices into the live chart, jumps into, **and records**. Because the spec is
-in history, replay reconstructs the beat without re-invoking the author. The default
-author is offline and deterministic; `pickAuthor` swaps in a live Claude author when
-`ANTHROPIC_API_KEY` is set — same seam, and the model contributes only prose (the engine
-computes the grounded facts and structure). The learner's question, the agent's
-explanation, and any `workspace.set` annotation all land in the same history the
-transcript projects, so the conversation records and replays as one document. (In the
-browser a key must sit behind a server proxy, never in the bundle — the shipped demo
-stays on the offline author.)
-
-**Audio/narration (offline).** `prepareNarration(spec)` synthesizes TTS for `scene`
-beats carrying `narration`, sets each storyboard's `duration` to the audio length, and
-bakes caption cues — returning a prepared spec + audio manifest + captions the browser
-app imports.
-
-**Export.** `exportLesson` runs the pure `planFrames` (same `sampleAt` + `scene-svg` as
-the browser → identical geometry), rasterizes via resvg, and muxes per-beat audio via
-ffmpeg. SVG figures export; `registerViz` (canvas/WebGL) is browser-only.
-
----
-
-## 5. Beat & intent catalogs
-
-**Beats** (`lesson/beats/`, authored via the matching DSL builder):
-
-| Beat (`type`) | Purpose | Key params | Timed? |
-|---|---|---|---|
-| `explain` | prose/visual/HTML | `text`/`visual`/`html` | no |
-| `scene` (`animate`) | animated storyboard | `storyboard`, `narration?` | **yes** |
-| `mcq` | multiple choice gate | `choices` (`correct`/`misconception?`), `skill?`, `onWrong?` | no |
-| `freeResponse` | fill-in gate | `accept[]`, `skill?`, `misconception?`, `onWrong?` | no |
-| `explorable` | interactive demo (+ agent viz channel & ask box) | `controls[]`, `viz{name}`, `defaults?`, `note?`, `ask?`, `goal?`/`task?`/`success?` | no |
-| `branch` | pure flow fork | `when` guard, `then`/`else` | no |
-
-Beats generated live at the `LessonAuthor` seam (`gen-*` ids) are ordinary `BeatSpec`s —
-usually an `explain` (an answer) or an `explorable` (an annotated viz that resumes the
-prior beat). They are spliced and recorded, so they need no special beat type.
-
-**Intents** (`kind` → component): `text`, `visual`, `mcq`, `input`, `ask`, `controls`,
-`scene`, `caption`, `viz`, `html`. Open union — custom beats may emit new kinds; unknown
-kinds fall back to a visible placeholder (never crash).
-
----
-
-## 6. Examples
-
-| Dir | Script | Shows |
-|---|---|---|
-| `turnstile` | `npm run litmus` | generic engine with a toy context (no lesson/render deps) |
-| `photosynthesis` | `npm run demo` / `render-test` | headless lesson (both paths, snapshot/replay) + React render |
-| `animated` | `npm run anim` | Phase-0 video slice: `sampleAt` + Player advances the SM |
-| `narrated` | `npm run narrate` / `export` | offline TTS prep + mp4 export |
-| `narrated-web` | `npm run dev:narrated` | narrated lesson in the split player |
-| `amc-nested` | `npm run dev:amc` | full AMC lesson (figures, gates, narration) |
-| `figures` | `npm run dev:figures` | `registerFigure`/`registerViz` escape hatches |
-| `interactive` | `npm run dev:interactive` / `npm run interactive` | the video-game loop: article reader + live slider demo + adaptive remediation/challenge |
-| `flagship` | `npm run dev:flagship` / `npm run flagship` | "Sine from a circle" — interactive-first: guided goals (do the task to advance), an inline question, and adaptive branching |
-| `grad-descent` | `npm run dev:grad` / `grad` / `grad:gen` | the tutored-3D loop: a viz that emits outbound signals, real-time routing (`signal.viz.diverged` → remediate) + a settled-state policy; `grad:gen` exercises the `generate` path headlessly |
-| **`attention`** | **`npm run dev:attention`** / `npm run attention` | **the unified live tutor (flagship): a shared softmax-attention viz + ask box + agent `generate`/`workspace.set` + append-only transcript — the whole idea in one screen** |
-
----
-
-## 7. Run & toolchain
-
-Node is a **dev tool only** — the runtime is pure browser JS. A project-local Node
-lives at `.conda-node/` (this box has no system Node):
+No system Node on this machine — reuse the conda Node 22 from the sibling `lessonkit` checkout.
+Dependencies are this repo's own (`node_modules` was originally symlinked to lessonkit's; the first
+`npm install` here replaced it with a real tree, which is the correct end state):
 
 ```bash
-export PATH="$PWD/.conda-node/bin:$PATH"
-npm install
-
-npm run dev:attention     # the flagship unified live tutor (shared viz + ask box + transcript)
-npm run dev:interactive   # the interactive lesson (article + demo + adaptivity)
-npm run dev:amc            # the full AMC nested-circles lesson
-npm test                  # headless suite: turnstile, photosynthesis (+render-test), animated,
-                          #   narrated (+export), interactive, grad-descent (+generate),
-                          #   attention, flagship
-npm run typecheck         # tsc --noEmit, whole repo
-
-# Opt in to the LIVE Claude tutor (else the deterministic offline author drives every
-# generation — which is what the tests and the shipped browser demo use):
-export ANTHROPIC_API_KEY=sk-…   # Node only; in the browser this must be proxied server-side
+export PATH="/proj/long-multi/shaden/lessonkit/.conda-node/bin:$PATH"
+npm install                                          # react, katex, three, puppeteer, vite
+./node_modules/.bin/tsc --noEmit                     # typecheck the engine
+./node_modules/.bin/tsx examples/smoke/headless.ts   # headless smoke test
 ```
 
-Build-time-only files (none ship at runtime; do not delete): `package.json`,
-`package-lock.json`, `tsconfig.json` (compiler opts **and** the `@lessonkit/*` aliases),
-`vite.config.ts` (mirrors the aliases), `.conda-node/`, `node_modules/`. `node_modules`
-may be a symlink to scratch. Browser visual checks: `examples/_shot.mjs` (puppeteer)
-against a `dev:*` server. mp4 export needs `@resvg/resvg-js` + `ffmpeg-static`.
+Audible narration needs `ELEVEN_LABS_API_KEY` in the environment; clips are cached under
+`.audio-cache/`, so a line is synthesized once and later runs are offline. Without the key the
+narration pipeline still runs, silently. Browser checks need swiftshader for WebGL:
+`--enable-unsafe-swiftshader --use-gl=angle --use-angle=swiftshader`.
 
----
+## Layout
 
-## 8. Design invariants (don't break these)
+```
+state_machine/    pure hierarchical statechart (imports nothing)
+render_contract/  RenderIntent / RichText / slots (imports nothing)
+timeline/         scene graph + Storyboard + pure sampleAt
+audio/            TTS + word-alignment + subtitles + cache
+lesson/           beats, compile→statechart IR, Session host, authoring, policy, AI seam
+live/             the one runtime — clockless co-play (learner + agent both emit events)
+examples/         smoke test (+ the coming 3b1b slice)
+```
 
-- **One-way deps.** `state_machine`/`render_contract` import nothing; `video` imports no
-  renderer; `render_web` is lesson-free; `theme.ts` is pure data; `sampleAt` is pure.
-- **No `eval`.** Animations and interactions are declarative data (Storyboards, control
-  specs, registered figures) — validatable, replayable, agent-authorable.
-- **Determinism boundary.** Generation (user input, policy, LLM) is non-deterministic;
-  the frozen artifact replays deterministically. Policies read only the settled step.
-- **Agent authors voice, not structure.** A `LessonAuthor` returns prose; the engine
-  computes the beat's facts, structure, ids, and viz props. Generated beats are recorded
-  as `beat.generated` and replayed from that data — the author is never re-invoked on
-  replay, and the default author is offline/deterministic.
-- **Preview == export.** The browser and the mp4 exporter share `sampleAt` + `scene-svg`.
-- **Teacher owns flow.** Policies/signals *select* pre-authored edges; they never invent
-  destinations.
-
-Per-layer normative contracts: [`docs/specs/01`–`08`](docs/specs/).
+Everything is a strict one-directional dependency DAG (the invariant carried over from lessonkit,
+verified). One authoring surface: `defineLesson({ flow: [...] })` — the same JSON IR an LLM emits.

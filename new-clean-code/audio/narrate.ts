@@ -5,7 +5,7 @@
 // orchestration around one async adapter call; no clock, no DOM. Depends on
 // timeline (Storyboard/Cue) only.
 
-import type { Storyboard } from "@lessonkit/timeline";
+import type { Storyboard } from "@lessonstudio/timeline";
 import { memoryCache, narrationKey, type AudioCache } from "./cache.js";
 import { captionCues, toCaptions, type CaptionSegment } from "./subtitles.js";
 import type { NarrationAudio, TtsAdapter } from "./tts.js";

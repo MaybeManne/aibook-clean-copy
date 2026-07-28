@@ -10,9 +10,9 @@
 // and adapts. `send` is proxied through a ref so a viz mounted once keeps calling
 // the latest program.send without remounting.
 import React from "react";
-import type { RenderIntent } from "@lessonkit/render-contract";
-import { asVizIntent } from "@lessonkit/timeline";
-import { getFigure } from "@lessonkit/scene-svg";
+import type { RenderIntent } from "@lessonstudio/render-contract";
+import { asVizIntent } from "@lessonstudio/timeline";
+import { getFigure } from "@lessonstudio/scene-svg";
 import type { ComponentFor } from "./index.js";
 import { getViz, type VizHandle } from "../viz.js";
 

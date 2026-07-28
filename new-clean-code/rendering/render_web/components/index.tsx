@@ -3,9 +3,9 @@
 // never sees any of it. `MachineEvent` is a TYPE-ONLY import: no runtime
 // dependency on the engine.
 import React from "react";
-import type { MachineEvent } from "@lessonkit/state-machine";
-import type { Choice, RenderIntent, RichText } from "@lessonkit/render-contract";
-import type { Theme } from "@lessonkit/template";
+import type { MachineEvent } from "@lessonstudio/state-machine";
+import type { Choice, RenderIntent, RichText } from "@lessonstudio/render-contract";
+import type { Theme } from "@lessonstudio/template";
 import { RichTextView } from "../richtext.js";
 
 export interface ComponentProps<I extends RenderIntent = RenderIntent> {
@@ -236,6 +236,128 @@ const ControlsComp: ComponentFor = ({ intent, theme, send }) => {
               <input type="checkbox" checked={on} onChange={(e) => send({ type: "demo.set", payload: { key: c.key, value: e.target.checked } })} style={{ accentColor: theme.color.accent, width: 16, height: 16 }} />
               {c.label}
             </label>
+          );
+        }
+        if (c.kind === "choice") {
+          // A labelled row of buttons — the selected value highlighted. Emits the same
+          // `demo.set {key, value}` a slider/toggle does, so the explorable value channel
+          // (setValue → readMerged → viz props) is unchanged.
+          const selected = Number(it.values[c.key]);
+          return (
+            <div key={c.key} style={{ display: "grid", gap: theme.space(1) }}>
+              <span style={label}>{c.label}</span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: theme.space(2) }}>
+                {(c.options ?? []).map((opt) => {
+                  const on = opt.value === selected;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => send({ type: "demo.set", payload: { key: c.key, value: opt.value } })}
+                      aria-pressed={on}
+                      style={{
+                        padding: `${theme.space(2)} ${theme.space(3)}`,
+                        background: on ? theme.color.accent : theme.color.choiceBg,
+                        color: on ? theme.color.bg : theme.color.fg,
+                        border: `1px solid ${on ? theme.color.accent : theme.color.choiceBorder}`,
+                        borderRadius: theme.radius,
+                        cursor: "pointer",
+                        fontWeight: on ? theme.font.weight.semibold : theme.font.weight.normal,
+                        fontFamily: theme.font.body,
+                        fontSize: theme.font.size.label,
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        }
+        if (c.kind === "matrix") {
+          // An editable grid of number inputs + a divisor — a convolution kernel the learner can
+          // read, tweak cell by cell, or load from a preset. Each cell and the divisor is its own
+          // value key, so a single-cell edit is the same `demo.set {key,value}` a slider emits; a
+          // preset loads all of them atomically via one `demo.setMany`. The displayed name is DERIVED
+          // (a pure fn of the current values) — it reads a preset's label when the cells match it
+          // exactly, else "Custom" — so it stays correct under replay with no extra state key.
+          const rows = c.rows ?? 3;
+          const cols = c.cols ?? 3;
+          const cellKeys = c.cellKeys ?? [];
+          const cells = cellKeys.map((k) => Number(it.values[k] ?? 0));
+          const div = c.divisorKey ? Number(it.values[c.divisorKey] ?? 1) : 1;
+          const presets = c.presets ?? [];
+          const matches = (p: { values: number[]; div: number }): boolean =>
+            p.div === div && p.values.length === cells.length && p.values.every((v, i) => v === cells[i]);
+          const active = presets.find(matches);
+          const cellStyle: React.CSSProperties = {
+            width: "100%", textAlign: "center", padding: theme.space(2),
+            background: theme.color.choiceBg, color: theme.color.fg,
+            border: `1px solid ${theme.color.choiceBorder}`, borderRadius: theme.radius,
+            fontFamily: theme.font.mono, fontVariantNumeric: "tabular-nums",
+            fontSize: theme.font.size.label,
+          };
+          return (
+            <div key={c.key} style={{ display: "grid", gap: theme.space(2) }}>
+              <div style={{ display: "flex", justifyContent: "space-between", ...label }}>
+                <span>{c.label} · {rows}×{cols}</span>
+                <span style={{ color: theme.color.accent, fontFamily: theme.font.mono }}>{active?.label ?? "Custom"}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: theme.space(3) }}>
+                <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: theme.space(1), flex: "0 0 auto", width: `${cols * 3.4}rem` }}>
+                  {cellKeys.map((k, i) => (
+                    <input
+                      key={k}
+                      type="number"
+                      value={Number.isFinite(cells[i]) ? cells[i] : 0}
+                      onChange={(e) => send({ type: "demo.set", payload: { key: k, value: Number(e.target.value) } })}
+                      style={cellStyle}
+                    />
+                  ))}
+                </div>
+                {c.divisorKey ? (
+                  <label style={{ display: "flex", alignItems: "center", gap: theme.space(1), ...label }}>
+                    <span style={{ fontFamily: theme.font.mono }}>÷</span>
+                    <input
+                      type="number"
+                      value={Number.isFinite(div) ? div : 1}
+                      onChange={(e) => send({ type: "demo.set", payload: { key: c.divisorKey!, value: Number(e.target.value) } })}
+                      style={{ ...cellStyle, width: "3.4rem" }}
+                    />
+                  </label>
+                ) : null}
+              </div>
+              {presets.length ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: theme.space(2) }}>
+                  {presets.map((p) => {
+                    const on = p === active;
+                    return (
+                      <button
+                        key={p.label}
+                        onClick={() => {
+                          const values: Record<string, number> = {};
+                          cellKeys.forEach((k, i) => { values[k] = p.values[i] ?? 0; });
+                          if (c.divisorKey) values[c.divisorKey] = p.div;
+                          send({ type: "demo.setMany", payload: { values } });
+                        }}
+                        aria-pressed={on}
+                        style={{
+                          padding: `${theme.space(1)} ${theme.space(3)}`,
+                          background: on ? theme.color.accent : theme.color.choiceBg,
+                          color: on ? theme.color.bg : theme.color.fg,
+                          border: `1px solid ${on ? theme.color.accent : theme.color.choiceBorder}`,
+                          borderRadius: theme.radius, cursor: "pointer",
+                          fontWeight: on ? theme.font.weight.semibold : theme.font.weight.normal,
+                          fontFamily: theme.font.body, fontSize: theme.font.size.label,
+                        }}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
           );
         }
         // slider

@@ -2,8 +2,8 @@
 // agent could skip these and emit the same IR directly. defineLesson compiles
 // the spec to a runnable CompiledLesson against the built-in beats.
 
-import type { Guard, Json } from "@lessonkit/state-machine";
-import type { Storyboard } from "@lessonkit/timeline";
+import type { Guard, Json } from "@lessonstudio/state-machine";
+import type { Storyboard } from "@lessonstudio/timeline";
 import { compileLesson, type BeatSpec, type CompiledLesson, type LessonSpec } from "../lesson_sm/compile.js";
 import type { LessonContext } from "../lesson_sm/context.js";
 import { defaultBeatRegistry, type ExplainParams, type ExplorableParams, type FreeResponseParams, type McqParams } from "../beats/index.js";

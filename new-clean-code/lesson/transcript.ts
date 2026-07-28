@@ -13,8 +13,8 @@
 // event names). Above render_contract. Shared by BOTH the video/ and live/ hosts — that
 // shared use is why it belongs here rather than inside video/.
 
-import type { RichText } from "@lessonkit/render-contract";
-import { text } from "@lessonkit/render-contract";
+import type { RichText } from "@lessonstudio/render-contract";
+import { article, md, text } from "@lessonstudio/render-contract";
 import type { CompiledLesson, EventRecord } from "./lesson_sm/index.js";
 import { WORKSPACE_SET_EVENT } from "./beats/index.js";
 import { AUTHORING_COMMAND_EVENT, GENERATED_BEAT_EVENT, MESSAGE_SUBMIT_EVENT, normalizeCommands } from "./authoring/index.js";
@@ -71,7 +71,13 @@ function beatProse(beat: BeatMeta | null): RichText | undefined {
         : beat.type === "mcq" || beat.type === "freeResponse"
           ? beat.params.prompt
           : undefined;
-  if (typeof src === "string") return text(src);
+  // AUTHORED strings are markup, so parse them with the same parser the beat's own
+  // renderer uses — block-level for prose, single-paragraph for a gate's question.
+  // `text()` here would make the log the one place a lesson's `$h' = h\,v/u$` shows up
+  // as literal dollar signs, silently disagreeing with the live block above it.
+  // (Learner-typed and engine-derived strings below stay `text()`: they are content,
+  // not markup, and must never be reinterpreted.)
+  if (typeof src === "string") return beat.type === "mcq" || beat.type === "freeResponse" ? md(src) : article(src);
   if (Array.isArray(src)) return src as RichText;
   return undefined;
 }

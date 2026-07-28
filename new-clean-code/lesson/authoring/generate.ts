@@ -5,7 +5,7 @@
 // replay reconstructs the beat from data, never re-invoking the generator.
 // See docs/VISION.md ("generate → freeze → replay").
 
-import type { Effect, Json } from "@lessonkit/state-machine";
+import type { Effect, Json } from "@lessonstudio/state-machine";
 import type { BeatSpec } from "../lesson_sm/compile.js";
 import type { LessonContext } from "../lesson_sm/context.js";
 import { authoringCommand, type AuthoringCommand } from "./commands.js";

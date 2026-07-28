@@ -3,9 +3,9 @@
 // `t`), the active word is highlighted — the SocraticAI word-karaoke effect, but
 // driven by the single beat clock instead of an independent audio clock.
 import React from "react";
-import type { RenderIntent } from "@lessonkit/render-contract";
-import { asCaptionIntent } from "@lessonkit/timeline";
-import type { Theme } from "@lessonkit/template";
+import type { RenderIntent } from "@lessonstudio/render-contract";
+import { asCaptionIntent } from "@lessonstudio/timeline";
+import type { Theme } from "@lessonstudio/template";
 import { RichTextView } from "../richtext.js";
 import type { ComponentFor } from "./index.js";
 
