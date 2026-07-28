@@ -1,0 +1,18 @@
+Edge validation report
+concepts: 1086
+
+Prereq:
+  in:              1356
+  id resolution:   1355 ok, 1 dropped
+  dedup:           1355 ok, 0 duplicates collapsed
+  DAG:             1355 ok, 0 cycle-breakers dropped
+
+Overlay:
+  in:              851
+  id resolution:   851 ok, 0 dropped
+  dedup:           851 ok, 0 duplicates collapsed
+
+review queue: 1
+
+Cycles broken:
+  - WARNING: prereq graph has at least one cycle: rnn_timestep -> recurrent_neural_nets -> rnn_timestep

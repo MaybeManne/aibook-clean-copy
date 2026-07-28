@@ -5,19 +5,7 @@
     "number",
     "chunk",
     "download_images",
-    "alt_text",
-    "image_reproduce",
-    "pass_a",
-    "verify_pass_a",
-    "salvage",
-    "splice",
-    "dedup",
-    "format_concepts",
-    "format_items",
-    "link_items",
-    "extract_edges",
-    "validate_edges",
-    "split_raw"
+    "alt_text"
   ],
   "timings": {
     "parse_structure": 1778118731,

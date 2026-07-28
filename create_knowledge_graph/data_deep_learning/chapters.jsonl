@@ -1,0 +1,21 @@
+{"chapter": 1, "chapter_title": "Introduction", "start_line": 620, "order": 1, "end_line": 1232}
+{"chapter": 2, "chapter_title": "Supervised learning", "start_line": 1233, "order": 2, "end_line": 1551}
+{"chapter": 3, "chapter_title": "Shallow neural networks", "start_line": 1552, "order": 3, "end_line": 2229}
+{"chapter": 4, "chapter_title": "Deep neural networks", "start_line": 2230, "order": 4, "end_line": 3027}
+{"chapter": 5, "chapter_title": "Loss functions", "start_line": 3028, "order": 5, "end_line": 4366}
+{"chapter": 6, "chapter_title": "Fitting models", "start_line": 4367, "order": 6, "end_line": 5252}
+{"chapter": 7, "chapter_title": "Gradients and initialization", "start_line": 5253, "order": 7, "end_line": 6735}
+{"chapter": 8, "chapter_title": "Measuring performance", "start_line": 6736, "order": 8, "end_line": 7621}
+{"chapter": 9, "chapter_title": "Regularization", "start_line": 7622, "order": 9, "end_line": 8730}
+{"chapter": 10, "chapter_title": "Convolutional networks", "start_line": 8731, "order": 10, "end_line": 9740}
+{"chapter": 11, "chapter_title": "Residual networks", "start_line": 9741, "order": 11, "end_line": 10737}
+{"chapter": 12, "chapter_title": "Transformers", "start_line": 10738, "order": 12, "end_line": 12219}
+{"chapter": 13, "chapter_title": "Graph neural networks", "start_line": 12220, "order": 13, "end_line": 13635}
+{"chapter": 14, "chapter_title": "Unsupervised learning", "start_line": 13636, "order": 14, "end_line": 13975}
+{"chapter": 15, "chapter_title": "Generative adversarial networks", "start_line": 13976, "order": 15, "end_line": 15385}
+{"chapter": 16, "chapter_title": "Normalizing flows", "start_line": 15386, "order": 16, "end_line": 16832}
+{"chapter": 17, "chapter_title": "Variational autoencoders", "start_line": 16833, "order": 17, "end_line": 18107}
+{"chapter": 18, "chapter_title": "Diffusion models", "start_line": 18108, "order": 18, "end_line": 19828}
+{"chapter": 19, "chapter_title": "Reinforcement learning", "start_line": 19829, "order": 19, "end_line": 21548}
+{"chapter": 20, "chapter_title": "Why does deep learning work?", "start_line": 21549, "order": 20, "end_line": 22409}
+{"chapter": 21, "chapter_title": "Deep learning and ethics", "start_line": 22410, "order": 21, "end_line": 33402}

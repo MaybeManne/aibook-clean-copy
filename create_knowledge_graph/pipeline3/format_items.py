@@ -35,9 +35,10 @@ except ImportError:
     fuzz = None
 
 
-# A valid figure token has a 16-hex asset_id (sha256(url)[:16]).
+# Valid IDs are either hashed remote assets or normalized QMD figure/table IDs.
 # Mirrors format_concepts.py so both stages enforce the same shape.
-VALID_TOKEN_RE = re.compile(r"\[FIGURE:([0-9a-f]{16})(?:\s*\|[^\]]*)?\]")
+FIGURE_ID_PATTERN = r"(?:[0-9a-f]{16}|(?:fig|tbl)[-_:][A-Za-z0-9][A-Za-z0-9_.:-]*)"
+VALID_TOKEN_RE = re.compile(rf"\[FIGURE:({FIGURE_ID_PATTERN})(?:\s*\|[^\]]*)?\]")
 # Anything matching `[FIGURE:...]` — catches invalid/invented tokens too.
 ANY_TOKEN_RE   = re.compile(r"\[FIGURE:[^\]]*\]")
 
@@ -115,7 +116,8 @@ Rules:
      rewrite the alt text, do NOT invent new [FIGURE:...] tokens, and do NOT
      materialize prose references like "Figure 1.1.6" into a [FIGURE:...]
      token — those are separate records. A valid token's asset_id is a
-     16-character lowercase hex string; if raw_body has none, your output has
+     16-character lowercase hex string or normalized QMD `fig-*`/`tbl-*` ID;
+     if raw_body has none, your output has
      none either. Every token in raw_body must appear somewhere in the split
      output.
   4. split_succeeded=false only if raw_body is so degraded that no meaningful
@@ -192,7 +194,7 @@ def _sanitize_figure_tokens(text: str, raw_body: str) -> tuple[str, int]:
 
     Mirrors format_concepts.py::_sanitize_figure_tokens. Returns
     (cleaned_text, n_removed). An invalid token is one whose form doesn't
-    match [FIGURE:<16-hex>[ | alt]], or whose asset_id isn't among raw_body's
+    match the valid hashed/QMD ID forms, or whose asset_id isn't among raw_body's
     valid tokens. The replacement is the `| alt` fragment if present, so the
     surrounding prose still reads naturally.
     """

@@ -1,0 +1,42 @@
+{
+  "completed": [
+    "parse_structure",
+    "download_images",
+    "enrich",
+    "number",
+    "chunk",
+    "alt_text",
+    "pass_a",
+    "verify_pass_a",
+    "salvage",
+    "splice",
+    "dedup",
+    "format_concepts",
+    "format_items",
+    "link_items",
+    "extract_edges",
+    "validate_edges",
+    "split_raw",
+    "fill_slots"
+  ],
+  "timings": {
+    "parse_structure": 1780521120,
+    "download_images": 1780521065,
+    "enrich": 1780521066,
+    "number": 1780521066,
+    "chunk": 1780521120,
+    "alt_text": 1780521135,
+    "pass_a": 1780521215,
+    "verify_pass_a": 1780521215,
+    "salvage": 1780521215,
+    "splice": 1780521215,
+    "dedup": 1780521240,
+    "format_concepts": 1780521811,
+    "format_items": 1780521845,
+    "link_items": 1780521862,
+    "extract_edges": 1780522057,
+    "validate_edges": 1780522057,
+    "split_raw": 1780522057,
+    "fill_slots": 1780522341
+  }
+}

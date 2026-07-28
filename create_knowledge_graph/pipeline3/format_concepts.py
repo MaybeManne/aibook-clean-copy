@@ -19,7 +19,7 @@ Each record gets `_provenance` with one entry per semantic field:
   - "llm_inferred": LLM-generated content beyond raw_body.
 
 A post-processor strips any `[FIGURE:...]` tokens the LLM invented (not
-present in raw_body with a valid 16-hex asset_id); check_formatted flags
+present in raw_body with a valid hashed or QMD asset ID); check_formatted flags
 remaining anomalies as non-blocking quality_flags.
 
 Usage:
@@ -40,8 +40,9 @@ from pathlib import Path
 
 from llm import call_llm_json, GEMINI_DEFAULT
 
-# A valid figure token has a 16-hex asset_id (sha256(url)[:16]).
-VALID_TOKEN_RE = re.compile(r"\[FIGURE:([0-9a-f]{16})(?:\s*\|[^\]]*)?\]")
+# Valid IDs are either hashed remote assets or normalized QMD figure/table IDs.
+FIGURE_ID_PATTERN = r"(?:[0-9a-f]{16}|(?:fig|tbl)[-_:][A-Za-z0-9][A-Za-z0-9_.:-]*)"
+VALID_TOKEN_RE = re.compile(rf"\[FIGURE:({FIGURE_ID_PATTERN})(?:\s*\|[^\]]*)?\]")
 # Anything matching `[FIGURE:...]` — catches invalid/invented tokens too.
 ANY_TOKEN_RE   = re.compile(r"\[FIGURE:[^\]]*\]")
 
@@ -110,14 +111,15 @@ Produce each field strictly from what's in raw_body, except where a field is exp
 ## Rules
 
   1. NEVER put LaTeX that isn't in raw_body into one_liner or content.
-  2. `content` preserves the `[FIGURE:<16-hex-asset-id> | ...]` tokens that
+  2. `content` preserves the `[FIGURE:<asset-id> | ...]` tokens that
      appear in raw_body, at their original relative positions.
      - DO NOT invent new [FIGURE:...] tokens.
      - DO NOT materialize prose references like "(Figure 1.1.6)" into
        [FIGURE:...] tokens. If the book's prose says "(Figure 1.1.6)",
        your `content` keeps the text "(Figure 1.1.6)" verbatim — those
        figures are separate records elsewhere in the graph.
-     - A valid token's asset_id is a 16-character lowercase hex string.
+     - A valid token ID is a 16-character lowercase hex asset ID or a
+       normalized QMD `fig-*` / `tbl-*` identifier.
        If raw_body has no such token, your `content` has none either.
   3. `one_liner`, `motivation_md`, `recap_md` may drop figure tokens.
   4. If raw_body is very short (<30 words), `content` can be a lightly
@@ -225,7 +227,7 @@ def _sanitize_figure_tokens(content: str, raw_body: str) -> tuple[str, int]:
     """Remove invented/invalid [FIGURE:...] tokens from content.
 
     Returns (cleaned_content, n_removed). An invalid token is one whose form
-    doesn't match [FIGURE:<16-hex>[ | alt]], or whose asset_id isn't among
+    doesn't match the valid hashed/QMD ID forms, or whose asset_id isn't among
     raw_body's valid tokens. The replacement is a fragment of the original
     `| alt` text if present, otherwise empty — we try to keep the reader's
     context intact rather than leaving a jagged edit.

@@ -1,0 +1,17 @@
+Link report
+items queried (LLM): 843
+items inherited:     128
+changed assignments: 970
+warnings:            5
+
+=== top-10 most-linked concepts (exercises+examples only) ===
+    10  def_algorithmic_fairness
+     8  idea_dataset_bias
+     6  idea_interdisciplinary_vision
+     4  idea_facial_analysis_bias
+     4  full_camera_model
+     3  def_multilayer_perceptron
+     3  def_image_inpainting
+     3  belief_propagation
+     3  extrinsic_camera_parameters
+     2  learning_ingredients

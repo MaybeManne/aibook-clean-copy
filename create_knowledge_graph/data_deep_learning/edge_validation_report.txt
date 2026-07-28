@@ -1,0 +1,15 @@
+Edge validation report
+concepts: 681
+
+Prereq:
+  in:              425
+  id resolution:   425 ok, 0 dropped
+  dedup:           425 ok, 0 duplicates collapsed
+  DAG:             425 ok, 0 cycle-breakers dropped
+
+Overlay:
+  in:              469
+  id resolution:   469 ok, 0 dropped
+  dedup:           469 ok, 0 duplicates collapsed
+
+review queue: 0

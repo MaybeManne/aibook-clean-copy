@@ -27,27 +27,36 @@ from pathlib import Path
 from llm import call_llm_json, GEMINI_DEFAULT
 
 
-SYSTEM_PROMPT = """You deduplicate concept nodes in a calculus knowledge graph.
+SYSTEM_PROMPT = """You deduplicate concept nodes in a textbook knowledge graph.
 
 You receive a list of concepts, each with:
   id, kind, title, section, one_line_snippet (first meaningful sentence of the concept's raw text).
 
-Find near-duplicates: concepts that refer to the SAME mathematical idea even though their ids / titles differ. Common cases:
-
-  - "two_sided_limit_informal_introduction" and "two_sided_limit_informal_view" — both are the same informal limit concept.
-  - "tangent_line_as_limit_of_secant_lines" and "tangent_line_as_limit_of_secant_lines__calc101_c010" — same idea, latter is a chunk-renamed duplicate.
-  - A technique introduced in §1.2 and re-stated in §1.3.
+Find near-duplicates: concepts that refer to the EXACT SAME idea even though their ids / titles differ. Common cases:
+  - Same concept extracted twice from adjacent chunks with slightly different ids.
+  - A concept re-stated in a later section with a nearly identical description.
+  - An id collision from the chunk-suffix rename (e.g., "foo" and "foo__chunkid").
 
 Rules:
-  1. Only merge true duplicates — same ideas, not merely related. "One-sided limit" and "two-sided limit" are distinct.
-  2. Prefer canonical id: the one whose title is most descriptive and whose section is earliest. Other ids become aliases.
-  3. Do NOT merge an informal and a rigorous formulation. Those are distinct concepts connected by a `formalizes` edge later.
-  4. Do NOT merge across different `kind` values unless clearly the same (e.g., both are definitions of the same term).
+  1. Only merge EXACT duplicates — identical or near-identical textual descriptions of the same idea.
+     "Related" or "connected" is NOT enough. When in doubt, do NOT merge.
+  2. Prefer canonical id: the one whose title is most descriptive and whose section is earliest.
+  3. Do NOT merge an informal and a rigorous formulation of the same concept — those are distinct
+     and will be linked by a `formalizes` edge.
+  4. Do NOT merge across different `kind` values unless both clearly describe the identical thing.
+  5. Do NOT merge VARIANTS or SPECIAL CASES of a concept family:
+     - Different projection types (perspective, orthographic, telephoto) → keep separate.
+     - Different reflection models (Lambertian, Phong, ambient) → keep separate.
+     - A model and its named property or consequence → keep separate.
+     - Different coordinate systems (world, camera, image) → keep separate.
+     - Different steps in a derivation that have distinct names → keep separate.
+  6. Do NOT merge concepts just because they appear in the same section or share a keyword.
+     Require that the one_line_snippets describe the same core idea.
 
 Return JSON: one top-level array `merges`. Each entry:
   { canonical_id: "...", merged_ids: ["...", "..."], rationale: "short why" }
 
-Only include groups with >=2 ids to merge. Concepts with no near-duplicates don't need to appear in the output.
+Only include groups with >=2 ids to merge. Err heavily on the side of keeping concepts separate.
 """
 
 

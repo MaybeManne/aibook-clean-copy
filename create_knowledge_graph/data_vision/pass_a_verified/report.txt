@@ -1,0 +1,243 @@
+Pass A verification report v2
+numbered: /Users/su/Documents/su/alex/create_knowledge_graph/data_vision/book.numbered.md
+manifest: /Users/su/Documents/su/alex/create_knowledge_graph/data_vision/chunks/book.manifest.jsonl
+
+concepts: 1491 in -> 1423 verified (455 w/ flags), 68 hard-failed
+items:    972 in -> 829 verified (623 w/ flags), 143 hard-failed
+
+soft flag breakdown:
+   641  single_line_span
+   297  multi_range_2
+    80  multi_range_3
+    29  multi_range_4
+    26  duplicate_id
+     2  shares_spans_kind_with_def_direct_perception
+     1  shares_spans_kind_with_overfitting
+     1  shares_spans_kind_with_vanished_gradient
+     1  shares_spans_kind_with_technique_dimensionality_reduction
+     1  shares_spans_kind_with_law_of_parallelism
+     1  shares_spans_kind_with_nearest_neighbor_interpolation
+     1  spans_in_overlap_region
+     1  shares_spans_kind_with_amplitude_gain
+     1  shares_spans_kind_with_paraxial_approximation
+     1  shares_spans_kind_with_f_number
+     1  shares_spans_kind_with_information_bottleneck
+     1  shares_spans_kind_with_bicubic_interpolation
+     1  shares_spans_kind_with_camera_coordinate_system
+     1  shares_spans_kind_with_hexagonal_sampling
+     1  shares_spans_kind_with_few_shot_learning
+     1  shares_spans_kind_with_heterogeneous_coordinates
+     1  shares_spans_kind_with_elations
+     1  shares_spans_kind_with_def_2_5d_sketch
+     1  shares_spans_kind_with_vision_language_models
+     1  long_spans_total_301
+     1  shares_spans_kind_with_fig_cockroach
+
+hard failure breakdown:
+     5  one or more spans outside chunk primary
+     2  spans overlap at L00652
+     2  invalid spans[0].end 'L2903'
+     2  invalid spans[0].end 'L2908'
+     1  spans overlap at L05667
+     1  spans overlap at L05780
+     1  spans overlap at L06102
+     1  spans overlap at L03890
+     1  spans overlap at L03926
+     1  spans overlap at L04015
+     1  spans overlap at L04205
+     1  spans overlap at L03619
+     1  spans overlap at L03676
+     1  spans overlap at L03737
+     1  spans overlap at L00617
+     1  spans overlap at L10859
+     1  spans overlap at L10946
+     1  spans overlap at L11005
+     1  spans overlap at L11027
+     1  spans overlap at L11055
+     1  spans overlap at L10348
+     1  spans overlap at L09586
+     1  spans overlap at L13699
+     1  spans overlap at L13731
+     1  spans overlap at L13740
+     1  spans overlap at L13806
+     1  spans overlap at L13863
+     1  spans overlap at L03532
+     1  spans overlap at L03090
+     1  spans overlap at L03125
+     1  invalid id '2d_sampling_model'
+     1  spans overlap at L14004
+     1  spans overlap at L14097
+     1  spans overlap at L14133
+     1  spans overlap at L14249
+     1  cited spans are entirely whitespace
+     1  spans overlap at L20838
+     1  spans overlap at L19077
+     1  spans overlap at L19101
+     1  spans overlap at L19190
+     1  invalid id '2d_geometric_transformations_homogeneous'
+     1  invalid id '2d_translation_homogeneous'
+     1  spans overlap at L22314
+     1  invalid id '2d_scaling_homogeneous'
+     1  invalid id '2d_rotation_homogeneous'
+     1  spans overlap at L15832
+     1  spans overlap at L15855
+     1  spans overlap at L15980
+     1  spans overlap at L24425
+     1  spans overlap at L22984
+     1  spans overlap at L23071
+     1  spans overlap at L23107
+     1  spans overlap at L23198
+     1  spans overlap at L23390
+     1  spans overlap at L22438
+     1  spans overlap at L22480
+     1  spans overlap at L22567
+     1  spans overlap at L22765
+     1  spans overlap at L22872
+     1  invalid id '3d_representations'
+     1  invalid id '3d_motion_2d_projection'
+     1  invalid spans[0].start 'L2906'
+     1  invalid spans[0].end 'L2928'
+     1  spans overlap at L31310
+     1  spans overlap at L31873
+     1  invalid id 'fig_under_and_overfitting_vs_polyK'
+     1  invalid id 'fig-intro_to_learning-image_classification'
+     1  invalid id 'fig-one_hot_encoding'
+     1  invalid id 'fig-softmax_regression_diagram'
+     1  invalid id 'fig-softmax_regression_learning_problem'
+     1  invalid id 'fig-intro_to_learning-meta_learning_diagram'
+     1  invalid id 'fig-gradient_descent-optimization_schematic'
+     1  invalid id 'alg-gradient_descent_basic_gradient_descent'
+     1  invalid id 'alg-gradient_descent_gradient_descent_with_lr_decay'
+     1  invalid id 'alg-gradient_descent_gradient_descent_with_momentum'
+     1  invalid id 'fig-gradient_descent-momentum_out1'
+     1  invalid id 'fig-gradient_descent-grad_descent_simple_examples'
+     1  invalid id 'alg-gradient_descent_ES'
+     1  invalid id 'fig-gradient_descent-sampling_out1'
+     1  invalid id 'alg-gradient_descent_grad_clipping'
+     1  invalid id 'fig-gradient_descent-clipped_out1'
+     1  invalid id 'alg-gradient_descent_SGD'
+     1  invalid id 'fig-neural_nets-vit_mapping_plot'
+     1  invalid id 'fig-backpropagation-simple_MLP'
+     1  invalid id 'fig-backpropagation-mod_block_forward'
+     1  invalid id 'fig-backpropagation-composed_modules'
+     1  invalid id 'fig-backpropagation-cgraph_tree'
+     1  invalid id 'fig-backpropagation-generic_layer_g_L'
+     1  invalid id 'fig-backpropagation-mod_block_backward'
+     1  invalid id 'fig-backpropagation-forward_pass'
+     1  invalid id 'fig-backpropagation-backward_pass'
+     1  invalid id 'fig_exampleColor_a'
+     1  invalid id 'fig_exampleColor_b'
+     1  invalid id 'fig-genericfilterH'
+     1  invalid id 'fig-impulse_response_room_a'
+     1  invalid id 'fig-impulse_response_room_a2'
+     1  invalid id 'fig-impulse_response_room_b'
+     1  invalid id 'fig-FourierSeries6'
+     1  invalid id 'fig-FourierSeries5_representation'
+     1  invalid id 'fig-sine_wave_params'
+     1  invalid id 'fig-contsignal'
+     1  invalid id 'fig-disc2Dsignal'
+     1  invalid id 'fig-complexexponential'
+     1  invalid id 'fig-colorDFT'
+     1  invalid id 'fig-DFT_a'
+     1  invalid id 'fig-band_limited_signal'
+     1  invalid id 'fig-delta_train'
+     1  invalid id 'fig-sampling_signal_using_train'
+     1  invalid id 'fig-delta_train_period'
+     1  invalid id 'fig-ft_delta_train'
+     1  invalid id 'fig-sketch_aliasing'
+     1  invalid id 'fig-sinc_function'
+     1  invalid id 'fig-sampling_reconstruction2'
+     1  invalid id 'fig-alias1d'
+     1  invalid id 'fig-sampling_reconstruction3'
+     1  invalid id 'fig-aliasingFTzebra2'
+     1  invalid id 'fig-simple-network'
+     1  invalid id 'fig-subsampled_textures'
+     1  invalid id 'fig-discrete_delta_train'
+     1  invalid id 'fig-discrete_texture_sampling'
+     1  invalid id 'fig-components_aliasing_FT'
+     1  invalid id 'fig-aliasing_in_matrix_form'
+     1  invalid id 'fig-decimationFT_inmatrixform'
+     1  invalid id 'fig-decimation_finalequations_inmatrixform'
+     1  invalid id 'fig-discretesinc'
+     1  invalid id 'fig-discretesinc_k4'
+     1  invalid id 'fig-kernel_sinc_window'
+     1  invalid id 'fig-hamming_window'
+     1  invalid id 'fig-discretesinc2'
+     1  invalid id 'fig-discretesinc4'
+     1  invalid id 'fig-ringing_artifacts'
+     1  invalid id 'fig-motion'
+     1  invalid id 'fig-mov_pulse_012'
+     1  invalid id 'fig-seq_filtered_kernel'
+     1  invalid id 'fig-sec_filtered_blur'
+     1  invalid id 'fig-gaussian_seq'
+     1  invalid id 'fig-gaussian_xyt_section'
+     1  invalid id 'fig-tunedfilter'
+     1  invalid id 'fig-cosine_wave_before_sampling'
+     1  invalid id 'fig-cosine_wave_after_sampling'
+     1  invalid id 'fig-sampling_reconstruction1'
+     1  invalid id 'fig-aliasing-a'
+     1  invalid id 'fig-aliasing-b'
+     1  invalid id 'fig-gausspyr'
+     1  invalid id 'fig-gauss_block'
+     1  invalid id 'fig-laplacian_block'
+     1  invalid id 'fig-laplacpyr'
+     1  invalid id 'fig-laplacian_pyr_architecture'
+     1  invalid id 'fig-orange_apple_mask'
+     1  invalid id 'fig-orange_apple_mask_bad_result'
+     1  invalid id 'fig-blending_pyrs'
+     1  invalid id 'fig-blending_pyrs_mask'
+     1  invalid id 'fig-appleorange'
+     1  invalid id 'fig-steerable_pyr_sp3Filters'
+     1  invalid id 'fig-steerable_block'
+     1  invalid id 'fig-steerable_pyr_architecture'
+     1  invalid id 'fig-steerable_pyr_clock'
+     1  invalid id 'fig_convExamps'
+     1  invalid id 'fig_filteringFT'
+     1  invalid id 'fig_convExamps2'
+     1  invalid id 'fig_gauss_derivatives_triangle_FT'
+     1  invalid id 'fig-cnn_video'
+     1  invalid id 'fig-rnn'
+     1  invalid id 'fig-rnn_unrolled'
+     1  invalid id 'fig-recurrent_neural_nets-bptt1'
+     1  invalid id 'fig-recurrent_neural_networks-bptt_J'
+     1  invalid id 'fig-deep_rnn'
+     1  invalid id 'fig_sphereLens'
+     1  invalid id 'fig_rotatedLens'
+     1  invalid id 'fig_greenLaser'
+     1  invalid id 'fig_thinLens_a'
+     1  invalid id 'fig_thinLens_b'
+     1  invalid id 'fig_thinLens_c'
+     1  invalid id 'fig_circleOfConfusion'
+     1  invalid id 'fig_DOFformula'
+     1  invalid id 'fig_ConcaveLenses_a'
+     1  invalid id 'fig_ConcaveLenses_b'
+     1  invalid id 'fig_ConcaveLenses_c'
+     1  invalid id 'fig_lightSpray'
+     1  invalid id 'fig_pinholeGeometry'
+     1  invalid id 'fig_pinholeGeometry2'
+     1  invalid id 'fig_pinholeSize'
+     1  invalid id 'fig-sampling_grids'
+     1  invalid id 'fig-sampling_grids_FT'
+     1  invalid id 'fig-samplingfovea'
+     1  invalid id 'fig-aliasingFTzebra'
+     1  invalid id 'fig-bias_and_shift-regression_example'
+     1  invalid id 'fig-bias_and_shift-colorization_domain_gap'
+     1  spans overlap at L20908
+     1  invalid id 'fig-bias_and_shift-training_test_sets'
+     1  invalid id 'tbl-bias_and_shift-training_test_sets'
+     1  invalid id 'fig-bias_and_shift-test_as_function_of_data'
+     1  invalid id 'fig-bias_and_shift-datasetsJeopardy'
+     1  invalid id 'tbl-market_bias'
+     1  invalid id 'fig-bias_and_shift-palmer_1981enhanced'
+     1  invalid id 'fig-bias_and_shift-mugs'
+     1  invalid id 'fig-bias_and_shift-horses'
+     1  invalid id 'fig-reprojection_error'
+     1  invalid id 'fig-office_measurements'
+     1  invalid id 'fig-office_correspondences_img'
+     1  invalid id 'fig_050822_172806__MG_5366'
+     1  invalid id 'fig_DFTderivativeoperators'
+     1  invalid id 'fig_DFTlaplacians'
+     1  invalid id 'fig_EVS_sigma5_lambda2'
+     1  invalid id 'fig_convExamps3'
+     1  invalid spans[0].start 'L2903'
+     1  invalid spans[0].start 'L2908'

@@ -176,6 +176,11 @@ def main() -> None:
     ap.add_argument("--prereq",   type=Path, required=True)
     ap.add_argument("--overlay",  type=Path, required=True)
     ap.add_argument("--out-dir",  type=Path, required=True)
+    ap.add_argument(
+        "--output-tag",
+        default="validated",
+        help="Filename tag for outputs (default: validated; e.g. final).",
+    )
     args = ap.parse_args()
 
     concepts = load_jsonl(args.concepts)
@@ -212,9 +217,19 @@ def main() -> None:
 
     # ---- Write ----
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    write_jsonl(args.out_dir / "edges_prereq.validated.jsonl", p_dag)
-    write_jsonl(args.out_dir / "edges_overlay.validated.jsonl", o_dedup)
-    write_jsonl(args.out_dir / "edges_review_queue.jsonl", review)
+    review_name = (
+        "edges_review_queue.jsonl"
+        if args.output_tag == "validated"
+        else f"edges_review_queue.{args.output_tag}.jsonl"
+    )
+    report_name = (
+        "edge_validation_report.txt"
+        if args.output_tag == "validated"
+        else f"edge_validation_report.{args.output_tag}.txt"
+    )
+    write_jsonl(args.out_dir / f"edges_prereq.{args.output_tag}.jsonl", p_dag)
+    write_jsonl(args.out_dir / f"edges_overlay.{args.output_tag}.jsonl", o_dedup)
+    write_jsonl(args.out_dir / review_name, review)
 
     # ---- Report ----
     summary = [
@@ -241,11 +256,14 @@ def main() -> None:
         if len(report) > 20:
             summary.append(f"  ... and {len(report) - 20} more (see review queue)")
 
-    report_path = args.out_dir / "edge_validation_report.txt"
+    report_path = args.out_dir / report_name
     report_path.write_text("\n".join(summary) + "\n")
     print("\n".join(summary))
-    print(f"\nwrote: {args.out_dir}/edges_*.validated.jsonl, edges_review_queue.jsonl, "
-          f"edge_validation_report.txt", file=sys.stderr)
+    print(
+        f"\nwrote: {args.out_dir}/edges_*.{args.output_tag}.jsonl, "
+        f"{review_name}, {report_name}",
+        file=sys.stderr,
+    )
 
 
 if __name__ == "__main__":

@@ -1,0 +1,52 @@
+Pass A verification report v2
+numbered: /Users/su/Documents/su/alex/create_knowledge_graph/data_deep_learning/book.numbered.md
+manifest: /Users/su/Documents/su/alex/create_knowledge_graph/data_deep_learning/chunks/book.manifest.jsonl
+
+concepts: 740 in -> 715 verified (130 w/ flags), 25 hard-failed
+items:    155 in -> 155 verified (26 w/ flags), 0 hard-failed
+
+soft flag breakdown:
+    85  spans_in_overlap_region
+    31  duplicate_id
+    27  single_line_span
+     5  multi_range_2
+     1  shares_spans_kind_with_universal_approximation_theorem
+     1  long_spans_total_282
+     1  shares_spans_kind_with_vanishing_gradient_problem
+     1  shares_spans_kind_with_idea_loss_functions_for_various_data_types
+     1  shares_spans_kind_with_definition_imagegpt
+     1  shares_spans_kind_with_normalizing_flows
+     1  shares_spans_kind_with_concept_permutation_invariance
+     1  shares_spans_kind_with_concept_edge_graphs_notation
+     1  shares_spans_kind_with_concept_graph_classification_network
+     1  shares_spans_kind_with_definition_glow_model
+     1  shares_spans_kind_with_concept_posterior_collapse
+     1  shares_spans_kind_with_concept_information_preference_problem
+     1  shares_spans_kind_with_actor_critic_methods
+     1  shares_spans_kind_with_problem_18_1
+     1  shares_spans_kind_with_problem_18_2
+     1  shares_spans_kind_with_problem_18_3
+     1  shares_spans_kind_with_problem_18_4
+     1  shares_spans_kind_with_problem_18_5
+     1  shares_spans_kind_with_problem_18_6
+     1  shares_spans_kind_with_problem_18_7
+     1  shares_spans_kind_with_problem_18_8
+     1  shares_spans_kind_with_problem_18_9
+     1  shares_spans_kind_with_problem_18_10
+     1  shares_spans_kind_with_problem_18_11
+     1  shares_spans_kind_with_problem_18_12
+     1  shares_spans_kind_with_environmental_impact_of_training_deep_networks
+     1  shares_spans_kind_with_definition_product_of_matrices
+     1  shares_spans_kind_with_definition_inverse
+
+hard failure breakdown:
+    16  one or more spans outside chunk primary
+     1  spans[0].end L02677 < start L02882
+     1  invalid id 'idea_transformers_for_images_outperform_convolutional_netw
+     1  invalid id 'idea_transformers_training_requires_learning_rate_warmup_a
+     1  invalid id 'idea_transformers_combined_with_convolutional_networks_for
+     1  invalid id 'fréchet_inception_distance'
+     1  spans[0].end L12580 < start L12664
+     1  invalid id 'definition_evidence_lower_bound_ELBO'
+     1  spans[0].end L20624 < start L20661
+     1  invalid id 'fréchet_distance'

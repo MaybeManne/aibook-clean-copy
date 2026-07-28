@@ -76,6 +76,15 @@ class Block:
         return bool(HEADING_RE.match(body))
 
     @property
+    def is_chapter_heading(self) -> bool:
+        """True if this block is an H1 heading (chapter boundary)."""
+        if not self.lines:
+            return False
+        m = LINE_RE.match(self.lines[0][1])
+        body = m.group(2) if m else self.lines[0][1]
+        return body.startswith("# ") and not body.startswith("## ")
+
+    @property
     def heading_text(self) -> str | None:
         if not self.is_heading:
             return None
@@ -141,8 +150,15 @@ def chunk_blocks(
             chunks.append([blk])
             continue
 
+        # Chapter boundary (H1): always flush, even if chunk is tiny.
+        # This ensures the previous chapter's tail is in one chunk and the
+        # new chapter starts a fresh chunk with the correct heading context.
+        if blk.is_chapter_heading and cur:
+            chunks.append(cur)
+            cur, cur_chars = [], 0
+
         # Strong split: new section starts here and we have substance.
-        if blk.start in section_starts and cur_chars >= min_flush_chars and cur:
+        elif blk.start in section_starts and cur_chars >= min_flush_chars and cur:
             chunks.append(cur)
             cur, cur_chars = [], 0
 
@@ -234,12 +250,15 @@ def write_chunks(
                 encoding="utf-8",
             )
 
-            # Track headings by walking all_blocks up through the last primary block.
+            # Capture heading context at the START of this chunk (before adding
+            # its blocks), then add the blocks. This ensures chunks that span a
+            # chapter boundary are labelled with the heading at their beginning,
+            # not the heading at their end.
+            headings = current_headings(all_blocks)
             for blk in primary:
                 if blk.start not in seen_starts:
                     all_blocks.append(blk)
                     seen_starts.add(blk.start)
-            headings = current_headings(all_blocks)
 
             record = {
                 "chunk_id": chunk_id,
