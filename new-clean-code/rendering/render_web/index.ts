@@ -8,6 +8,8 @@ export * from "./htmlAudioSink.js";
 export * from "./speechSink.js";
 export * from "./viz.js";
 export * from "./conversation.js";
+// the director's camera + marks over the stage panel (focus / annotate).
+export * from "./attention.js";
 export * from "./StudioView.js";
 export * from "./Composer.js";
 // arbitrary SVG figures (browser + export) — re-exported for author convenience.

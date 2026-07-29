@@ -14,28 +14,7 @@ import { article, md } from "@lessonstudio/render-contract";
 import { vizIntent } from "@lessonstudio/timeline";
 import type { LessonContext } from "../lesson_sm/context.js";
 import { beatMeta, type BeatWireCtx, type BeatWiring, type RenderableBeat } from "./types.js";
-
-/**
- * The agent's viz-manipulation channel. Where `demo.set` is the LEARNER nudging a
- * control, `workspace.set` is the AGENT/tutor acting on the same persistent viz —
- * pointing (highlight), writing on it (annotation), zooming (camera). Its payload is
- * a `{ props }` patch merged under the reserved `__ws` key of the beat's blackboard,
- * so it (a) flows into the viz as props alongside the learner's controls, and (b) is
- * a DISTINCT event in history, so the transcript can attribute it to the agent, not
- * the learner. Self-transition: it re-renders the viz without leaving the beat.
- */
-export const WORKSPACE_SET_EVENT = "workspace.set";
-/** Reserved blackboard key holding the agent's workspace patch (viz-only props). */
-export const WORKSPACE_KEY = "__ws";
-
-/**
- * Build a `workspace.set` event carrying an agent viz patch (highlight/annotation/camera).
- * An optional `label` is the phrase the transcript shows for the gesture ("circled the
- * two coreferent tokens"); without it the document derives one from the patch itself.
- */
-export function workspaceSet(props: Record<string, Json>, label?: string): MachineEvent {
-  return { type: WORKSPACE_SET_EVENT, payload: label ? { props, label } : { props } };
-}
+import { readWorkspace, workspaceWiring } from "./workspace.js";
 
 /**
  * The learner's conversational channel. `ask.submit {text}` is a non-graded free-text
@@ -50,19 +29,6 @@ export const ASK_SUBMIT_EVENT = "ask.submit";
 /** Build an `ask.submit` event carrying the learner's free-text question. */
 export function askSubmit(textValue: string): MachineEvent {
   return { type: ASK_SUBMIT_EVENT, payload: { text: textValue } };
-}
-
-/**
- * The learner setting SEVERAL control values at once — e.g. loading a kernel preset into a
- * `matrix` control's nine cells + divisor. Emitted as ONE event so the transcript and replay
- * see a single atomic gesture ("loaded the Gaussian preset") instead of ten separate `demo.set`s.
- * Per-cell hand-edits stay on the single-key `demo.set` channel.
- */
-export const DEMO_SET_MANY_EVENT = "demo.setMany";
-
-/** Build a `demo.setMany` event carrying a batch of learner control values. */
-export function demoSetMany(values: Record<string, ControlValue>): MachineEvent {
-  return { type: DEMO_SET_MANY_EVENT, payload: { values } };
 }
 
 /** A declarative success condition over a control value — turns a demo into a task. */
@@ -128,20 +94,17 @@ function goalMet(goal: DemoGoal | undefined, values: DemoLocal): boolean {
 }
 
 /**
- * Read the beat's blackboard, splitting the two writers apart: the learner's flat
- * control `values` (seeded from defaults/mins) and the agent's `ws` viz patch (under
- * the reserved `__ws` key). Both are spread into the viz props; only `values` drives
- * the controls UI, so an agent annotation never shows up as a phantom control.
+ * Read the beat's blackboard via the shared workspace channel, then seed any control the
+ * author left unset (a slider's min, a matrix's first preset). `readWorkspace` owns the
+ * two-writer split — learner values flat, the director's patch under `__ws` — so this
+ * function is only the CONTROL-shaped part: what a slider or matrix means by "unset".
  */
 function readMerged(
   ctx: LessonContext,
   id: string,
   params: ExplorableParams,
 ): { values: DemoLocal; ws: Record<string, unknown> } {
-  const stored = (ctx.beats[id] as Record<string, unknown> | undefined) ?? {};
-  const defaults = (params.defaults ?? {}) as Record<string, unknown>;
-  const values: DemoLocal = {};
-  for (const [k, v] of Object.entries(defaults)) if (k !== WORKSPACE_KEY) values[k] = v as ControlValue;
+  const { values, ws } = readWorkspace(ctx, id, (params.defaults ?? {}) as Record<string, unknown>);
   for (const c of params.controls) {
     if (c.kind === "matrix") {
       // Seed each cell + the divisor (from the first preset if any); the control's own
@@ -157,47 +120,7 @@ function readMerged(
       values[c.key] = c.kind === "toggle" ? false : c.kind === "choice" ? c.options?.[0]?.value ?? 0 : c.min ?? 0;
     }
   }
-  for (const [k, v] of Object.entries(stored)) if (k !== WORKSPACE_KEY) values[k] = v as ControlValue;
-  const ws: Record<string, unknown> = {
-    ...((defaults[WORKSPACE_KEY] as Record<string, unknown> | undefined) ?? {}),
-    ...((stored[WORKSPACE_KEY] as Record<string, unknown> | undefined) ?? {}),
-  };
   return { values, ws };
-}
-
-/** Action factory: write one LEARNER control value into beats[id] (shallow-merge safe). */
-function setValue(id: string): Action<LessonContext> {
-  return (ctx, event) => {
-    const { key, value } = (event.payload ?? {}) as { key?: string; value?: ControlValue };
-    if (key === undefined || value === undefined) return {};
-    const prev = (ctx.beats[id] as Record<string, Json> | undefined) ?? {};
-    const nextLocal = { ...prev, [key]: value as Json };
-    return { context: { beats: { ...ctx.beats, [id]: nextLocal } } };
-  };
-}
-
-/** Action factory: write SEVERAL learner control values into beats[id] in one shot (preset load). */
-function setValues(id: string): Action<LessonContext> {
-  return (ctx, event) => {
-    const { values } = (event.payload ?? {}) as { values?: Record<string, ControlValue> };
-    if (!values || typeof values !== "object") return {};
-    const prev = (ctx.beats[id] as Record<string, Json> | undefined) ?? {};
-    const nextLocal: Record<string, Json> = { ...prev };
-    for (const [k, v] of Object.entries(values)) if (v !== undefined) nextLocal[k] = v as Json;
-    return { context: { beats: { ...ctx.beats, [id]: nextLocal } } };
-  };
-}
-
-/** Action factory: merge the AGENT's `{ props }` viz patch under beats[id].__ws. */
-function setWorkspace(id: string): Action<LessonContext> {
-  return (ctx, event) => {
-    const { props } = (event.payload ?? {}) as { props?: Record<string, Json> };
-    if (!props || typeof props !== "object") return {};
-    const prev = (ctx.beats[id] as Record<string, Json> | undefined) ?? {};
-    const prevWs = (prev[WORKSPACE_KEY] as Record<string, Json> | undefined) ?? {};
-    const nextLocal = { ...prev, [WORKSPACE_KEY]: { ...prevWs, ...props } };
-    return { context: { beats: { ...ctx.beats, [id]: nextLocal } } };
-  };
 }
 
 /** Action factory: turn a learner question into a `generate` effect that answers it
@@ -222,19 +145,14 @@ export const ExplorableBeat: RenderableBeat<ExplorableParams> = {
   },
 
   wire(_params, id: StateId, { registry, defaultNext }: BeatWireCtx): BeatWiring {
-    const setRef = `demo.set:${id}`;
-    const setManyRef = `demo.setMany:${id}`;
-    const wsRef = `workspace.set:${id}`;
     const askRef = `ask.submit:${id}`;
-    registry.action(setRef, setValue(id));
-    registry.action(setManyRef, setValues(id));
-    registry.action(wsRef, setWorkspace(id));
     registry.action(askRef, requestAsk(id));
     const dn = defaultNext();
     const on: Record<string, Transition[]> = {
-      "demo.set": [{ target: id, actions: [setRef] }], // learner: record value + re-render viz
-      [DEMO_SET_MANY_EVENT]: [{ target: id, actions: [setManyRef] }], // learner: load a preset atomically
-      [WORKSPACE_SET_EVENT]: [{ target: id, actions: [wsRef] }], // agent: annotate/zoom the same viz
+      // The learner's two control channels + the director's workspace patch, shared with
+      // every other visual beat (see beats/workspace.ts) — an explorable adds nothing to
+      // them, it just happens to be the beat type that renders a controls UI over them.
+      ...workspaceWiring(id, registry),
       [ASK_SUBMIT_EVENT]: [{ target: id, actions: [askRef] }], // learner: ask → generate answer → resume here
       next: dn ? [{ target: dn }] : [],
     };

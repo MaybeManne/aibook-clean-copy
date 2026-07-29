@@ -10,8 +10,9 @@
 // (like SocraticAI's generate_audio.py); it keeps the runtime engine/Player pure
 // and deterministic.
 //
-// Layer note: `lesson` may depend on `audio` (both sit above `timeline`); the
-// generic synthesis engine stays in `audio/`, this only maps it onto a LessonSpec.
+// Layer note: this is an AUTHORING-time pass (tier 1) — it runs before a learner ever
+// arrives, hits the network, and hands the engine a spec with the audio already baked
+// in. The generic synthesis engine stays in `audio/`; this only maps it onto a LessonSpec.
 
 import type { Json } from "@lessonstudio/state-machine";
 import type { Storyboard } from "@lessonstudio/timeline";
@@ -22,7 +23,7 @@ import {
   type NarrateOptions,
   type NarrationItem,
 } from "@lessonstudio/audio";
-import type { LessonSpec } from "../lesson_sm/compile.js";
+import type { LessonSpec } from "@lessonstudio/lesson";
 
 export interface PreparedLesson {
   /** New spec — animated beats' storyboards carry baked duration + caption cues. */

@@ -15,7 +15,17 @@
 
 import type { MachineEvent } from "@lessonstudio/state-machine";
 import type { RenderModel } from "@lessonstudio/render-contract";
-import { projectTranscript, type Session, type Turn } from "@lessonstudio/lesson";
+import {
+  ANNOTATIONS_VAR,
+  FOCUS_VAR,
+  HOLD_VAR,
+  projectTranscript,
+  type Annotation,
+  type FocusState,
+  type HoldState,
+  type Session,
+  type Turn,
+} from "@lessonstudio/lesson";
 import type { LiveFrame } from "./frame.js";
 
 /** Active-leaf prefix marking the synthesized "thinking" beat (see Session.applyMessage). */
@@ -50,8 +60,11 @@ export class LiveProgram {
     return this.sess.activeBeatId().startsWith(THINKING_PREFIX);
   }
 
-  /** The full per-frame output: render model + conversation + done/thinking flags. */
+  /** The full per-frame output: render model + conversation + done/thinking flags + the
+   *  director's attention/pacing state (read off the reserved `ctx.vars` keys — so it works
+   *  on every beat, with no beat cooperation and no new event route). */
   frame(): LiveFrame {
+    const vars = this.sess.context.vars;
     return {
       model: this.render(),
       transcript: this.transcript(),
@@ -59,6 +72,9 @@ export class LiveProgram {
       narration: this.activeNarration(),
       done: this.sess.done,
       thinking: this.thinking,
+      focus: (vars[FOCUS_VAR] as unknown as FocusState | undefined) ?? null,
+      annotations: (vars[ANNOTATIONS_VAR] as unknown as Annotation[] | undefined) ?? [],
+      hold: (vars[HOLD_VAR] as unknown as HoldState | undefined) ?? null,
     };
   }
 

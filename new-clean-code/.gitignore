@@ -1,6 +1,7 @@
 node_modules/
 .audio-cache/
 .author-cache/
+.session-log/
 dist/
 .conda-node/
 *.log

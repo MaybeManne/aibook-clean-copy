@@ -17,17 +17,15 @@ import {
   askSubmit,
   createSession,
   defaultRunner,
-  defineLesson,
-  generatingRunner,
-  claudeAuthor,
   messageSubmit,
   replay,
   GENERATED_BEAT_EVENT,
   projectTranscript,
-  type CompletionRequest,
   type EventRecord,
   type Session,
 } from "@lessonstudio/lesson";
+import { defineLesson } from "@lessonstudio/authoring";
+import { claudeAuthor, generatingRunner, type CompletionRequest } from "@lessonstudio/forge";
 import type { RenderIntent } from "@lessonstudio/render-contract";
 import { createLiveProgram, type LiveProgram } from "@lessonstudio/live";
 import { PINHOLE_VIZ } from "./pinhole3d.js";
@@ -286,6 +284,41 @@ console.log("\n[grounded in the learner's own state — both ask paths]");
   assert(stub.calls[1]!.prompt.includes("hole size"), "the second call carries the second question");
   program.send({ type: "next" });
   assert(program.activeBeatId() === "move-screen", "and it too resumes the demo");
+  program.dispose();
+}
+
+// ══ 4b. Grounded in what the lesson PUT ON SCREEN, not only in its state ══════════
+// The observed failure, pinned: on the beat that displays the Lambertian integral the learner
+// asked "what's this integral?" and the tutor answered that analysing it was out of scope —
+// refusing to explain a formula the lesson itself had just shown them. The prompt named the
+// beat and the apparatus numbers but never the WORDS, so "this integral" referred to nothing,
+// and the anti-hallucination rule then made deflection the instructed move.
+//
+// The engine is the only party that knows what is on screen, so it is the engine's job to say
+// so — via the same `beatProse` the director's observation uses, so the human teacher, the AI
+// teacher and this prompt can never disagree about what the learner is looking at.
+console.log("\n[grounded in the displayed prose — a question can point AT something]");
+{
+  const stub = countingCompleter();
+  const author = claudeAuthor({ plan: pinholePlan, complete: stub.complete });
+  const session = createSession(defineLesson(lessonSpec), { runner: generatingRunner(author, defaultRunner()) });
+  const program = createLiveProgram(session);
+
+  driveTo(session, "wall-2");
+  program.send(messageSubmit("what's this integral?"));
+  await settle(() => !program.frame().thinking, "the answer to a question about the formula on screen");
+
+  const { prompt, system } = stub.calls[0]!;
+  assert(prompt.includes("The text they are reading right now says:"), "the prompt carries the words on the learner's screen");
+  assert(prompt.includes("\\int_{\\Omega}"), "including the integral itself — so 'this integral' has a referent");
+  assert(prompt.includes("$$"), "with its math delimiters intact, so the model can see a formula as a formula");
+  assert(!prompt.includes("\\textcolor"), "and without the palette hexes, since the same prompt forbids the model from writing them");
+  assert(prompt.includes("average"), "the lesson's own gloss travels with the formula");
+
+  // Facts and rules are the engine's half; the model may only supply voice. Both halves of the
+  // fix have to be present, because either alone still permits the refusal.
+  assert(system.includes("ANYTHING IT PUTS ON SCREEN IS IN"), "the system prompt states the scope rule in terms of what is displayed");
+  assert(/hemisphere/.test(system) && /does not need to evaluate/.test(system), "and supplies the radiometry gloss, so the model rephrases a fact instead of improvising one");
   program.dispose();
 }
 

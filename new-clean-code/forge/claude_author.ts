@@ -20,8 +20,8 @@
 // `tsc --noEmit` and headless `tsx` never touch the SDK, and it is only loaded when
 // a live generation actually fires with a key present.
 
-import type { BeatSpec } from "../lesson_sm/compile.js";
-import type { GenerateRequest, LessonAuthor } from "./generate.js";
+import type { BeatSpec } from "@lessonstudio/lesson";
+import type { GenerateRequest, LessonAuthor } from "./seam.js";
 
 /** What the LLM contributes: the teaching voice. The engine owns everything else. */
 export interface AuthoredProse {

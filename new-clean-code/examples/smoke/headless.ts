@@ -2,7 +2,8 @@
 // step both a correct and a wrong path with answer-driven routing). No renderer, no clock.
 // Run: PATH=<conda-node>/bin:$PATH ./node_modules/.bin/tsx examples/smoke/headless.ts
 
-import { defineLesson, explain, mcq, Session } from "@lessonstudio/lesson";
+import { Session } from "@lessonstudio/lesson";
+import { defineLesson, explain, mcq } from "@lessonstudio/authoring";
 
 const lesson = defineLesson({
   id: "smoke",

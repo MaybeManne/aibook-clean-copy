@@ -7,6 +7,7 @@ import { McqBeat } from "./mcq.js";
 import type { BeatRegistry } from "./types.js";
 
 export * from "./types.js";
+export * from "./workspace.js";
 export * from "./explain.js";
 export * from "./mcq.js";
 export * from "./branch.js";

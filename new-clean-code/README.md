@@ -1,8 +1,10 @@
 # lessonStudio
 
 A **high-level language for interactive lessons** — Manim, but rendered in the browser so
-lessons are interactive. This is the **engine** half (deterministic, replayable, browser-rendered).
-The AI-authoring half lives in a separate repo (`lessonForge`, TBD).
+lessons are interactive. The **engine** half (`lesson/`, `authoring/`, `live/`) is deterministic,
+replayable and browser-rendered; the **AI** half is quarantined in `forge/` — the future
+`lessonForge` repo, already separated by an import boundary rather than by a checkout, so the engine
+plays a lesson identically with it deleted.
 
 **New here?** Start with [`docs/OVERVIEW.md`](docs/OVERVIEW.md) — the vision, objective, features and
 applications, written for a senior engineer or a PM, with no implementation detail. Then
@@ -176,6 +178,42 @@ applications, written for a senior engineer or a PM, with no implementation deta
     `ANTHROPIC_API_KEY` the endpoint answers `{error}` and `claudeAuthor` assembles the plan's
     deterministic `fallbackText`, so the entire loop plays keyless — which is how it is verified here,
     and why every browser assertion is about what the engine owns rather than about the prose.
+- **M5b — the module split, and a LIVE HUMAN TEACHER on a second screen (tier 2).** ✅ Done & verified
+  headlessly (**126/126**, `examples/pinhole/direction.ts`) and in the browser (**71/71**,
+  `examples/shot-teach.mjs`). `lesson/authoring/` had been four unrelated things wearing one name —
+  the engine's stateful host, the human DSL, the live mutation protocol, and the LLM half — and
+  `@lessonstudio/lesson` was handing out an Anthropic client. That is now the module cut in *Layout*
+  below, landed as a behaviour-neutral move and re-verified before any feature work.
+  - *The teacher is a programmer, so the interface is logs out, commands in* — not a GUI. One pure
+    formatter renders the situation (active beat, live control values, the pending question, the
+    verdict on the last batch) and the teacher answers with `DirectorCommand[]`:
+    `direct say "look at the screen distance"`, `direct revisit flip`, `direct focus --scale 3
+    --at .4,.55`, `direct set v=13`. Four polling endpoints, no WebSocket, no new dependency; the
+    student's page stays authoritative and the log on disk is literally `tail -f`-able.
+  - *Maximum flexibility, no new engine concepts.* `say` and `revisit` are **sugar the adjudicator
+    expands** into `addBeat` + `next: <where the learner was>` — so answering with a beat and
+    re-showing an earlier figure before coming back are the same primitive, and `revisit`'s clone of an
+    existing beat is the reuse-a-visual affordance. `focus`/`annotate` take normalized 0..1 stage
+    coordinates, so one implementation zooms an SVG figure, a Canvas2D viz and the WebGL apparatus.
+  - *Atomic by shadow-charting.* A batch is adjudicated against a copy and committed only if every op
+    survives, so a bad turn never reaches history — and a teacher-taught session replays from its log
+    with no bus and no transport at all.
+- **M5c — an AI TEACHER standing exactly where the human stood (tier 3), unrestricted.** ✅ Done &
+  verified headlessly (**110/110**, `examples/pinhole/ai_teach.ts`). The claim is a *negative* one:
+  there is no AI-specific path into a lesson. `tsx forge/cli/ai_teach.ts` is the same program as
+  `tsx teach/cli/direct.ts` with the human replaced — same four endpoints, same observation text,
+  same verdicts. Tier 3 needed a loop, not an integration, which is what tier 2 being
+  logs-in/commands-out bought.
+  - *The tool surface IS the command union.* One `Record<DirectorOp, ToolEntry>` generates the model's
+    tools, so the compiler refuses an op that has no tool: the vocabulary cannot drift, and adding an
+    op stays one edit. Reactive by default (a question is a request for a teacher, one model call per
+    question); autonomous — offer the director *every* learner action — is opt-in, because it spends a
+    call per gesture and would make the browser walks nondeterministic.
+  - *Unrestricted now, limitable later, and that is a config value.* `capabilities: FULL` sets no cap;
+    `SUPERVISED`/`OBSERVE_ONLY` already work, refused at the engine's single gate. A withheld tool is
+    an explanation to the model; the refusal is still the adjudicator's.
+  - *Freeze still holds.* A director's turn rides in one recorded event carrying its actor, so
+    `replay()` rebuilds an AI-taught session with the provider unreachable, attributed to the agent.
 - **M5 — productionize the AI seam + export the IR JSON Schema** (the contract lessonForge targets).
   Also open: single-file/offline export, a `barChart` visuals factory, and rewind-by-transcript-prefix.
 
@@ -197,17 +235,64 @@ Audible narration needs `ELEVEN_LABS_API_KEY` in the environment; clips are cach
 narration pipeline still runs, silently. Browser checks need swiftshader for WebGL:
 `--enable-unsafe-swiftshader --use-gl=angle --use-angle=swiftshader`.
 
+To teach a running lesson — one dev server, then a second terminal. Every key stays in the dev
+process, and with no `ANTHROPIC_API_KEY` all three tiers still play (the model's judgement is the
+only thing stubbed):
+
+```bash
+LS_ROOT=examples/pinhole ./node_modules/.bin/vite --port 5188   # the student's page
+
+./node_modules/.bin/tsx teach/cli/tail.ts                      # tier 2: watch the session
+./node_modules/.bin/tsx teach/cli/direct.ts say "look at the screen distance"
+./node_modules/.bin/tsx forge/cli/ai_teach.ts                  # tier 3: a model does both
+./node_modules/.bin/tsx forge/cli/ai_teach.ts --dry-run        #   …decide and print, send nothing
+```
+
+Two dev servers at once is fine: each `LS_ROOT` gets its own dep-optimizer cache under
+`node_modules/.vite/<root>/`, since Vite's default is one cache per package and the roots do not
+share a dependency set.
+
 ## Layout
 
 ```
 state_machine/    pure hierarchical statechart (imports nothing)
 render_contract/  RenderIntent / RichText / slots (imports nothing)
 timeline/         scene graph + Storyboard + pure sampleAt
+visuals/          mobject + animation library, on the declarative scene graph
+scene_svg/        declarative SceneNode figures, drawn by the pure snapshot renderer
 audio/            TTS + word-alignment + subtitles + cache
-lesson/           beats, compile→statechart IR, Session host, authoring, policy, AI seam
+lesson/           THE ENGINE — deterministic, replayable, no LLM
+  lesson_sm/        beat IR + compile→statechart
+  beats/            beat definitions + shared workspace wiring
+  runtime/          Session — the stateful host (event-sourced, replayable)
+  direction/        the DirectorCommand union · adjudicate · capabilities · catalog ·
+                      observe · format   (what a teacher may do, and what they see)
+  policy/           Perceive/Decide contracts
+authoring/        TIER 1 — defineLesson + beat sugar + narrate precompile. PURE, offline.
+teach/            TIER 2 — the live human teacher: dev bus (log + command queue),
+                    browser client, `tail`/`direct` CLIs
+forge/            TIER 3 — the AI half: LLM seam, prompt plans, Claude author, the AI
+                    TEACHER (tools generated from the command union) + dev proxies
 live/             the one runtime — clockless co-play (learner + agent both emit events)
-examples/         smoke test (+ the coming 3b1b slice)
+template/         data-driven Template<R> — the split-screen default
+rendering/        render_web — one React view driven by the template
+examples/         smoke test, the 3b1b convolution slice, the pinhole slice
 ```
 
 Everything is a strict one-directional dependency DAG (the invariant carried over from lessonkit,
 verified). One authoring surface: `defineLesson({ flow: [...] })` — the same JSON IR an LLM emits.
+
+The load-bearing edge is that **`lesson/` may not import `forge/`**. The engine knows the
+`DirectorCommand` union it can safely execute and the `Director`/`LessonAuthor` interfaces — never
+who produces them. So a lesson plays identically with `forge/` deleted, and the three teaching
+tiers are one seam with three clients:
+
+| tier | who teaches | how it reaches the lesson |
+|---|---|---|
+| 1 | a human author, offline | `authoring/` → frozen IR, deterministic (Manim-style) |
+| 2 | a live human teacher, watching | logs out, `DirectorCommand[]` in, over `teach/`'s four endpoints |
+| 3 | a model | the same four endpoints — `forge/`'s tools ARE that command union |
+
+Tier 3 is "run the other client", not a second integration: `tsx forge/cli/ai_teach.ts` stands
+exactly where `tsx teach/cli/direct.ts` stood. And because a director's turn rides in one recorded
+event, `replay()` rebuilds an AI-taught session with the model never called again.

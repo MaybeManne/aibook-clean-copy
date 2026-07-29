@@ -1,12 +1,28 @@
-// Declarative authoring sugar. Each function returns a plain BeatSpec — an AI
-// agent could skip these and emit the same IR directly. defineLesson compiles
-// the spec to a runnable CompiledLesson against the built-in beats.
+// TIER 1 — DETERMINISTIC HUMAN AUTHORING. The Manim-style surface: a human writes a
+// lesson as data, ahead of time, and the same input always produces the same lesson.
+// No model, no network, no runtime state — this module is pure and its output is the
+// frozen artifact the engine plays.
+//
+// Each function returns a plain BeatSpec, so this is sugar over the JSON IR rather than
+// a second language: a director (human or AI) editing the lesson AT PLAY TIME emits the
+// very same specs through `lesson/direction` — which is why one engine can serve all
+// three tiers. defineLesson compiles the spec to a runnable CompiledLesson against the
+// built-in beats.
 
 import type { Guard, Json } from "@lessonstudio/state-machine";
 import type { Storyboard } from "@lessonstudio/timeline";
-import { compileLesson, type BeatSpec, type CompiledLesson, type LessonSpec } from "../lesson_sm/compile.js";
-import type { LessonContext } from "../lesson_sm/context.js";
-import { defaultBeatRegistry, type ExplainParams, type ExplorableParams, type FreeResponseParams, type McqParams } from "../beats/index.js";
+import {
+  compileLesson,
+  defaultBeatRegistry,
+  type BeatSpec,
+  type CompiledLesson,
+  type ExplainParams,
+  type ExplorableParams,
+  type FreeResponseParams,
+  type LessonContext,
+  type LessonSpec,
+  type McqParams,
+} from "@lessonstudio/lesson";
 
 export function defineLesson(spec: LessonSpec): CompiledLesson {
   return compileLesson(spec, defaultBeatRegistry());

@@ -18,7 +18,9 @@
 import "katex/dist/katex.min.css";
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { createSession, defaultRunner, generatingRunner, httpCompleter, pickAuthor } from "@lessonstudio/lesson";
+import { createSession, defaultRunner } from "@lessonstudio/lesson";
+import { generatingRunner, httpCompleter, pickAuthor } from "@lessonstudio/forge";
+import { attachTeachClient } from "@lessonstudio/teach";
 import { createLiveProgram } from "@lessonstudio/live";
 import { StudioView } from "@lessonstudio/render-web";
 import { md } from "@lessonstudio/render-contract";
@@ -46,6 +48,16 @@ function App(): React.ReactElement {
     [],
   );
   React.useEffect(() => () => program.dispose(), [program]);
+
+  // TIER 2 — open the page with `?teach` and a live teacher can watch this session from a
+  // terminal and intervene in it (`teach/cli/{tail,direct}.ts`). Opt-in by URL rather than
+  // always-on for one reason: a lesson that quietly polls a bus is a lesson whose behaviour
+  // depends on something off-page, and the deterministic walks must stay deterministic.
+  React.useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has("teach")) return;
+    const client = attachTeachClient(program.session);
+    return () => client.detach();
+  }, [program]);
 
   return (
     <StudioView

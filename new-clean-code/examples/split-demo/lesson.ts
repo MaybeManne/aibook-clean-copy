@@ -4,7 +4,7 @@
 // overlap interleave and the output (f∗g) generate itself, then (3) a check.
 // The interactive figure is a registered SVG figure driven live by the slider value.
 
-import { defineLesson, explorable, mcq } from "@lessonstudio/lesson";
+import { defineLesson, explorable, mcq } from "@lessonstudio/authoring";
 import { math } from "@lessonstudio/render-contract";
 import "./convolution.js"; // side-effect: registers the "convolution" + "conv-intro" figures
 

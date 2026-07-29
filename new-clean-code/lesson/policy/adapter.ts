@@ -5,12 +5,12 @@
 // discipline `decisionPolicy` uses: the policy SELECTS among the teacher's authored
 // edges/targets, it never invents a destination or an effect.
 //
-// This is the only file in the policy layer that references the authoring layer, and
-// only as a type (`Policy`) — so it erases at runtime and introduces no cycle.
+// This is the only file in the policy layer that references the runtime host, and only
+// as a type (`Policy`) — so it erases at runtime and introduces no cycle.
 
 import type { MachineEvent, Step } from "@lessonstudio/state-machine";
 import type { LessonContext } from "../lesson_sm/context.js";
-import type { Policy } from "../authoring/session.js";
+import type { Policy } from "../runtime/session.js";
 import type { AgentIntent, PolicyView, TeachingPolicy } from "./contracts.js";
 
 function topId(s: Step<LessonContext>["state"]): string {

@@ -16,7 +16,7 @@
 // Five of them are just prose structure, and `article()` already parses headings, lists, callouts
 // and `$…$`/`$$…$$` KaTeX — so they are authored as prose here rather than as new components.
 
-import { defineLesson, explain, explorable, freeResponse, mcq } from "@lessonstudio/lesson";
+import { defineLesson, explain, explorable, freeResponse, mcq } from "@lessonstudio/authoring";
 import { article, md } from "@lessonstudio/render-contract";
 import { tex } from "./palette.js";
 import { PINHOLE_VIZ, type PinholeProps } from "./pinhole3d.js";

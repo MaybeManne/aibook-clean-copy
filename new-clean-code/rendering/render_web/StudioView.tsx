@@ -16,6 +16,7 @@ import { defaultStudioLayout, defaultTheme, type StudioLayout, type Theme } from
 import { IDLE_STATUS, type NarrationAudio } from "@lessonstudio/audio";
 import type { LiveFrame, LiveProgram } from "@lessonstudio/live";
 import { ConversationLog, nonEmptyStage, renderIntents } from "./conversation.js";
+import { FocusFrame } from "./attention.js";
 import { htmlAudioSink } from "./htmlAudioSink.js";
 import { Composer } from "./Composer.js";
 import { RichTextView } from "./richtext.js";
@@ -244,6 +245,39 @@ function ContinueButton({ theme, onNext }: { theme: Theme; onNext: () => void })
   );
 }
 
+/**
+ * "Wait a moment" — shown where the Continue would have been while a director holds the room.
+ *
+ * The point is that the pause is EXPLAINED. A learner whose Continue silently vanished assumes
+ * the lesson broke; a learner told their teacher is setting something up waits happily. The
+ * Composer stays live throughout, so waiting never means being unable to speak.
+ */
+function HoldNotice({ theme, reason }: { theme: Theme; reason?: string }): React.ReactElement {
+  return (
+    <div
+      style={{
+        alignSelf: "flex-start",
+        display: "flex",
+        alignItems: "center",
+        gap: theme.space(2),
+        padding: `${theme.space(2)} ${theme.space(4)}`,
+        border: `1px solid ${theme.color.borderSubtle}`,
+        borderRadius: theme.radius,
+        background: theme.color.surface,
+        color: theme.color.muted,
+        fontSize: theme.font.size.label,
+      }}
+      aria-live="polite"
+      data-ls-hold=""
+    >
+      <span aria-hidden="true" style={{ color: theme.color.alert }}>
+        ⏸
+      </span>
+      {reason ?? "Your teacher is setting something up…"}
+    </div>
+  );
+}
+
 export interface StudioViewProps {
   program: LiveProgram;
   theme?: Theme;
@@ -306,15 +340,20 @@ export function StudioView(props: StudioViewProps): React.ReactElement {
   const prompt = frame.model.intents.filter((i) => i.slot === "prompt");
   const prose = frame.model.intents.filter((i) => i.slot === "prose");
 
-  // Nothing in `prompt` ⇒ this beat has no way to advance itself, so supply the Continue.
-  const needsContinue = !frame.done && !frame.thinking && prompt.length === 0;
+  // Nothing in `prompt` ⇒ this beat has no way to advance itself, so supply the Continue —
+  // unless a director is mid-setup (`hold`), in which case the learner would advance out from
+  // under the thing being built for them. This is the derived affordance only: a beat that owns
+  // its advance keeps it, and `hold` stays a social cue rather than an engine lock, because a
+  // teacher pausing the room should not be able to trap a learner if their connection drops.
+  const needsContinue = !frame.done && !frame.thinking && prompt.length === 0 && !frame.hold;
 
   // The current beat's live interactive surface — hosted inside its own turn by ConversationLog.
-  const liveBlock = prose.length || prompt.length || needsContinue ? (
+  const liveBlock = prose.length || prompt.length || needsContinue || frame.hold ? (
     <div style={{ marginTop: theme.space(3), display: "flex", flexDirection: "column", gap: theme.space(3) }}>
       {prose.length ? renderIntents(prose, theme, send) : null}
       {prompt.length ? renderIntents(prompt, theme, send) : null}
       {needsContinue ? <ContinueButton theme={theme} onNext={() => send({ type: "next" })} /> : null}
+      {frame.hold ? <HoldNotice theme={theme} reason={frame.hold.reason} /> : null}
     </div>
   ) : null;
 
@@ -353,7 +392,16 @@ export function StudioView(props: StudioViewProps): React.ReactElement {
                   : { borderLeft: `1px solid ${theme.color.borderSubtle}` }),
               }}
             >
-              {stage.length ? <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>{renderIntents(stage, theme, send)}</div> : null}
+              {/* The director's camera and marks wrap the WHOLE panel rather than any one visual,
+                  which is why `focus`/`annotate` work on an SVG figure, a Canvas2D viz and the
+                  WebGL apparatus alike (see attention.tsx). Un-directed, this is a plain wrapper.
+                  Kept mounted whenever there is focus/marks even with an empty stage, so a
+                  teacher pointing at a blank workspace still draws something. */}
+              {stage.length || frame.focus || frame.annotations.length ? (
+                <FocusFrame focus={frame.focus} annotations={frame.annotations} theme={theme}>
+                  {stage.length ? renderIntents(stage, theme, send) : null}
+                </FocusFrame>
+              ) : null}
               {frame.thinking ? (
                 <div style={{ position: "absolute", top: theme.space(4), right: theme.space(4), fontSize: theme.font.size.eyebrow, color: theme.color.accent, fontWeight: theme.font.weight.bold, letterSpacing: theme.font.letterSpacing, textTransform: "uppercase", opacity: 0.8 }}>
                   ✨ Thinking…

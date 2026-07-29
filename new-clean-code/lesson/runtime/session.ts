@@ -2,6 +2,13 @@
 // the effectful world. It drives the pure interpreter, owns history, runs
 // effects (with cancellation), and consults policies. React (or any view) reads
 // render() and calls send().
+//
+// It lives in `lesson/runtime/` because it is the engine's HOST, not authoring: it
+// executes whatever it is handed (a learner's answer, a director's command, an
+// effect's result) and adjudicates it, but it never composes a lesson and never
+// calls a model. Deterministic authoring lives in `authoring/`, the command
+// vocabulary in `lesson/direction/`, and everything LLM in `forge/` — which this
+// file must never import.
 
 import {
   enter,
@@ -13,40 +20,28 @@ import {
   type Json,
   type MachineEvent,
   type Snapshot,
-  type StateNode,
   type Step,
   type TransitionRecord,
 } from "@lessonstudio/state-machine";
 import type { RenderIntent, RenderModel } from "@lessonstudio/render-contract";
-import { leafState, type RenderableBeat } from "../beats/index.js";
-import { lowerBeat, reachesTerminal, validateBeatSpec, validateReroute, CompileError, type BeatSpec, type CompiledLesson } from "../lesson_sm/compile.js";
+import { leafState, WORKSPACE_KEY, type RenderableBeat } from "../beats/index.js";
+import { lowerBeat, validateBeatSpec, CompileError, type BeatSpec, type CompiledLesson } from "../lesson_sm/compile.js";
 import { initialContext, type EventRecord, type LearnerRuntime, type LessonContext } from "../lesson_sm/context.js";
 import type { LearnerModel } from "../policy/contracts.js";
-import { AUTHORING_COMMAND_EVENT, assertNoInlineFns, normalizeCommands, rerouteOf, type AuthoringCommand } from "./commands.js";
-
-/**
- * The event that carries a runtime-authored beat (its `BeatSpec` is the payload).
- * Session intercepts it: splice the beat into the live chart, then jump into it.
- * Because the spec rides in the event, it lands in history and is re-created on
- * replay WITHOUT re-invoking the generator — the "generate → freeze → replay" line.
- * It is now a legacy alias for an `addBeat` authoring command (see commands.ts).
- */
-export const GENERATED_BEAT_EVENT = "beat.generated";
-
-/**
- * The learner's say-anytime / interrupt move. Ambient: the flat engine has no route
- * for it (the active beat may not declare `message.submit`), so Session intercepts it
- * in `apply()` before `transition()`. It records the learner turn, enters a synthesized
- * ephemeral "thinking" leaf that clones the interrupted beat's viz (so the shared
- * workspace never blanks), and fires a `generate` effect to author the answer — while
- * the leaf change cancels any in-flight generation (that is the interrupt, for free).
- */
-export const MESSAGE_SUBMIT_EVENT = "message.submit";
-
-/** Build a `message.submit` event carrying the learner's free-text message. */
-export function messageSubmit(textValue: string): MachineEvent {
-  return { type: MESSAGE_SUBMIT_EVENT, payload: { text: textValue } };
-}
+import { adjudicate, failureResult, planResult, type DirectionPlan, type DirectionResult } from "../direction/adjudicate.js";
+import type { Capabilities } from "../direction/capabilities.js";
+import {
+  ACTIVE_BEAT_VAR,
+  actorOf,
+  AUTHORING_COMMAND_EVENT,
+  DIRECTION_COMMAND_EVENT,
+  directionCommand,
+  GENERATED_BEAT_EVENT,
+  MESSAGE_SUBMIT_EVENT,
+  normalizeCommands,
+  type DirectorActor,
+  type DirectorCommand,
+} from "../direction/protocol.js";
 
 // ── pluggable collaborators ──────────────────────────────────────────────────
 
@@ -125,6 +120,9 @@ export class Session {
   private readonly policies: Policy[];
   private readonly learnerModel?: LearnerModel;
   private readonly observers = new Set<StepObserver>();
+  /** Report from the last director turn (accepted or refused). Live-only, not context:
+   *  it is feedback for whoever is directing, not state the lesson depends on. */
+  private lastDirection: DirectionResult | null = null;
 
   constructor(
     readonly lesson: CompiledLesson,
@@ -262,14 +260,13 @@ export class Session {
 
     // Legacy alias: a bare BeatSpec payload → a single addBeat command (jump in).
     if (event.type === GENERATED_BEAT_EVENT && isPlainObject(event.payload)) {
-      this.applyAuthoring(event, [{ op: "addBeat", spec: event.payload as unknown as BeatSpec, enter: true }], fromPolicy);
+      this.applyDirection(event, [{ op: "addBeat", spec: event.payload as unknown as BeatSpec, enter: true }], fromPolicy);
       return;
     }
-    // The agent's structural action vocabulary (addBeat, …) — validated then committed.
-    if (event.type === AUTHORING_COMMAND_EVENT) {
-      const commands = normalizeCommands(event.payload);
-      for (const c of commands) if (c.op === "addBeat") assertNoInlineFns(c.spec);
-      this.applyAuthoring(event, commands, fromPolicy);
+    // A director's turn — the whole command vocabulary, whoever sent it. `direction.command`
+    // is the current name; `authoring.command` is the v1 name, kept as a permanent alias.
+    if (event.type === DIRECTION_COMMAND_EVENT || event.type === AUTHORING_COMMAND_EVENT) {
+      this.applyDirection(event, normalizeCommands(event.payload), fromPolicy);
       return;
     }
     // The learner's say-anytime / interrupt move.
@@ -302,73 +299,106 @@ export class Session {
   }
 
   /**
-   * Execute an authoring turn (a list of commands): splice added beats, reroute existing
-   * ones, optionally jump into a beat, and record the carrier event in history so replay
-   * re-creates the same edits as data (no generator re-invocation). `addBeat` with
-   * `enter !== false` jumps into the beat; with `enter:false` it is a topology-only edit
-   * and we stay put. `rerouteBeat`/`setNext` rewrite an existing beat's edge.
+   * Execute a director's turn (a list of commands): splice added beats, reroute existing
+   * ones, patch the blackboard (controls / workspace / focus / annotations / hold),
+   * optionally jump into a beat, and record the carrier event in history so replay
+   * re-creates the same edits as data (no generator, no model, nobody re-invoked).
    *
-   * The turn is ATOMIC: every command is adjudicated (valid target, JSON-only, and the set
-   * of reroutes must not soft-lock the learner) and, if ANY step is rejected, the chart is
-   * rolled back to exactly its prior shape and the error rethrown — so a bad turn is a pure
-   * no-op that never reaches history (replay-safe). On the live path the throw is caught by
-   * `generatingRunner` (logged, learner unaffected); a direct send surfaces it to the caller.
+   * The turn is ATOMIC because `adjudicate` plans against a shadow chart and this method
+   * installs the result in one assignment plus one context merge: a rejected command means
+   * nothing was ever applied, so a bad turn is a pure no-op that never reaches history
+   * (which is also why replay never sees a failed turn). On the live path the throw is
+   * caught by the runner or by `direct()`; a raw `send` surfaces it to the caller.
    */
-  private applyAuthoring(event: MachineEvent, commands: AuthoringCommand[], fromPolicy: boolean): void {
+  private applyDirection(event: MachineEvent, commands: DirectorCommand[], fromPolicy: boolean, caps?: Capabilities): DirectionPlan {
     const prev = this.step;
-    let enterId: string | null = null;
-    const addedIds: string[] = []; // beats this turn spliced (to remove on rollback)
-    const savedEdges = new Map<string, StateNode["on"]>(); // pre-mutation `on` maps (to restore on rollback)
-    try {
-      for (const cmd of commands) {
-        if (cmd.op === "addBeat") {
-          const isNew = this.lesson.chart.states[cmd.spec.id] === undefined;
-          this.spliceBeat(cmd.spec); // throws on a malformed spec (loud failure)
-          if (isNew && this.lesson.chart.states[cmd.spec.id]) addedIds.push(cmd.spec.id);
-          if (cmd.enter !== false) enterId = cmd.spec.id; // last requested-to-enter wins
-          continue;
-        }
-        // rerouteBeat / setNext — rewrite an existing beat's edge (default the advance edge).
-        const reroute = rerouteOf(cmd);
-        if (!reroute) continue;
-        const problems = validateReroute(reroute.beatId, reroute.target, this.lesson.chart);
-        if (problems.length) throw new CompileError(problems);
-        const node = this.lesson.chart.states[reroute.beatId]!;
-        if (!savedEdges.has(reroute.beatId)) savedEdges.set(reroute.beatId, node.on); // save ONCE, pre-mutation
-        // The rewritten edge is a single UNGUARDED transition (or [] = terminal). `next`
-        // edges here carry no actions, so nothing is dropped; rewiring a guarded/branch
-        // edge is out of scope for v1 (it would need named guard refs).
-        node.on = { ...(node.on ?? {}), [reroute.key]: reroute.target === null ? [] : [{ target: reroute.target }] };
-      }
-      // Level-completable invariant: from where the learner LANDS after this turn, an ending
-      // must still be reachable. Only checked when a reroute happened — `addBeat` is additive
-      // (it can only add orphan nodes, which never strand the learner), so Slice 1's
-      // add-and-jump answer path is untouched.
-      if (savedEdges.size) {
-        const landing = enterId ?? this.activeBeatId();
-        if (!reachesTerminal(this.lesson.chart, landing)) {
-          throw new CompileError([{ code: "NO_TERMINAL", detail: `reroute would strand the learner: no path from "${landing}" to an ending` }]);
-        }
-      }
-    } catch (err) {
-      for (const [id, on] of savedEdges) this.lesson.chart.states[id]!.on = on; // undo edge rewrites
-      for (const id of addedIds) delete this.lesson.chart.states[id]; // undo splices
-      throw err;
-    }
+    // Anchor to the REAL beat: if the learner is parked on an ephemeral "thinking" leaf,
+    // a `say`/`setControl` with no explicit target means the beat that leaf stands in for,
+    // never the leaf itself (which is about to be replaced by the answer).
+    const plan = adjudicate(this.lesson, commands, {
+      activeBeatId: this.resumeTargetOf(this.activeBeatId()),
+      context: prev.context,
+      ...(caps ? { capabilities: caps } : {}),
+    });
+    Object.assign(this.lesson.chart.states, plan.states); // install — atomic, post-validation
+    const patched = this.patchContext(prev.context, plan);
 
-    const base: Step<LessonContext> = enterId
-      ? enter(this.lesson.chart, enterId, prev.context, this.lesson.registry, event)
-      : { state: prev.state, context: prev.context, effects: [], done: prev.done };
+    const base: Step<LessonContext> = plan.enterId
+      ? enter(this.lesson.chart, plan.enterId, patched, this.lesson.registry, event)
+      : { state: prev.state, context: patched, effects: [], done: prev.done };
     const record: TransitionRecord = { event, from: prev.state, to: base.state };
     const rec: EventRecord = { seq: base.context.history.length, ...record };
     this.step = { ...base, context: { ...base.context, history: [...base.context.history, rec] }, lastRecord: record };
     this.markActiveBeat();
     this.foldLearner(rec);
+    this.lastDirection = planResult(plan, actorOf(event.payload), commands.length);
 
     this.cancelStale();
     this.runEffects(this.step.effects);
     if (!fromPolicy) this.consultPolicies();
     this.notify();
+    return plan;
+  }
+
+  /**
+   * Fold a plan's three context patches into one new context. All three are MERGES on the
+   * same committed step, which is what makes "point at the figure, re-pose it and zoom in"
+   * one gesture rather than three the learner watches happen in sequence.
+   *
+   * A `null` var DELETES its key (that is how `focus{clear}` and `release` are spelled), so
+   * a cleared focus leaves no residue in snapshots and `vars.__focus` is absent-or-real
+   * rather than absent-or-null-or-real.
+   */
+  private patchContext(ctx: LessonContext, plan: DirectionPlan): LessonContext {
+    const varKeys = Object.keys(plan.vars);
+    const beatIds = new Set([...Object.keys(plan.controls), ...Object.keys(plan.workspace)]);
+    if (!varKeys.length && !beatIds.size) return ctx; // the common case: no copy at all
+    const vars = { ...ctx.vars };
+    for (const k of varKeys) {
+      const v = plan.vars[k];
+      if (v === null) delete vars[k];
+      else vars[k] = v as Json;
+    }
+    const beats = { ...ctx.beats };
+    for (const id of beatIds) {
+      const prevLocal = (beats[id] as Record<string, Json> | undefined) ?? {};
+      // Learner-channel values land FLAT (the same keys their own slider writes); the
+      // director's viz patch lands under `__ws` — see beats/workspace.ts for the split.
+      const nextLocal: Record<string, Json> = { ...prevLocal, ...(plan.controls[id] ?? {}) };
+      const ws = plan.workspace[id];
+      if (ws) nextLocal[WORKSPACE_KEY] = { ...((prevLocal[WORKSPACE_KEY] as Record<string, Json> | undefined) ?? {}), ...ws };
+      beats[id] = nextLocal;
+    }
+    return { ...ctx, vars, beats };
+  }
+
+  /**
+   * THE DIRECTOR'S DOOR — tier 2 and tier 3 both come through here, and they get identical
+   * treatment. Submits one turn of commands and returns a REPORT instead of throwing,
+   * because the caller on the other side is a teacher's terminal or a model's tool loop:
+   * both need "rejected, and here is why" as data they can act on, not as an exception.
+   *
+   * `capabilities` bounds THIS turn only (default: unrestricted). It is deliberately not
+   * session state — a recorded command replays under no capability check at all, since it
+   * already passed one when it was made, and re-judging history under a regime that has
+   * since changed would make replay non-deterministic.
+   */
+  direct(commands: DirectorCommand | DirectorCommand[], actor: DirectorActor = "teacher", capabilities?: Capabilities): DirectionResult {
+    const list = Array.isArray(commands) ? commands : [commands];
+    try {
+      this.applyDirection(directionCommand(list, actor), list, /* fromPolicy */ false, capabilities);
+    } catch (e) {
+      // Nothing was installed (adjudication is plan-then-apply), so the learner's session
+      // is exactly as it was — the failure is a message, not a state.
+      this.lastDirection = failureResult(actor, e, list.length);
+    }
+    return this.lastDirection!;
+  }
+
+  /** The report from the most recent director turn, or null if there has been none.
+   *  `observe()` carries it so a model sees the consequence of its own last turn. */
+  get lastResult(): DirectionResult | null {
+    return this.lastDirection;
   }
 
   /**
@@ -518,7 +548,7 @@ export class Session {
     const id = this.activeBeatId();
     this.step = {
       ...this.step,
-      context: { ...this.step.context, vars: { ...this.step.context.vars, __activeBeat: id } },
+      context: { ...this.step.context, vars: { ...this.step.context.vars, [ACTIVE_BEAT_VAR]: id } },
     };
   }
 }

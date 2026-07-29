@@ -147,6 +147,66 @@ export function article(src: string): RichText {
   return out;
 }
 
+/**
+ * Flatten back toward the MARKDOWN SOURCE a human would have authored — the near-inverse of
+ * `article()`. Pure.
+ *
+ * `toPlain` is for asserting on substrings; this is for anything a PERSON (or a model standing in
+ * for one) reads: a teacher's terminal, a prompt, a log line. Two differences, both about being
+ * read rather than matched:
+ *
+ *   • math keeps its `$`/`$$` delimiters, so a formula is legibly a formula.
+ *   • presentation-only `\textcolor{…}{body}` collapses to `body`. Colour is applied on the way to
+ *     the screen; a reader shown `\textcolor{#f87171}{L_r}` is decoding a hex code to find `L_r`.
+ */
+export function toSource(rt: RichText): string {
+  const walk = (n: RichNode): string => {
+    if (n.type === "text") return n.text;
+    if (n.type === "math") return n.display ? `$$${uncolor(n.tex)}$$` : `$${uncolor(n.tex)}$`;
+    if (n.type === "list") return n.items.map((it) => `- ${it.map(walk).join("")}`).join("\n");
+    return n.children.map(walk).join("");
+  };
+  return rt.map(walk).join("\n");
+}
+
+/**
+ * `\textcolor{#f87171}{L_r}` → `L_r`, leaving all other TeX alone.
+ *
+ * Scanned rather than regexed because the body nests: `\textcolor{#c4b5fd}{\mathbf{n}}` defeats any
+ * `[^{}]*` pattern, and a greedy one would eat the rest of the formula. Malformed input passes
+ * through unchanged — mangling a formula is worse than leaving a hex code in it.
+ */
+function uncolor(tex: string): string {
+  const TAG = "\\textcolor{";
+  /** Index just past the `}` closing the group that starts at `open` (a `{`), or -1. */
+  const close = (s: string, open: number): number => {
+    let depth = 0;
+    for (let i = open; i < s.length; i++) {
+      if (s[i] === "{") depth++;
+      else if (s[i] === "}" && --depth === 0) return i + 1;
+    }
+    return -1;
+  };
+
+  let out = "";
+  let i = 0;
+  for (;;) {
+    const at = tex.indexOf(TAG, i);
+    if (at < 0) return out + tex.slice(i);
+    out += tex.slice(i, at);
+
+    const afterColor = close(tex, at + TAG.length - 1);
+    const bodyEnd = afterColor < 0 || tex[afterColor] !== "{" ? -1 : close(tex, afterColor);
+    if (bodyEnd < 0) {
+      out += tex.slice(at, at + TAG.length); // unbalanced: emit verbatim and move on
+      i = at + TAG.length;
+      continue;
+    }
+    out += uncolor(tex.slice(afterColor + 1, bodyEnd - 1)); // nested colours inside the body
+    i = bodyEnd;
+  }
+}
+
 /** Flatten to a plain string (headless tests, alt-text, logging). Pure. */
 export function toPlain(rt: RichText): string {
   const walk = (n: RichNode): string => {

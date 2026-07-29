@@ -41,9 +41,15 @@ export function nonEmptyStage(intents: RenderIntent[]): RenderIntent[] {
 // Speaker label + placement for a conversation turn. The learner sits on the right
 // (their own bubble); the tutor and the live agent share the accent, the agent
 // distinguished by a ✨ so a generated turn reads as the tutor acting in the moment.
+//
+// `teacher` is a LIVE human intervening from a second screen (see lesson/direction). It is
+// labelled distinctly and given the alert hue rather than folded into "Tutor", because the
+// difference matters to the learner: the authored lesson is a script, but a teacher turn is a
+// person watching them right now — worth reading, and worth replying to.
 export function turnMeta(role: TurnRole, theme: Theme): { label: string; color: string; align: "left" | "right" } {
   switch (role) {
     case "learner": return { label: "You", color: theme.color.fg, align: "right" };
+    case "teacher": return { label: "Teacher", color: theme.color.alert, align: "left" };
     case "agent": return { label: "Tutor ✨", color: theme.color.accent, align: "left" };
     default: return { label: "Tutor", color: theme.color.accent, align: "left" };
   }

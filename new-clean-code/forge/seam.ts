@@ -1,15 +1,25 @@
-// The LLM / agent authoring boundary. Generation is I/O and nondeterministic, so
-// it lives in an Effect run by a custom EffectRunner — the engine stays pure. The
-// author returns a BeatSpec; the runner emits it as a `beat.generated` event, which
-// Session splices into the live chart, jumps into, AND records in history — so
-// replay reconstructs the beat from data, never re-invoking the generator.
+// The LLM / agent authoring boundary — and the reason `forge/` is a module of its own.
+// Generation is I/O and nondeterministic, so it lives in an Effect run by a custom
+// EffectRunner: the engine stays pure and never imports this file. The author returns a
+// BeatSpec; the runner emits it as a `beat.generated` event, which Session splices into
+// the live chart, jumps into, AND records in history — so replay reconstructs the beat
+// from data, never re-invoking the generator.
 // See docs/VISION.md ("generate → freeze → replay").
+//
+// Everything here talks to the engine through its PUBLIC surface (`@lessonstudio/lesson`)
+// exactly as a third party would, which is what makes the eventual `lessonForge` repo
+// split a directory move rather than an untangling.
 
 import type { Effect, Json } from "@lessonstudio/state-machine";
-import type { BeatSpec } from "../lesson_sm/compile.js";
-import type { LessonContext } from "../lesson_sm/context.js";
-import { authoringCommand, type AuthoringCommand } from "./commands.js";
-import { GENERATED_BEAT_EVENT, type EffectContext, type EffectRunner } from "./session.js";
+import {
+  GENERATED_BEAT_EVENT,
+  authoringCommand,
+  type AuthoringCommand,
+  type BeatSpec,
+  type EffectContext,
+  type EffectRunner,
+  type LessonContext,
+} from "@lessonstudio/lesson";
 
 /** The effect a beat declares (from an entry action) to request generation. Open payload. */
 export interface GenerateEffect {

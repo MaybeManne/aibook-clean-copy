@@ -22,7 +22,8 @@
 // than like a chat reply pasted into it.
 
 import type { Json } from "@lessonstudio/state-machine";
-import type { AuthoredProse, AuthorPlan, BeatSpec, GenerateRequest, LessonContext } from "@lessonstudio/lesson";
+import { beatProse, type BeatSpec, type LessonContext } from "@lessonstudio/lesson";
+import type { AuthoredProse, AuthorPlan, GenerateRequest } from "@lessonstudio/forge";
 import { SYMBOL_COLOR, tex, type SymbolName } from "./palette.js";
 import { PINHOLE_VIZ, type PinholeProps } from "./pinhole3d.js";
 import { lessonSpec } from "./lesson.js";
@@ -108,6 +109,10 @@ const PHYSICS = [
   "The ray bundles form two similar triangles meeting at the hole, so h'/h = v/u, i.e. h' = h*v/u.",
   "Magnification m = v/u; it is written m = -v/u when the minus sign is used to record the inversion.",
   "A matte (Lambertian) wall reflects an average of the light arriving from every direction, so it forms no image.",
+  // The lesson SHOWS this integral, so a learner can point at it — and radiometry is exactly
+  // where a model left to improvise would drift (radiance vs irradiance, where the pi comes
+  // from). Stating it here keeps the gloss the engine's, and the wording the model's.
+  "The integral the lesson displays for the matte wall is that averaging written formally: it sums the incoming light L_i(w_i) over every direction w_i in the hemisphere, each weighted by the cosine (w_i . n) because light striking obliquely spreads over more surface, and rho/pi is the fraction a matte surface re-emits. The one number that comes out keeps no record of WHICH direction anything arrived from — which is exactly why the wall cannot form an image. Understanding the lesson needs only that reading; it does not need to evaluate the integral.",
   "Each screen point receives light from exactly ONE direction, so no blur circle can form: a pinhole needs no focusing and has infinite depth of field.",
   "A smaller hole is sharper but dimmer. This lesson treats the hole as ideal and does not model diffraction.",
 ].join("\n");
@@ -124,8 +129,13 @@ const SYSTEM = [
   "- Plain prose. No headings, no bullet lists, no preamble like 'Great question'.",
   "- Inline LaTeX between single dollar signs is fine ($v/u$). Never write \\textcolor yourself.",
   "- The apparatus figure is on screen beside your words; point at it rather than re-describing it.",
-  "- If the question is outside this lesson's scope, say so in one sentence and point back to what",
-  "  the apparatus does show. Never invent an answer in order to look helpful.",
+  "- You are shown the text the learner is currently reading. ANYTHING IT PUTS ON SCREEN IS IN",
+  "  SCOPE — if the lesson displays a formula, a learner asking what it means is asking about this",
+  "  lesson, and 'that is out of scope' is the wrong answer. Say what the notation MEANS in words",
+  "  and what it is there to show. You never need to evaluate or manipulate it.",
+  "- Genuinely unrelated questions (which camera to buy, lens optics, diffraction) are the only",
+  "  out-of-scope case: say so in one sentence and point back to what the apparatus does show.",
+  "  Never invent an answer in order to look helpful.",
 ].join("\n");
 
 /**
@@ -147,11 +157,19 @@ export function pinholePlan(req: GenerateRequest): AuthorPlan {
   const reached = BEAT_ORDER.indexOf(anchor);
   const seen = reached < 0 ? [] : BEAT_ORDER.slice(0, reached + 1);
 
+  // What the learner is READING, verbatim. Without this a question like "what's this integral?"
+  // has no referent at all, and the honest-sounding move — declaring it out of scope — is the
+  // wrong answer to a question about the lesson's own content. The engine knows the words on
+  // screen; only the engine does. Same extractor the director's observation uses, so the human
+  // teacher, the AI teacher and this prompt can never disagree about what is being shown.
+  const onScreen = beatProse((BEATS.get(anchor)?.params ?? {}) as Record<string, Json>);
+
   const prompt = [
     `The learner asks: "${question}"`,
     "",
     `They are on lesson step "${anchor}". Steps covered so far: ${seen.join(", ") || "(the opening)"}.`,
     `The apparatus in front of them is set to u = ${num(u)} and v = ${num(v)}, so m = v/u = ${num(m)}.`,
+    ...(onScreen ? ["", "The text they are reading right now says:", onScreen, ""] : []),
     "Answer their question. Do not restate those numbers unless the question is about them.",
   ].join("\n");
 

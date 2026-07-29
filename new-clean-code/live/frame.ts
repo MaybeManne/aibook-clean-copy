@@ -5,7 +5,7 @@
 // render_contract + the lesson-layer transcript type.
 
 import type { RenderModel } from "@lessonstudio/render-contract";
-import type { Turn } from "@lessonstudio/lesson";
+import type { Annotation, FocusState, HoldState, Turn } from "@lessonstudio/lesson";
 
 export interface LiveFrame {
   /** stage / prompt / prose intents for the shared workspace (same shape as video). */
@@ -22,4 +22,16 @@ export interface LiveFrame {
   /** the agent is authoring an answer — the active leaf is a synthesized `__ask-*` node.
    *  A host shows a "thinking…" affordance and keeps the Composer live for interrupts. */
   thinking: boolean;
+  /**
+   * WHERE WE ARE LOOKING, set by a director (`focus`). Normalized 0..1 over the stage panel,
+   * so the host applies it as a transform on the panel rather than asking the visual to
+   * cooperate — one implementation serves an SVG figure, a Canvas2D viz and the WebGL
+   * apparatus alike. Null = the whole stage.
+   */
+  focus: FocusState | null;
+  /** Marks drawn OVER the stage, in the same normalized space. Empty = nothing drawn. */
+  annotations: Annotation[];
+  /** The director has paused the learner while setting something up (`hold`). Null = free
+   *  to advance. A host suppresses its derived Continue and says why. */
+  hold: HoldState | null;
 }

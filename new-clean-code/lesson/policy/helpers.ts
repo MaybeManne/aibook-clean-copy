@@ -11,7 +11,7 @@
 
 import type { MachineEvent, Step } from "@lessonstudio/state-machine";
 import type { LessonContext } from "../lesson_sm/context.js";
-import type { Policy } from "./session.js";
+import type { Policy } from "../runtime/session.js";
 
 /**
  * A Policy that fires `decide(ctx)` only while the active beat === `beatId`.

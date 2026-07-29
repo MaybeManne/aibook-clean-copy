@@ -22,7 +22,7 @@
 // (dice-formula→dice-grid, polynomial→prod-grid, reteach→conv-boxes, summary→conv2d). The 2-D
 // image section is the "hard visual" 3b1b does; both `check.next` and `reteach.next` route into it.
 
-import { animate, defineLesson, explain, explorable, mcq } from "@lessonstudio/lesson";
+import { animate, defineLesson, explain, explorable, mcq } from "@lessonstudio/authoring";
 import { article, md } from "@lessonstudio/render-contract";
 import { buildCombine, buildFlip, buildSlide } from "./storyboards.js";
 import { EDITOR_PRESETS } from "./kernels.js"; // shared with the viz so labels can't diverge

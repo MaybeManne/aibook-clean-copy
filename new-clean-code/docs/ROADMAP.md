@@ -23,8 +23,8 @@ pause and answer" — visual + narrative fidelity, NOT pixel-identical frames.
 
 ## The two-repo cut
 
-The boundary is the **JSON IR + the `LessonAuthor` seam** — the generate/freeze/replay line
-made physical.
+The boundary is the **JSON IR + the `LessonAuthor`/`Director` seams** — the generate/freeze/replay
+line made physical.
 
 ```
   lessonStudio/   the ENGINE / language ("Manim+++")
@@ -42,7 +42,13 @@ made physical.
                   (offline authoring and live tutoring = the same API at different speeds).
 ```
 
-lessonStudio is built now. lessonForge follows once the engine is fluent.
+lessonStudio is built now. **The cut is already made — as an import boundary rather than as two
+checkouts**: the AI half lives in `forge/`, `@lessonstudio/lesson` exports none of it, and nothing
+in the engine is reachable from it, so `forge/` reaches the engine only through its public surface
+the way a third party would. Splitting the repos is therefore a directory move plus a package.json,
+deferred until there is a reason to pay for two release cycles. Two properties keep it honest, and
+both are asserted headlessly: a lesson plays identically with `forge/` deleted, and an AI-taught
+session replays with the provider unreachable.
 
 ## lessonStudio layer plan
 
@@ -56,8 +62,15 @@ The dependency graph stays a strict one-directional DAG (verified invariant carr
   visuals/           ◄ NEW: mobject + anim library grafted from SocraticAI, re-homed
                        onto the declarative scene graph (deps: timeline)
   audio/             TTS + word-alignment + subtitles + cache (deps: timeline, render_contract)
-  lesson/            beats, compile→statechart, Session host, authoring, policy,
-                       AI seam (deps: below only)
+  lesson/            THE ENGINE: beats, compile→statechart, `runtime/` Session host,
+                       `direction/` (the DirectorCommand union + adjudicate +
+                       capabilities + observe/format), `policy/` (deps: below only)
+                       — deterministic, replayable, and it may NOT import forge/
+  authoring/         TIER 1: defineLesson + beat sugar + narrate precompile. PURE.
+  teach/             TIER 2: the live human teacher — dev bus (log + command queue),
+                       browser client, tail/direct CLIs (deps: lesson)
+  forge/             TIER 3: the AI half — LLM seam, prompt plans, Claude author, the
+                       AI teacher, dev proxies. The `lessonForge` repo, in place.
   live/              clockless co-play runtime — the ONE runtime (deps: lesson, ...)
   template/          data-driven Template<R> — the REAL split-screen default (deps: render_contract)
   render_web/        ONE React view driven by the template (deps: template, live, ...)
@@ -285,6 +298,52 @@ Decisions vs. lessonkit:
   - **Deliberately not done:** no `narration` on generated beats. The prose is full of TeX and reading
     TeX aloud is worse than silence; a spoken variant needs a second model output — a real feature,
     a different one.
+- **M5b — the module split + the live human teacher (tier 2).** ✅ Done & verified: **126/126**
+  headless (`examples/pinhole/direction.ts`) + **71/71** browser (`examples/shot-teach.mjs`).
+  `lesson/authoring/` had meant four unrelated things at once, and `lesson/index.ts` handed out an
+  Anthropic client. Now: the stateful host is `lesson/runtime/`, the human DSL is `authoring/`, the
+  mutation protocol is `lesson/direction/`, and the LLM half is `forge/` — a split that a
+  behaviour-neutral phase A landed and re-verified before any feature work, so a regression would be
+  attributable to the move.
+  - **The teacher is a programmer, so the interface is logs out / commands in.** `direction/observe.ts`
+    renders the situation (active beat, live control values, learner signals, the pending question,
+    focus/hold state, and the verdict on the last batch) and `direction/format.ts` is the ONE text
+    rendering of it. The terminal and the model's prompt read the same bytes — which is the whole
+    reason tier 3 was a loop rather than an integration.
+  - **`say`/`revisit` are sugar the adjudicator expands** into `addBeat` (+ `next: <current beat>`), so
+    "answer with a beat" and "show that figure again, then come back" cost no new engine concepts, and
+    `revisit`'s clone of an existing beat IS the reuse-a-visual affordance. `focus`/`annotate` take
+    normalized 0..1 stage coordinates, so one implementation zooms an SVG figure, a Canvas2D viz and
+    the WebGL apparatus alike.
+  - **Atomicity without rollback:** `adjudicate` runs the whole batch against a SHADOW chart and
+    commits only if every op survives, so a bad turn never reaches history. Capabilities
+    (`FULL`/`SUPERVISED`/`OBSERVE_ONLY`) are enforced at that one gate, which is what makes tightening
+    the AI teacher later a config value rather than a refactor.
+  - **Transport is deliberately dumb:** polling, four endpoints, no WebSocket, no new dependency. The
+    student's page stays authoritative and the log on disk is literally `tail -f`-able. A
+    teacher-taught session replays from its log with no bus and no transport at all.
+- **M5c — the AI teacher (tier 3), unrestricted.** ✅ Done & verified: **110/110** headless
+  (`examples/pinhole/ai_teach.ts`). The claim is a NEGATIVE one — there is no AI-specific path into
+  the lesson. `forge/cli/ai_teach.ts` is the same program as `teach/cli/direct.ts` with the human
+  replaced, over the same four endpoints, reading the same observation text and the same verdicts.
+  - **The tool surface IS the command union.** `forge/tools.ts` derives one tool per `DirectorOp` from
+    a `Record<DirectorOp, ToolEntry>`, so the compiler refuses an op with no tool: the model's
+    vocabulary cannot drift from the engine's, and adding an op stays one edit. The discriminant moves
+    into the tool NAME, so an invented tool is dropped rather than misparsed.
+  - **Two drive modes**, reactive by default (a question is a request for a teacher, one model call
+    per question). Autonomous is opt-in: it spends a call per learner action and would make the
+    browser walks nondeterministic. Its trigger is the STEP COUNTER, not a new learner turn in the
+    transcript — the transcript is a discourse document that deliberately drops a Continue and a
+    slider drag, which are exactly the situations an autonomous teacher watches for. Loop avoidance is
+    a rebase-after-acting: the poll following a turn adopts the situation as its baseline, so the loop
+    is driven only by changes the director did not make.
+  - **`capabilities: FULL`** — every op, no per-turn cap. The knob exists and is simply not set, which
+    is "free now, limited gradually" made explicit rather than implicit. A withheld tool is an
+    explanation; the refusal is still `adjudicate`'s.
+  - **generate → freeze → replay, by construction:** a director's turn rides in one recorded
+    `direction.command` event carrying its `actor`, so `replay()` rebuilds an AI-taught session with
+    the provider unreachable, and the transcript attributes those turns to the agent rather than to
+    the human teacher.
 - **M5 — the AI seam, productionized.** Make `@anthropic-ai/sdk` a real optional dep (M5a still loads
   it through a lazy, `@vite-ignore`d dynamic import); harden the `LessonAuthor` boundary; export the
   IR **JSON Schema** (the public contract lessonForge targets).
@@ -325,14 +384,23 @@ Decisions vs. lessonkit:
   through `/api/author`, cached by content hash under `.author-cache/` (gitignored, same reason).
   Without the key the endpoint answers `{error}` and `claudeAuthor` assembles the plan's
   `fallbackText`, so the whole ask → author → splice → resume loop still plays, deterministically —
-  which is the mode the checks run in. Both keys live only in the vite process: `audio/dev_tts.ts` and
-  `lesson/authoring/dev_author.ts` are Node-only and are deliberately NOT on their package barrels, so
-  they cannot be imported into a browser bundle. The walk asserts the negative (no request to
-  `api.anthropic.com` / `elevenlabs.io` ever leaves the page).
+  which is the mode the checks run in. The same key backs the **AI teacher** through `/api/direct`
+  (uncached: a director's turn answers a situation, and the same observation twice may deserve a
+  different move); with no key the AI teacher stays silent, or runs `offlineDirector` in a test.
+  Every key lives only in the vite process: `audio/dev_tts.ts`, `forge/dev_author.ts` and
+  `forge/dev_director.ts` are Node-only and are deliberately NOT on their package barrels, so they
+  cannot be imported into a browser bundle. The walk asserts the negative (no request to
+  `api.anthropic.com` / `elevenlabs.io` ever leaves the page), and the headless checks assert that
+  the browser's proxy request carries no credential field at all.
 - Browser checks need swiftshader under headless Chrome:
   `--enable-unsafe-swiftshader --use-gl=angle --use-angle=swiftshader`.
 - Run: `LS_ROOT=examples/pinhole ./node_modules/.bin/vite --port 5188` then
   `node examples/shot-pinhole.mjs http://localhost:5188/ /tmp/ls-pinhole`.
-- Headless engine checks (no browser, no network): `./node_modules/.bin/tsx examples/pinhole/authoring.ts`
-  (the M5a authoring loop) and `./node_modules/.bin/tsx examples/convolution/verify.ts` (the M4 math).
+  Two dev servers at once is fine — each `LS_ROOT` gets its own dep-optimizer cache under
+  `node_modules/.vite/<root>/`, because the Vite default is shared per-package and the two roots
+  were invalidating each other's optimized deps.
+- Headless engine checks (no browser, no network): `tsx examples/pinhole/authoring.ts` (M5a, the
+  authoring loop), `tsx examples/pinhole/direction.ts` (M5b, the live teacher's protocol),
+  `tsx examples/pinhole/ai_teach.ts` (M5c, the AI teacher) and `tsx examples/convolution/verify.ts`
+  (M4, the math). The teacher's browser walk is `node examples/shot-teach.mjs` against 5188.
 - Commit as **shaden**, no `Co-Authored-By`; no push without explicit go-ahead.
