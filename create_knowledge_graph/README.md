@@ -45,10 +45,13 @@ If you just want to **look at the output graph**, open `data3/graph.json` or `da
 
 ## Environment variables
 
-The pipeline uses the Google Gemini API. **You need your own API key** — none is bundled.
+The pipeline supports Google Gemini, OpenAI, and Anthropic. The default graph
+workflow uses Gemini for extraction/local auditing and OpenAI for independent
+semantic verification. **You need your own API keys** — none are bundled.
 
 ```bash
 export GEMINI_API_KEY=your_key_here      # or GOOGLE_API_KEY — both work
+export OPENAI_API_KEY=your_key_here      # required by the default edge verifier
 ```
 
 `pipeline3/llm.py` also aliases `GEMINI_API_KEY_SHADEN` into `GEMINI_API_KEY` for a legacy setup; you can ignore it.
@@ -82,24 +85,23 @@ python pipeline3/run.py --list          # show stages and completion status
 python pipeline3/run.py --only pass_a   # run one stage
 python pipeline3/run.py --force splice  # rerun from this stage onward
 python pipeline3/run.py --skip-optional # skip audit_chunks, repair_items, image_reproduce
+python pipeline3/run.py --force audit_local_edges  # augment existing edges without replacing them
+python pipeline3/run.py --data-dir data_vision --force audit_local_edges \
+  --skip-optional --graph-out ../concept-graph-vision-data.json
 ```
 
 Each stage also has a standalone script under `pipeline3/` — the orchestrator just invokes them with the right flags. You can run them directly to iterate on one stage.
 
 ### Bundling into a single `graph.json`
 
-```bash
-python pipeline3/merge_graph.py \
-  --data-dir data3 \
-  --out data3/graph.json \
-  --with-indexes
-```
+The full pipeline now performs this automatically. To rebuild it manually, run
+`python pipeline3/run.py --only merge_graph`.
 
 Writes a single JSON document with all nodes + edges + metadata, plus `graph.indexed.json` with id-keyed dicts for O(1) lookup.
 
 ---
 
-## The pipeline (20 stages)
+## The pipeline (26 stages)
 
 | # | Stage | Type | What it does |
 |---|---|---|---|
@@ -119,15 +121,39 @@ Writes a single JSON document with all nodes + edges + metadata, plus `graph.ind
 | 14 | `format_items` | LLM | Split item `raw_body` into per-kind fields: `prompt_md` / `solution_md` / `answer` / `difficulty` / `skills` for exercises/examples; `caption_md` for figures/tables; `proof_md` for theorems. `[FIGURE:...]` tokens preserved inline. |
 | 15 | `repair_items` *(optional)* | LLM | Small repair loop on any hard-failed item formatting. |
 | 16 | `link_items` | LLM | **LLM-only** item→concept linking with the full concept catalog as candidates. Embedded figures/tables inherit from their parent item. |
-| 17 | `extract_edges` | LLM | Section-windowed edge extraction: per section, LLM sees that section's concepts in focus + all earlier concepts as visible context. Returns `requires` (DAG) + 8 overlay kinds with rationale + multi-range `evidence_spans`. |
-| 18 | `validate_edges` | pure | ID resolution, dedup. Cycles are logged, not broken — downstream planners filter if a strict DAG is needed. |
-| 19 | `image_reproduce` *(optional)* | LLM vision | Produces matplotlib/SVG reproduction code for graph/diagram images. Stores, doesn't execute. |
-| 20 | `split_raw` | pure | Move `raw_body` into `concepts.raw.jsonl` / `items.raw.jsonl` (side files keyed by id). Strip from main files so they're leaner for downstream consumers. |
+| 17 | `extract_edges` | LLM | Section-windowed broad semantic edge extraction. Base files remain separate from later audit additions. |
+| 18 | `audit_local_edges` | LLM | Deterministically inspects uncovered same-section neighbors and section-boundary pairs. Every candidate is classified as a semantic relationship or `no_edge`; unchanged decisions are resumed from `edge_local_decisions.jsonl`. |
+| 19 | `merge_edge_sets` | pure | Non-destructively unions base and local-audit edges, assigns stable edge IDs, records provenance, and writes combined artifacts. |
+| 20 | `validate_augmented_edges` | pure | ID resolution and deterministic deduplication before semantic review. Cycles are reported. |
+| 21 | `verify_edges_semantic` | LLM | Independently keeps, relabels, or drops every proposed edge using its textbook evidence. Default confidence threshold: 0.70. |
+| 22 | `validate_verified_edges` | pure | Revalidates relabeled edges and writes the canonical `edges_*.final.jsonl` artifacts. |
+| 23 | `image_reproduce` *(optional)* | LLM vision | Produces matplotlib/SVG reproduction code for graph/diagram images. Stores, doesn't execute. |
+| 24 | `split_raw` | pure | Move `raw_body` into sidecar files and strip it from the main records. |
+| 25 | `merge_graph` | pure | Automatically bundles final verified edges and all graph records into `graph.json`. |
+| 26 | `fill_slots` | LLM | Fills learner-facing concept slots using the completed graph. |
 
 Types:
 - **pure** — no LLM, deterministic, seconds.
-- **LLM** — Gemini text call, structured JSON output, batched + parallel.
+- **LLM** — provider-selected structured JSON call, batched + parallel.
 - **LLM vision** — Gemini with image bytes attached.
+
+### Cross-book semantic edges
+
+`pipeline3/extract_cross_book_edges.py` compares independently processed graph bundles.
+It first retrieves a small deterministic candidate set, then asks the LLM to accept,
+reject, and semantically direct every pair. Cross-book chapter numbers are never used
+for direction; `requires`, `formalizes`, `illustrates`, and related edge meanings
+determine direction instead. Concept keys are namespaced as `book_id::concept_id`.
+
+```bash
+python pipeline3/extract_cross_book_edges.py \
+  --primary 'vision|Foundations of Computer Vision|../concept-graph-vision-data.json|../concept-graph-journey.html' \
+  --book 'deep_learning|Understanding Deep Learning|data_deep_learning/graph.json|../concept-graph-journey.html?data=create_knowledge_graph/data_deep_learning/graph.json' \
+  --top-k 1 --min-score 0.5 \
+  --out ../cross-book-connections.json
+```
+
+Decisions are resumable through `--decisions`; reruns bill only changed candidates.
 
 ---
 

@@ -1,0 +1,5878 @@
+{
+  "terms": [
+    "Conditional Generative Models Solve Multimodal Structured Prediction",
+    "Comparing Fully Connected, Convolutional, and Self-Attention Layers",
+    "Relationship of Probabilistic Graphical Models to Neural Networks",
+    "Gradient-Like Optimization for Functions without Good Gradients",
+    "The Output: Measuring Light Versus Measuring Scene Properties",
+    "Experiment: Designing Embeddings with Contrastive Learning",
+    "Learning Visual Representations from Language Supervision",
+    "Representing Radiance Fields With Parameterized Functions",
+    "The Failure of Point Prediction: Multimodal Distributions",
+    "share computation between all our overlapping predictions",
+    "How High-Dimensional Datapoints Get Remapped by Deep Net",
+    "Trick 2: Efficient approximation via importance sampling",
+    "Image Denoising under the Gaussian Model: Wiener Filter",
+    "Nonlinear Optimization by Minimizing Reprojection Error",
+    "Putting It All Together: Backpropagation through an MLP",
+    "The Failure of Independent Predictions: Joint Structure",
+    "Background: The Polynomial Regression Learning Problem",
+    "Data Structures for Deep Learning: Tensors and Batches",
+    "Fourier Transform for Infinite Length Discrete Signals",
+    "Perceptrons: an introduction to computational geometry",
+    "A Combinatorial Catalog of Transfer Learning Methods",
+    "Cultivate your strengths and play to those strengths",
+    "Data Structures and Notation for Working with Tokens",
+    "Object Detectors Emerge from Scene-Level Supervision",
+    "Recovering Intrinsic and Extrinsic Camera Parameters",
+    "Robust Model Fitting: Random Sampling with Consensus",
+    "Optimizing the Parameters of this Computation Graph",
+    "Polynomial Regression as a Lens into Generalization",
+    "The Trick of Backpropagation: Reuse of Computation",
+    "Unsupervised Methods for Depth from a Single Image",
+    "A Simple, although Unreliable, Calibration Method",
+    "Gibson's Ecological Approach to Visual Perception",
+    "Image-to-Image Translation with a Conditional GAN",
+    "Linear Algebraic Interpretation of Color Matching",
+    "Trick 1: Approximating the objective via sampling",
+    "3D Camera Projections in Homogeneous Coordinates",
+    "Counterfactuals for Analyzing Algorithmic Biases",
+    "Discrete Fourier Transform and Inverse Transform",
+    "Efros-Leung Texture Analysis and Synthesis Model",
+    "Example 3: Classification and Softmax Regression",
+    "Simple Example of Inference in a Graphical Model",
+    "Supervised Methods for Depth from a Single Image",
+    "The Color Appearance of Different Spectral Bands",
+    "The Problem of Exploding and Vanishing Gradients",
+    "Generic View and Nonaccidental Scene Properties",
+    "geometric transformation of a data distribution",
+    "A Few Notes About Object Recognition in Humans",
+    "Backpropagation through DAGs: Branch and Merge",
+    "Beyond Radiance Fields: The Rendering Equation",
+    "Comparing Different Kinds of Generative Models",
+    "Estimation of the essential/fundamental matrix",
+    "Example Belief Propagation Application: Stereo",
+    "Gestalt Psychology and Perceptual Organization",
+    "Large Language Model-based Scene Understanding",
+    "Multi-Input, Multi-Output Convolutional Layers",
+    "Nonparametric Markov Random Field Image Models",
+    "Approximate Reconstruction with Local Kernels",
+    "Supervised Models for Optical Flow Estimation",
+    "The Differences between CNNs and Transformers",
+    "The Direct Approach and the Indirect Approach",
+    "The Similarities between CNNs and Transfomers",
+    "Backpropagation for a Pointwise Nonlinearity",
+    "Camera forward motion and focus of expansion",
+    "Experiment 3: Effect of the Hypothesis Space",
+    "Heeger-Bergen Texture Analysis and Synthesis",
+    "Image Pyramids and Multiscale Image Analysis",
+    "Motion Perception in the Human Visual System",
+    "Other Ways of Parameterizing Radiance fields",
+    "Template Matching and Normalized Correlation",
+    "}{N} &= frac{1}{N}mathbf{F}{N/2}  [mathbf{F^",
+    "Color Matching Functions and Primary Lights",
+    "Conditional Generative Adversarial Networks",
+    "Fitting a Radiance Field to Explain a Scene",
+    "Fourier Analysis as an Image Representation",
+    "Image Denoising (Bayesian Image Estimation)",
+    "Image Warping with Implicit Representations",
+    "Lines and Planes in Homogeneous Coordinates",
+    "Sequence Models from the Lens of Adaptation",
+    "t-Distributed Stochastic Neighbor Embedding",
+    "Example 1: Linear Least-Squares Regression",
+    "Example: Aliasing-Based Adversarial Attack",
+    "Image Formation by Orthographic Projection",
+    "Image Gradient and Directional Derivatives",
+    "Quadrature Pairs and the Hilbert Transform",
+    "Steerable Filters and Orientation Analysis",
+    "The Full Algorithm: Forward, Then Backward",
+    "The Neural Mechanisms of Visual Perception",
+    "} - frac{1}{N}sum{i=1}^N 2(x^{(i)}-theta1^",
+    "A Simple Model of the Early Visual System",
+    "Geometric Transformations as Convolutions",
+    "Image Formation by Perspective Projection",
+    "Relationship to Conditional Random Fields",
+    "The Input: The Structure of Ambient Light",
+    "- frac{1}{N}sum{i=1}^N 2(x^{(i)}-theta1^",
+    "A Motivating Example: Image Colorization",
+    "Assign detections to ground truth labels",
+    "Camera Calibration from Vanishing Points",
+    "Computation Graph for Rendering an Image",
+    "Deep Learning: Learning with Neural Nets",
+    "Fourier Transform for Continuous Signals",
+    "From Images to Edges and Useful Features",
+    "Homogeneous and Heteregenous Coordinates",
+    "Modeling sequences in the Fourier domain",
+    "The Origins of the Science of Perception",
+    "Unsolved Solved Computer Vision Problems",
+    "= frac{1}{N}sum{i=1}^N (x^{(i)}-theta1^",
+    "Background: Representing Text as Tokens",
+    "Calibration of the Projected World Axis",
+    "Computing the Volume Rendering Integral",
+    "Depth-first BP message passing schedule",
+    "Height Propagation to Supported Objects",
+    "How Deep Nets Remap a Data Distribution",
+    "Numerical Example of Belief Propagation",
+    "Please don't tell me \"it doesn't work.\"",
+    "Aside: Representing Scenes with Fields",
+    "Gradient-Based Optical Flow Estimation",
+    "It's also sometimes useful to remember",
+    "Measuring Heights Using Parallel Lines",
+    "Some Ethical Issues in Computer Vision",
+    "The Essential and Fundamental Matrices",
+    "The Pinhole Camera and Image Formation",
+    "A Different Way of Plotting Functions",
+    "A Running Example: Seeing in Flatland",
+    "Discrete Fourier Transform Properties",
+    "Interpolation between feature matches",
+    "Iterative Refinement for Optical Flow",
+    "Marr's Computational Theory of Vision",
+    "Properties of the Continuous Gaussian",
+    "Title, Figure Captions, and Equations",
+    "Unsupervised Learning of Optical Flow",
+    "as a way to solve prediction problems",
+    "how the teacher processes the queries",
+    "A Tour of Popular Conditional Models",
+    "Conditional Variational Autoencoders",
+    "Connection to Deep Generative Models",
+    "Convolution in the Continuous Domain",
+    "Cross-Correlation Versus Convolution",
+    "Fast Activations and Slow Parameters",
+    "Image Editing in the Gradient Domain",
+    "Linear Translation Invariant Systems",
+    "Matrix Form of the Fourier Transform",
+    "Modulation, Translation in Frequency",
+    "Pre-Attentive Texture Discrimination",
+    "Regularizers as Probabilistic Priors",
+    "Shift Property, Translation in Space",
+    "Synchronous parallel update schedule",
+    "The Power Spectrum of Natural Images",
+    "Toward General-Purpose Vision Models",
+    "minimum description length principle",
+    "multiclass binary cross-entropy loss",
+    "pre-attentive texture discrimination",
+    "Example: Backpropagation for an MLP",
+    "Gradient-Based Image Representation",
+    "Latent Variables as Representations",
+    "Learning as Probabilistic Inference",
+    "One final note about doing research",
+    "Sampling from Autoregressive Models",
+    "The More You Look, the More You See",
+    "Translating between Images and Text",
+    "Unpaired Image-to-Image Translation",
+    "inversely proportional to the depth",
+    "A Few Notes about Human Perception",
+    "Backpropagation for a Linear Layer",
+    "Derivation of Message-Passing Rule",
+    "Derivatives using Binomial Filters",
+    "Downsampling and Upsampling Layers",
+    "Example: Learning a VAE for Rivers",
+    "Fourier Analysis of Linear Filters",
+    "Helmholtz: Perception as Inference",
+    "K-Means from Multiple Perspectives",
+    "Out-of-Distribution Generalization",
+    "Very Short Talks (2 -- 10 minutes)",
+    "downsampling and upsampling layers",
+    "gradient-based learning algorithms",
+    "multiscale oriented representation",
+    "span an identical hypothesis space",
+    "Backpropagation Over Data Batches",
+    "Conditional Autoregressive Models",
+    "Constraints for Arbitrary Cameras",
+    "Direct Linear Transform Algorithm",
+    "Linear and Bilinear Interpolation",
+    "Measuring the Height of an Object",
+    "Motion under Varying Focal Length",
+    "The Full Transformer Architecture",
+    "Visualizing the Fourier Transform",
+    "generative pretrained transformer",
+    "2D Motion Field and Optical Flow",
+    "A Family of 2D Spatial Samplings",
+    "A Simple World: The Blocks World",
+    "Building a Stereo Pinhole Camera",
+    "Concerns beyond Algorithmic Bias",
+    "Decimation in the Fourier Domain",
+    "Denoising Model (Nonlocal Means)",
+    "Finetuning Subparts of a Network",
+    "Kullback-Leibler (KL) divergence",
+    "Matching-Based Motion Estimation",
+    "Privacy and Differential Privacy",
+    "Training an Autoregressive Model",
+    "Tree Shadows and Image Formation",
+    "Types of Representation Learners",
+    "3D Metrology from a Single View",
+    "3D Motion and Its 2D Projection",
+    "Backpropagation for Loss Layers",
+    "Brightness Constancy Assumption",
+    "Continuous and Discrete Signals",
+    "Edges, Boundaries, and Contours",
+    "Generative Adversarial Networks",
+    "High-Order Gaussian Derivatives",
+    "Light Interacting with Surfaces",
+    "People Like to See a Good Fight",
+    "Structured Prediction in Vision",
+    "Text as a Visual Representation",
+    "The above isn't completely true",
+    "Unconditional Generative Models",
+    "brightness constancy assumption",
+    "general-purpose representations",
+    "generative adversarial networks",
+    "universal approximation theorem",
+    "A Family of Fourier Transforms",
+    "A Simple Image Formation Model",
+    "Discretizing Image Derivatives",
+    "Experiment 2: Effect of Priors",
+    "Implicit Image Representations",
+    "Importance of Parameterization",
+    "Light Reflecting from Surfaces",
+    "Nearest Neighbor Interpolation",
+    "Nearest neighbor interpolation",
+    "Neural Radiance Fields (NeRFs)",
+    "ON-center Receptive Field (RF)",
+    "Probabilistic graphical models",
+    "Representation of Optical Flow",
+    "Sampling in the Fourier Domain",
+    "The Discrete Fourier Transform",
+    "The Perceptron as a Classifier",
+    "The Value of Training Examples",
+    "constant brightness assumption",
+    "distribution over whole images",
+    "generative adversarial network",
+    "intrinsic images decomposition",
+    "nearest neighbor interpolation",
+    "principle components ananlysis",
+    "unconditional generative model",
+    "\"This sounds like hard work.\"",
+    "Activations Versus Parameters",
+    "Autoregressive Density Models",
+    "Continuous and Discrete Waves",
+    "Finding Matches across Images",
+    "Inference in Graphical Models",
+    "Layer-Based Motion Estimation",
+    "Modeling the Sampling Process",
+    "Multiplane Calibration Method",
+    "Properties of the Convolution",
+    "Show Yourself to the Audience",
+    "Toy Model of Image Inpainting",
+    "Variational autoencoders VAEs",
+    "Backpropagation through Time",
+    "Backward for a Generic Layer",
+    "CIE chromaticity coordinates",
+    "Conditional Diffusion Models",
+    "Depth from Image Disparities",
+    "Example 2: Program Induction",
+    "Experiment 1: Effect of Data",
+    "Extracting Edges from Images",
+    "Learning Energy-Based Models",
+    "Looking at Individual Pixels",
+    "Out of domain generalization",
+    "Out-of-Domain Generalization",
+    "Principles of Categorization",
+    "Spatial Resolution and Color",
+    "Spatiotemporal Gabor Filters",
+    "Underfitting and Overfitting",
+    "as close to zero as possible",
+    "center-surround organization",
+    "conditional generative model",
+    "gradient constraint equation",
+    "linear combination of tokens",
+    "linear translation invariant",
+    "local response normalization",
+    "nonparametric texture models",
+    "Affinity-Based Segmentation",
+    "Backpropagation to the Data",
+    "Camera-Extrinsic Parameters",
+    "Camera-Intrinsic Parameters",
+    "Hammersley-Clifford theorem",
+    "Identifying Vulnerabilities",
+    "Query-Key-Value Projections",
+    "Revisiting the star Problem",
+    "Stochastic Gradient Descent",
+    "Ways to Engage the Audience",
+    "at a single operating point",
+    "extrinsic camera parameters",
+    "gradient-based optimization",
+    "information-processing task",
+    "mathbf{m} + boldsymbolell^B",
+    "maximum likelihood learning",
+    "natural language processing",
+    "overcomplete representation",
+    "stochastic gradient descent",
+    "Connection to Autoencoders",
+    "Detecting Vanishing Points",
+    "Discrete Fourier Transform",
+    "Figure/Ground Segmentation",
+    "Generic 2D Transformations",
+    "Image-to-Image Translation",
+    "Learning Generative Models",
+    "Learning with a Perceptron",
+    "Local Normalization Layers",
+    "Nonlinear Filtering Layers",
+    "Steerable Quadrature Pairs",
+    "Summary of the Experiments",
+    "Testing and Benchmark Bias",
+    "The Wavelet Marginal Model",
+    "belief propagation message",
+    "computational neuroscience",
+    "lateral geniculate nucleus",
+    "minimum mean squared error",
+    "out-of-domain test samples",
+    "position within the signal",
+    "unrolled computation graph",
+    "A Simple Inference Scheme",
+    "Binary Classifier Example",
+    "Cameras as Linear Systems",
+    "Campbell and Robson chart",
+    "Convolutional neural nets",
+    "Directed Graphical Models",
+    "Directed graphical models",
+    "Learned Data Augmentation",
+    "Learning without Examples",
+    "Learning-Based Approaches",
+    "Multilabel classification",
+    "Parametric texture models",
+    "Please don't hide from me",
+    "Popular CNN Architectures",
+    "Query-Key-Value Attention",
+    "Recognition by Components",
+    "Rendering Radiance Fields",
+    "Rethinking Generalization",
+    "Signed distance functions",
+    "Stacking Recurrent Layers",
+    "Visual Question Answering",
+    "Visual question answering",
+    "adversarial reprogramming",
+    "agnostic to signal length",
+    "chain rule of probability",
+    "color reproduction system",
+    "continuous time sine wave",
+    "heterogeneous coordinates",
+    "local normalization layer",
+    "mathbf{m}k + mathbf{l}i^B",
+    "parametric texture models",
+    "query-key-value attention",
+    "represent the probability",
+    "zeroth-order optimization",
+    "\"Slow down to speed up.\"",
+    "2D Image Transformations",
+    "Alignment and Uniformity",
+    "Chaining Transformations",
+    "Collecting Training Data",
+    "Creating Image Panoramas",
+    "Epipolar lines: The game",
+    "Loopy Belief Propagation",
+    "Multihead Self-Attention",
+    "Object Localization Loss",
+    "Permutation Equivariance",
+    "Self-Supervised Learning",
+    "The Machinery of the Eye",
+    "The Paper's Introduction",
+    "The VAE Hypothesis Space",
+    "Variational Autoencoders",
+    "Vasarely visual illusion",
+    "Window scanning approach",
+    "Your Distracted Audience",
+    "change of representation",
+    "dimensionality reduction",
+    "first-order optimization",
+    "internal representations",
+    "multihead self-attention",
+    "multiscale image pyramid",
+    "neuromorphic engineering",
+    "nonaccidental properties",
+    "pattern matching methods",
+    "reparameterization trick",
+    "spatiotemporal filtering",
+    "A Few Concrete Examples",
+    "A New Data Type: Tokens",
+    "A Simple CNN Classifier",
+    "A Simple Neural Network",
+    "Aliasing in Matrix Form",
+    "CNN as a Sliding Filter",
+    "Direct Linear Transform",
+    "Gaussian Density Models",
+    "Interest point detector",
+    "Intersection over Union",
+    "Learning Density Models",
+    "Learning Rate Schedules",
+    "Learning from a Teacher",
+    "Linear Image Transforms",
+    "Local image descriptors",
+    "Message Update Sequence",
+    "Other Camera Parameters",
+    "Sines and Cosines in 2D",
+    "Spatiotemporal Gaussian",
+    "Spatiotemporal Sampling",
+    "Training and Evaluation",
+    "data generating process",
+    "direct linear transform",
+    "discrete time sine wave",
+    "identically distributed",
+    "max likelihood learning",
+    "orthographic projection",
+    "perceptual organization",
+    "permutation equivariant",
+    "thin lens approximation",
+    "unconscious conclusions",
+    "unstructured prediction",
+    "variational autoencoder",
+    "Abstract Pretext Tasks",
+    "Basic Gradient Descent",
+    "Bilinear interpolation",
+    "Cascade of classifiers",
+    "Constraint Propagation",
+    "Fast Fourier Transform",
+    "Finding image features",
+    "From Edges to Surfaces",
+    "Gaussian mixture model",
+    "Horizontal or Vertical",
+    "Knowledge distillation",
+    "Learning from Examples",
+    "Learning-Based Methods",
+    "Long Short-Term Memory",
+    "Model-Based Approaches",
+    "Multilayer Perceptrons",
+    "Neural radiance fields",
+    "Phong reflection model",
+    "Precision-recall curve",
+    "Projection of 3D Lines",
+    "Properties of a Signal",
+    "Sobel-Feldman operator",
+    "Strategies for success",
+    "The Plenoptic Function",
+    "The fundamental matrix",
+    "Velocity-Tuned Filters",
+    "global average pooling",
+    "good features to track",
+    "homogeneous coordinate",
+    "information bottleneck",
+    "leaning tower illusion",
+    "learning rate schedule",
+    "missclassication error",
+    "nonmaximum suppression",
+    "paraxial approximation",
+    "perspective projection",
+    "random dot stereograms",
+    "reinforcement learning",
+    "sequential computation",
+    "supported-by hierarchy",
+    "transmittance spectrum",
+    "vision-language models",
+    "Anti-Aliasing Filters",
+    "Cosine and Sine Waves",
+    "From Meters to Pixels",
+    "Global Pooling Layers",
+    "Instance Segmentation",
+    "Interpolation Filters",
+    "Lanczos interpolation",
+    "Lateral camera motion",
+    "Learning-Based Vision",
+    "Lenses in a Telescope",
+    "Network Visualization",
+    "Output Representation",
+    "Projective invariants",
+    "Rectified linear unit",
+    "Structure from Motion",
+    "System Identification",
+    "The Elements of Style",
+    "The Eye of the Artist",
+    "The Idea of Attention",
+    "Translation invariant",
+    "affine transformation",
+    "bicubic interpolation",
+    "binomial coefficients",
+    "disparity space image",
+    "fully connected layer",
+    "graph neural networks",
+    "image representations",
+    "learned loss function",
+    "only used 1x1 filters",
+    "stereo pinhole camera",
+    "structured prediction",
+    "translation invariant",
+    "unsupervised learning",
+    "variational inference",
+    "visual cognitive load",
+    "2.5D representations",
+    "Adversarial Training",
+    "Algorithmic Fairness",
+    "Allegory of the Cave",
+    "Anti-Aliasing Filter",
+    "Barber-pole illusion",
+    "Circular Convolution",
+    "Clustering in Vision",
+    "Complex Exponentials",
+    "Computational theory",
+    "Contrastive Learning",
+    "Contrastive learning",
+    "Convolutional Layers",
+    "Differential privacy",
+    "Encoder and Decoders",
+    "Evidence Lower Bound",
+    "Experimental Results",
+    "Feature Maps in CNNs",
+    "Finding the epipoles",
+    "From 2D Images to 3D",
+    "Gaussian Derivatives",
+    "General Writing Tips",
+    "Generalization error",
+    "How to End the Paper",
+    "Ideal Reconstruction",
+    "Image Classification",
+    "K-Means Segmentation",
+    "Looking at Raindrops",
+    "Marginal Probability",
+    "Monocular Depth Cues",
+    "Monte Carlo estimate",
+    "More General Imagers",
+    "Normalization Layers",
+    "Occlusion boundaries",
+    "Positional Encodings",
+    "Predictive Encodings",
+    "Temporal derivatives",
+    "The Aperture Problem",
+    "Visual psychophysics",
+    "adversarial examples",
+    "adversarially robust",
+    "autoregressive model",
+    "contrastive learning",
+    "convolutional kernel",
+    "convolutional layers",
+    "evolution strategies",
+    "feedback connections",
+    "lightness perception",
+    "mixture of Gaussians",
+    "one-sided derivative",
+    "oriented simple cell",
+    "reconstruction error",
+    "rectangular sampling",
+    "reflectance spectrum",
+    "residual connections",
+    "scale-invariant loss",
+    "similarity transform",
+    "unpaired translation",
+    "virtual camera plane",
+    "} = frac{1}{2theta2^",
+    "2D Binomial Filters",
+    "A Pictorial Summary",
+    "A Taxonomy of Talks",
+    "Adapting the Output",
+    "Adversarial Attacks",
+    "Anti-causal filters",
+    "Approximation error",
+    "Classification Loss",
+    "Dilated Convolution",
+    "Energy-Based Models",
+    "Energy-based models",
+    "From Pixels to Rays",
+    "Handling Boundaries",
+    "Handling occlusions",
+    "How to End the Talk",
+    "Image Rectification",
+    "Imaging with Lenses",
+    "Lambertian Surfaces",
+    "Lensmaker's Formula",
+    "Light Power Spectra",
+    "Locating a 3D Point",
+    "Markov random field",
+    "Model-Based Methods",
+    "Object Localization",
+    "Optical flow fields",
+    "Parallel Projection",
+    "Problem Formulation",
+    "Strided Convolution",
+    "The Attention Layer",
+    "adversarial attacks",
+    "adversarial example",
+    "amortized inference",
+    "circle of confusion",
+    "convolutional layer",
+    "dynamic programming",
+    "early visual system",
+    "holoscopic function",
+    "image rectification",
+    "importance sampling",
+    "in-context learning",
+    "index of refraction",
+    "light field cameras",
+    "marginal likelihood",
+    "mexican hat wavelet",
+    "out-of-distribution",
+    "perceptual grouping",
+    "reconstruction loss",
+    "rigidity assumption",
+    "robust optimization",
+    "stochastic function",
+    "strided convolution",
+    "supervised learning",
+    "surface orientation",
+    "vector quantization",
+    "virtual focal point",
+    "vision transformers",
+    "with the same shape",
+    "3D Representations",
+    "A Catalog of Edges",
+    "Adversarial Shifts",
+    "Avoiding Rejection",
+    "Belief Propagation",
+    "Camera Calibration",
+    "Camera Translation",
+    "Camera coordinates",
+    "Class Segmentation",
+    "Concluding Remarks",
+    "Delta Distribution",
+    "Depth versus Width",
+    "Gibbs distribution",
+    "Independent Pixels",
+    "Input photo source",
+    "Learning Principle",
+    "Linear Perspective",
+    "Modeling sequences",
+    "Multitask training",
+    "Name That Dataset!",
+    "Non-causal filters",
+    "Optimizing k-means",
+    "Parseval's Theorem",
+    "Perception of Sets",
+    "Plenoptic function",
+    "Pyrostegia venusta",
+    "Reprojection Error",
+    "Shape from shading",
+    "Signals and Images",
+    "The Gaussian Model",
+    "Theories of Vision",
+    "Tikonov regression",
+    "Two-Stage Networks",
+    "accidental cameras",
+    "belief propagation",
+    "continuous signals",
+    "convolution kernel",
+    "critically sampled",
+    "cross-entropy loss",
+    "dense optical flow",
+    "emergent structure",
+    "energy of a signal",
+    "exploding gradient",
+    "eye-gaze following",
+    "focus of expansion",
+    "fundamental matrix",
+    "global max pooling",
+    "hexagonal sampling",
+    "histogram matching",
+    "image segmentation",
+    "irregular sampling",
+    "linear perspective",
+    "low-level features",
+    "objective function",
+    "plenoptic function",
+    "reprojection error",
+    "sinusoidal texture",
+    "softmax regression",
+    "steering condition",
+    "Activation Layers",
+    "Activation layers",
+    "Catalog of Layers",
+    "Data Augmentation",
+    "Dead Leaves Model",
+    "Direct perception",
+    "Domain Adaptation",
+    "Domain adaptation",
+    "Exclusive classes",
+    "Full Camera Model",
+    "Gabor Filter Bank",
+    "Gradient Clipping",
+    "Image coordinates",
+    "Laplacian Pyramid",
+    "Laplacian pyramid",
+    "Learning to Learn",
+    "Nyquist condition",
+    "Object boundaries",
+    "Overparameterized",
+    "Parameter Sharing",
+    "Parameter sharing",
+    "Pascal's triangle",
+    "Photographer Bias",
+    "Residual Networks",
+    "Retinex algorithm",
+    "Sharpening Filter",
+    "Specular Surfaces",
+    "Steerable Pyramid",
+    "Technical Setting",
+    "Useful Transforms",
+    "World coordinates",
+    "amodal completion",
+    "biological motion",
+    "bundle adjustment",
+    "computation graph",
+    "cross-correlation",
+    "cycle-consistency",
+    "ecological optics",
+    "few-shot learning",
+    "good continuation",
+    "gradient clipping",
+    "illusory contours",
+    "law of reflection",
+    "low-pass residual",
+    "one-shot learning",
+    "paper bag pinhole",
+    "perceptual groups",
+    "periodic function",
+    "predictive coding",
+    "prior probability",
+    "ringing artifacts",
+    "sharpening filter",
+    "signal corruption",
+    "signal processing",
+    "similar triangles",
+    "soda straw camera",
+    "spatial frequency",
+    "steerable pyramid",
+    "steering equation",
+    "texture gradients",
+    "texture synthesis",
+    "training examples",
+    "transfer function",
+    "triangular filter",
+    "zero-phase filter",
+    "A Worked Example",
+    "Accidents Happen",
+    "Attention layers",
+    "Bayesian methods",
+    "Binomial Filters",
+    "Border ownership",
+    "CNNs in Disguise",
+    "Color Metamerism",
+    "Color Perception",
+    "Compositionality",
+    "Cues for Support",
+    "Diffusion Models",
+    "Diffusion models",
+    "Dual Convolution",
+    "Gaussian Pyramid",
+    "Heads and Probes",
+    "Hepatica Nobilis",
+    "Hepatica nobilis",
+    "Image Transforms",
+    "Image inpainting",
+    "Kanizsa triangle",
+    "Lambertian model",
+    "Laplacian filter",
+    "Low-Rank Filters",
+    "Masked Attention",
+    "Modal completion",
+    "Modifying Tokens",
+    "On collaboration",
+    "Other approaches",
+    "Receptive Fields",
+    "Receptive fields",
+    "Sampling Theorem",
+    "Selective search",
+    "Steering Theorem",
+    "Temporal filters",
+    "Texture analysis",
+    "Vanishing Points",
+    "aperture problem",
+    "attention layers",
+    "backward mapping",
+    "causal attention",
+    "conditional VAEs",
+    "confusion matrix",
+    "content creation",
+    "data/activations",
+    "diffusion models",
+    "essential matrix",
+    "familiar objects",
+    "geometric optics",
+    "gradient descent",
+    "higher frequency",
+    "hypothesis space",
+    "image captioning",
+    "image inpainting",
+    "impossible steps",
+    "latent variables",
+    "learned function",
+    "perceptual group",
+    "quadrature phase",
+    "radian frequency",
+    "sampling theorem",
+    "scale invariance",
+    "self-supervision",
+    "transformed data",
+    "vanishing points",
+    "vector embedding",
+    "visual awareness",
+    "volume rendering",
+    "Annotation Bias",
+    "Backpropagation",
+    "CIE Color Space",
+    "Camera Rotation",
+    "Collection Bias",
+    "Computer Vision",
+    "Emergent Groups",
+    "Facial Analysis",
+    "Gaussian Filter",
+    "Generative Data",
+    "Image Laplacian",
+    "Image Stitching",
+    "Infinite length",
+    "Key Ingredients",
+    "Layer Your Talk",
+    "Learning Method",
+    "Local Amplitude",
+    "Motion Analysis",
+    "Occlusion Edges",
+    "Optimizing VAEs",
+    "Past experience",
+    "Pinspeck Camera",
+    "Problem Setting",
+    "Recurrent Layer",
+    "Research Advice",
+    "Sampling Images",
+    "Simple Examples",
+    "Sources of Bias",
+    "Spatial Outputs",
+    "Stereo Matching",
+    "Tokenizing Data",
+    "Use Fewer Words",
+    "Vanishing Point",
+    "analytic signal",
+    "apparent motion",
+    "backpropagation",
+    "backtranslation",
+    "coring function",
+    "correspondences",
+    "cross-attention",
+    "discrete signal",
+    "disentanglement",
+    "dynamic pooling",
+    "encoder-decoder",
+    "fitting a model",
+    "generative data",
+    "hertz frequency",
+    "image alignment",
+    "interest points",
+    "language models",
+    "learned filters",
+    "likelihood term",
+    "local amplitude",
+    "mental rotation",
+    "operating point",
+    "parallax effect",
+    "patch of pixels",
+    "pinhole cameras",
+    "pinspeck camera",
+    "receptive field",
+    "reference frame",
+    "reward function",
+    "right-hand rule",
+    "sampling period",
+    "stereo anaglyph",
+    "stereo matching",
+    "time to contact",
+    "vanishing point",
+    ", then d{phi}^",
+    "Causal filters",
+    "Color Matching",
+    "Concave Lenses",
+    "Dataset Biases",
+    "Density Models",
+    "Depth of Field",
+    "Discretization",
+    "Fourier Series",
+    "Fourier series",
+    "Gaussian noise",
+    "Generalization",
+    "Hamming window",
+    "Image Blending",
+    "Linear Systems",
+    "Linear systems",
+    "Loss functions",
+    "Moire patterns",
+    "Planar Surface",
+    "Pooling Layers",
+    "Pooling layers",
+    "Reconstruction",
+    "Regularization",
+    "Representation",
+    "Self-Attention",
+    "Self-attention",
+    "amplitude gain",
+    "camera obscura",
+    "circular shift",
+    "cluster center",
+    "direct current",
+    "endpoint error",
+    "epipolar lines",
+    "epipolar plane",
+    "maximal clique",
+    "mixture models",
+    "moving element",
+    "negative pairs",
+    "nonlocal means",
+    "nulling filter",
+    "phi phenomenon",
+    "pinhole camera",
+    "positive pairs",
+    "power spectrum",
+    "primary lights",
+    "radiance field",
+    "representation",
+    "residual block",
+    "self-inverting",
+    "sign invariant",
+    "straight lines",
+    "surrogate loss",
+    "target encoder",
+    "transformation",
+    "turbo colormap",
+    "vision science",
+    "A Simple Goal",
+    "A Toy Example",
+    "Architectures",
+    "Color Physics",
+    "Contact Edges",
+    "Contact edges",
+    "Corner Camera",
+    "Deep learning",
+    "Finite length",
+    "Gabor Filters",
+    "Image Warping",
+    "Image-to-Text",
+    "Interpolation",
+    "Linear Layers",
+    "Mixing Tokens",
+    "OFF-center RF",
+    "Occam's razor",
+    "On authorship",
+    "Output Layers",
+    "Roberts cross",
+    "Short Summary",
+    "Some Examples",
+    "Table Caption",
+    "Text-to-Image",
+    "Tokenwise MLP",
+    "Triangulation",
+    "backward pass",
+    "basis filters",
+    "corner camera",
+    "deep learning",
+    "discrete sinc",
+    "discriminator",
+    "figure-ground",
+    "finite energy",
+    "gauge-figures",
+    "generic views",
+    "grouping laws",
+    "image encoder",
+    "image-to-text",
+    "impulse train",
+    "learning rate",
+    "linear probes",
+    "loss function",
+    "magnification",
+    "natural image",
+    "oriented bars",
+    "set of pixels",
+    "sinc function",
+    "text-to-image",
+    "triangulation",
+    "vector fields",
+    "visual cortex",
+    "All the time",
+    "Architecture",
+    "Autoencoders",
+    "Box Function",
+    "Case Studies",
+    "Dataset Bias",
+    "Distributive",
+    "Downsampling",
+    "Euler angles",
+    "Extramission",
+    "Horizon Line",
+    "InfoNCE loss",
+    "Introduction",
+    "Markov chain",
+    "Optical flow",
+    "Optimization",
+    "Organization",
+    "Photo source",
+    "Plato's Cave",
+    "Segmentation",
+    "Separability",
+    "Shadow edges",
+    "Shortcomings",
+    "Tokenization",
+    "Training set",
+    "Transformers",
+    "all of which",
+    "bounding box",
+    "conic matrix",
+    "disentangled",
+    "downsampling",
+    "equivariance",
+    "focal length",
+    "forward pass",
+    "generic view",
+    "ground plane",
+    "hard workers",
+    "hidden units",
+    "horizon line",
+    "hypernetwork",
+    "intromission",
+    "jet colormap",
+    "learned loss",
+    "mean pooling",
+    "metalearning",
+    "orthographic",
+    "output layer",
+    "pretext task",
+    "smooth prior",
+    "standardizes",
+    "target frame",
+    "training set",
+    "triplet loss",
+    "type 1 batch",
+    "type 2 batch",
+    "undersampled",
+    "unsupervised",
+    "Associative",
+    "Author List",
+    "Block world",
+    "Common fate",
+    "Commutative",
+    "Compression",
+    "Computation",
+    "Convolution",
+    "Cross-Ratio",
+    "Description",
+    "Edge Camera",
+    "Formulation",
+    "Hebb's rule",
+    "Invariances",
+    "Koffka ring",
+    "Limitations",
+    "Local Phase",
+    "Motion Blur",
+    "Nervousness",
+    "Preparation",
+    "Pretraining",
+    "Snell's Law",
+    "Social Bias",
+    "Stereo Cues",
+    "Translation",
+    "checkpoints",
+    "code vector",
+    "convolution",
+    "correlation",
+    "data matrix",
+    "delta train",
+    "diffraction",
+    "edge camera",
+    "equivariant",
+    "feature map",
+    "feedforward",
+    "filter bank",
+    "focal plane",
+    "hypercolumn",
+    "image edges",
+    "layer-based",
+    "light field",
+    "local phase",
+    "many-to-one",
+    "max pooling",
+    "max-product",
+    "one-to-many",
+    "overfitting",
+    "oversampled",
+    "parallelism",
+    "perspective",
+    "phase shift",
+    "ray casting",
+    "reflectance",
+    "scale drift",
+    "scale space",
+    "sine series",
+    "temperature",
+    "transformer",
+    "trichromacy",
+    "Adaptation",
+    "Box Filter",
+    "Catoptrica",
+    "Clustering",
+    "Decimation",
+    "Dirac comb",
+    "Evaluation",
+    "Finetuning",
+    "Homography",
+    "Imputation",
+    "Prediction",
+    "Properties",
+    "Sparse SFM",
+    "Token Nets",
+    "Toy models",
+    "Uniformity",
+    "Upsampling",
+    "affordance",
+    "background",
+    "batch size",
+    "bottleneck",
+    "calibrated",
+    "cell state",
+    "clustering",
+    "divergence",
+    "embeddings",
+    "end-to-end",
+    "exact same",
+    "foreground",
+    "front wall",
+    "generalize",
+    "homography",
+    "imputation",
+    "input data",
+    "likelihood",
+    "neural net",
+    "off-center",
+    "parameters",
+    "perceptron",
+    "projection",
+    "prototypes",
+    "recurrence",
+    "refraction",
+    "reorganize",
+    "similarity",
+    "slow prior",
+    "sparse SFM",
+    "subitizing",
+    "think fast",
+    "token nets",
+    "visibility",
+    "worst case",
+    "Ames room",
+    "Boltzmann",
+    "Deep Nets",
+    "Evolution",
+    "Expansion",
+    "Lightness",
+    "Linearity",
+    "Main Idea",
+    "Prompting",
+    "alignment",
+    "amplitude",
+    "batchnorm",
+    "byte-pair",
+    "depth map",
+    "disparity",
+    "embedding",
+    "frequency",
+    "gain maps",
+    "generator",
+    "invariant",
+    "layernorm",
+    "left side",
+    "light ray",
+    "minus red",
+    "on-center",
+    "precision",
+    "proximity",
+    "transects",
+    "treewidth",
+    "visualize",
+    "zero-shot",
+    "0-1 loss",
+    "Aliasing",
+    "Crowding",
+    "DC value",
+    "Defenses",
+    "Fairness",
+    "Flatland",
+    "Hardware",
+    "Identity",
+    "Momentum",
+    "PatchGAN",
+    "Progress",
+    "Question",
+    "Relation",
+    "Rotation",
+    "Sampling",
+    "Segments",
+    "Shearing",
+    "affinity",
+    "aliasing",
+    "big data",
+    "boosting",
+    "channels",
+    "convnets",
+    "crowding",
+    "denoiser",
+    "elations",
+    "encoding",
+    "epipoles",
+    "evidence",
+    "f-number",
+    "indirect",
+    "locality",
+    "messages",
+    "momentum",
+    "parallel",
+    "periodic",
+    "read out",
+    "sampling",
+    "spectrum",
+    "steering",
+    "symmetry",
+    "test set",
+    "timestep",
+    "training",
+    "unpaired",
+    "vanished",
+    "DC gain",
+    "Encoder",
+    "K-Means",
+    "ResNets",
+    "Results",
+    "Retinex",
+    "Scaling",
+    "Shading",
+    "Support",
+    "Systems",
+    "cascade",
+    "closure",
+    "columns",
+    "compute",
+    "concave",
+    "context",
+    "decoded",
+    "decoder",
+    "density",
+    "encoded",
+    "encoder",
+    "for all",
+    "impulse",
+    "infomax",
+    "inliers",
+    "objects",
+    "ordinal",
+    "pooling",
+    "sampled",
+    "simplex",
+    "softmax",
+    "stimuli",
+    "systems",
+    "testing",
+    "textons",
+    ", psi^",
+    "-means",
+    "Answer",
+    "Ethics",
+    "Figure",
+    "Images",
+    "Layers",
+    "Reason",
+    "Source",
+    "U-Nets",
+    "Vision",
+    "albedo",
+    "blurry",
+    "clique",
+    "coarse",
+    "domain",
+    "lenses",
+    "logits",
+    "margin",
+    "priors",
+    "recall",
+    "retina",
+    "signal",
+    "system",
+    "tensor",
+    "Angle",
+    "Edges",
+    "Geons",
+    "LSTMs",
+    "NeRFs",
+    "Nodes",
+    "Pixel",
+    "Shift",
+    "U-Net",
+    "Voxel",
+    "block",
+    "cVAEs",
+    "depth",
+    "et al",
+    "fovea",
+    "gamut",
+    "graph",
+    "layer",
+    "phase",
+    "query",
+    "sincd",
+    "stuff",
+    "t-SNE",
+    "top-1",
+    "top-5",
+    "value",
+    "views",
+    "where",
+    "width",
+    ", b^",
+    "BPTT",
+    "CNNs",
+    "DAGs",
+    "ELBO",
+    "GANs",
+    "GNNs",
+    "Loss",
+    "RNNs",
+    "SDFs",
+    "Tone",
+    "VLMs",
+    "ViTs",
+    "bias",
+    "fine",
+    "loss",
+    "rays",
+    "relu",
+    "sinc",
+    "what",
+    "EBM",
+    "ERM",
+    "GAN",
+    "GMM",
+    "GPT",
+    "LRN",
+    "MSA",
+    "NLP",
+    "PCA",
+    "SRN",
+    "VAE",
+    "VQA",
+    "and",
+    "key",
+    "pmf",
+    "V1",
+    "or",
+    "("
+  ],
+  "by_line": {
+    "L00003": [
+      "Introduction"
+    ],
+    "L00043": [
+      "vision science"
+    ],
+    "L00046": [
+      "Vision"
+    ],
+    "L00064": [
+      "The Input: The Structure of Ambient Light"
+    ],
+    "L00106": [
+      "plenoptic function"
+    ],
+    "L00113": [
+      "Plenoptic function"
+    ],
+    "L00114": [
+      "holoscopic function"
+    ],
+    "L00135": [
+      "The Output: Measuring Light Versus Measuring Scene Properties"
+    ],
+    "L00139": [
+      "visual awareness"
+    ],
+    "L00203": [
+      "Theories of Vision"
+    ],
+    "L00213": [
+      "The Origins of the Science of Perception"
+    ],
+    "L00224": [
+      "eye-gaze following"
+    ],
+    "L00245": [
+      "intromission"
+    ],
+    "L00253": [
+      "Extramission"
+    ],
+    "L00259": [
+      "rays"
+    ],
+    "L00313": [
+      "straight lines"
+    ],
+    "L00366": [
+      "perspective"
+    ],
+    "L00374": [
+      "Catoptrica"
+    ],
+    "L00375": [
+      "law of reflection"
+    ],
+    "L00378": [
+      "refraction"
+    ],
+    "L00398": [
+      "camera obscura"
+    ],
+    "L00416": [
+      "lenses"
+    ],
+    "L00423": [
+      "Helmholtz: Perception as Inference"
+    ],
+    "L00431": [
+      "trichromacy"
+    ],
+    "L00464": [
+      "Bayesian methods"
+    ],
+    "L00471": [
+      "unconscious conclusions"
+    ],
+    "L00497": [
+      "Gestalt Psychology and Perceptual Organization"
+    ],
+    "L00502": [
+      "phi phenomenon"
+    ],
+    "L00525": [
+      "perceptual organization"
+    ],
+    "L00538": [
+      "grouping laws"
+    ],
+    "L00542": [
+      "proximity"
+    ],
+    "L00549": [
+      "similarity"
+    ],
+    "L00553": [
+      "closure"
+    ],
+    "L00559": [
+      "good continuation"
+    ],
+    "L00565": [
+      "parallelism",
+      "symmetry"
+    ],
+    "L00569": [
+      "Common fate"
+    ],
+    "L00573": [
+      "Past experience"
+    ],
+    "L00594": [
+      "lightness perception"
+    ],
+    "L00597": [
+      "Lightness"
+    ],
+    "L00611": [
+      "Koffka ring"
+    ],
+    "L00633": [
+      "amodal completion"
+    ],
+    "L00639": [
+      "amodal completion"
+    ],
+    "L00646": [
+      "Modal completion"
+    ],
+    "L00649": [
+      "Kanizsa triangle"
+    ],
+    "L00660": [
+      "illusory contours"
+    ],
+    "L00676": [
+      "image segmentation"
+    ],
+    "L00678": [
+      "Gibson's Ecological Approach to Visual Perception"
+    ],
+    "L00709": [
+      "ground plane"
+    ],
+    "L00726": [
+      "ecological optics"
+    ],
+    "L00743": [
+      "affordance"
+    ],
+    "L00755": [
+      "Direct perception"
+    ],
+    "L00758": [
+      "indirect"
+    ],
+    "L00764": [
+      "stimuli"
+    ],
+    "L00769": [
+      "The Neural Mechanisms of Visual Perception"
+    ],
+    "L00819": [
+      "retina"
+    ],
+    "L00829": [
+      "receptive field"
+    ],
+    "L00842": [
+      "receptive field"
+    ],
+    "L00853": [
+      "center-surround organization"
+    ],
+    "L00857": [
+      "on-center"
+    ],
+    "L00862": [
+      "off-center"
+    ],
+    "L00865": [
+      "computational neuroscience"
+    ],
+    "L00866": [
+      "neuromorphic engineering"
+    ],
+    "L00872": [
+      "lateral geniculate nucleus"
+    ],
+    "L00880": [
+      "feedback connections"
+    ],
+    "L00885": [
+      "visual cortex"
+    ],
+    "L00889": [
+      "ON-center Receptive Field (RF)"
+    ],
+    "L00894": [
+      "OFF-center RF"
+    ],
+    "L00915": [
+      "oriented bars"
+    ],
+    "L00930": [
+      "oriented simple cell"
+    ],
+    "L00938": [
+      "V1"
+    ],
+    "L00940": [
+      "columns"
+    ],
+    "L00948": [
+      "hypercolumn"
+    ],
+    "L00987": [
+      "Marr's Computational Theory of Vision"
+    ],
+    "L01010": [
+      "information-processing task"
+    ],
+    "L01013": [
+      "Computational theory"
+    ],
+    "L01022": [
+      "Representation"
+    ],
+    "L01039": [
+      "Hardware"
+    ],
+    "L01079": [
+      "depth map"
+    ],
+    "L01095": [
+      "gauge-figures"
+    ],
+    "L01115": [
+      "Computer Vision"
+    ],
+    "L01205": [
+      "Learning-Based Vision"
+    ],
+    "L01240": [
+      "perceptron"
+    ],
+    "L01265": [
+      "Perceptrons: an introduction to computational geometry"
+    ],
+    "L01275": [
+      "deep learning"
+    ],
+    "L01303": [
+      "boosting"
+    ],
+    "L01322": [
+      "end-to-end"
+    ],
+    "L01370": [
+      "Concluding Remarks"
+    ],
+    "L01383": [
+      "Introduction"
+    ],
+    "L01407": [
+      "A Simple World: The Blocks World"
+    ],
+    "L01412": [
+      "Block world"
+    ],
+    "L01432": [
+      "A Simple Image Formation Model"
+    ],
+    "L01434": [
+      "parallel"
+    ],
+    "L01435": [
+      "orthographic",
+      "projection"
+    ],
+    "L01443": [
+      "perspective projection"
+    ],
+    "L01501": [
+      "A Simple Goal"
+    ],
+    "L01515": [
+      "From Images to Edges and Useful Features"
+    ],
+    "L01519": [
+      "representation"
+    ],
+    "L01550": [
+      "Question"
+    ],
+    "L01551": [
+      "Answer"
+    ],
+    "L01555": [
+      "A Catalog of Edges"
+    ],
+    "L01567": [
+      "image edges"
+    ],
+    "L01571": [
+      "Object boundaries"
+    ],
+    "L01575": [
+      "surface orientation"
+    ],
+    "L01581": [
+      "Shadow edges"
+    ],
+    "L01587": [
+      "Contact edges"
+    ],
+    "L01590": [
+      "Occlusion boundaries"
+    ],
+    "L01602": [
+      "Extracting Edges from Images"
+    ],
+    "L01670": [
+      "From Edges to Surfaces"
+    ],
+    "L01685": [
+      "figure-ground"
+    ],
+    "L01693": [
+      "Figure/Ground Segmentation"
+    ],
+    "L01700": [
+      "foreground",
+      "background"
+    ],
+    "L01705": [
+      "image segmentation"
+    ],
+    "L01714": [
+      "Occlusion Edges"
+    ],
+    "L01724": [
+      "Border ownership"
+    ],
+    "L01734": [
+      "Contact Edges"
+    ],
+    "L01755": [
+      "Generic View and Nonaccidental Scene Properties"
+    ],
+    "L01789": [
+      "nonaccidental properties"
+    ],
+    "L01792": [
+      "generic view"
+    ],
+    "L01811": [
+      "generic views"
+    ],
+    "L01872": [
+      "Constraint Propagation"
+    ],
+    "L01908": [
+      "A Simple Inference Scheme"
+    ],
+    "L01955": [
+      "Results"
+    ],
+    "L01998": [
+      "Generalization"
+    ],
+    "L02001": [
+      "generalize"
+    ],
+    "L02010": [
+      "Out of domain generalization",
+      "domain"
+    ],
+    "L02026": [
+      "impossible steps"
+    ],
+    "L02039": [
+      "Concluding Remarks"
+    ],
+    "L02072": [
+      "Introduction"
+    ],
+    "L02097": [
+      "Looking at Individual Pixels"
+    ],
+    "L02140": [
+      "The More You Look, the More You See"
+    ],
+    "L02159": [
+      "visual cognitive load"
+    ],
+    "L02167": [
+      "big data"
+    ],
+    "L02175": [
+      "The Eye of the Artist"
+    ],
+    "L02201": [
+      "Tree Shadows and Image Formation"
+    ],
+    "L02225": [
+      "pinhole cameras"
+    ],
+    "L02236": [
+      "Horizontal or Vertical"
+    ],
+    "L02253": [
+      "vanishing points"
+    ],
+    "L02262": [
+      "Motion Blur"
+    ],
+    "L02280": [
+      "Accidents Happen"
+    ],
+    "L02322": [
+      "Cues for Support"
+    ],
+    "L02338": [
+      "Looking at Raindrops"
+    ],
+    "L02345": [
+      "light field cameras"
+    ],
+    "L02358": [
+      "Plato's Cave"
+    ],
+    "L02360": [
+      "Allegory of the Cave"
+    ],
+    "L02398": [
+      "Concluding Remarks"
+    ],
+    "L02427": [
+      "Introduction"
+    ],
+    "L02446": [
+      "Algorithmic Fairness"
+    ],
+    "L02463": [
+      "Fairness"
+    ],
+    "L02481": [
+      "Facial Analysis"
+    ],
+    "L02506": [
+      "Dataset Biases"
+    ],
+    "L02578": [
+      "Counterfactuals for Analyzing Algorithmic Biases"
+    ],
+    "L02591": [
+      "transects"
+    ],
+    "L02598": [
+      "transects"
+    ],
+    "L02600": [
+      "Privacy and Differential Privacy"
+    ],
+    "L02621": [
+      "Differential privacy"
+    ],
+    "L02662": [
+      "Ethics"
+    ],
+    "L02670": [
+      "Concerns beyond Algorithmic Bias"
+    ],
+    "L02703": [
+      "Some Ethical Issues in Computer Vision"
+    ],
+    "L02782": [
+      "Concluding Remarks"
+    ],
+    "L02793": [
+      "Introduction"
+    ],
+    "L02804": [
+      "Light Interacting with Surfaces"
+    ],
+    "L02808": [
+      "light ray"
+    ],
+    "L02829": [
+      "Lambertian Surfaces"
+    ],
+    "L02835": [
+      "Lambertian model"
+    ],
+    "L02844": [
+      "reflectance"
+    ],
+    "L02845": [
+      "albedo"
+    ],
+    "L02858": [
+      "Specular Surfaces"
+    ],
+    "L02861": [
+      "Phong reflection model"
+    ],
+    "L02895": [
+      "The Pinhole Camera and Image Formation"
+    ],
+    "L02916": [
+      "pinhole camera"
+    ],
+    "L02960": [
+      "paper bag pinhole"
+    ],
+    "L02990": [
+      "accidental cameras"
+    ],
+    "L02993": [
+      "Image Formation by Perspective Projection"
+    ],
+    "L03002": [
+      "right-hand rule"
+    ],
+    "L03009": [
+      "World coordinates"
+    ],
+    "L03015": [
+      "Camera coordinates",
+      "virtual camera plane"
+    ],
+    "L03028": [
+      "Image coordinates"
+    ],
+    "L03051": [
+      "similar triangles"
+    ],
+    "L03081": [
+      "Image Formation by Orthographic Projection"
+    ],
+    "L03086": [
+      "orthographic projection"
+    ],
+    "L03122": [
+      "soda straw camera"
+    ],
+    "L03148": [
+      "Concluding Remarks"
+    ],
+    "L03162": [
+      "Introduction"
+    ],
+    "L03175": [
+      "geometric optics"
+    ],
+    "L03194": [
+      "Lensmaker's Formula"
+    ],
+    "L03198": [
+      "refraction"
+    ],
+    "L03201": [
+      "Snell's Law"
+    ],
+    "L03203": [
+      "index of refraction"
+    ],
+    "L03263": [
+      "paraxial approximation"
+    ],
+    "L03265": [
+      "thin lens approximation"
+    ],
+    "L03277": [
+      "Angle",
+      "Description",
+      "Relation",
+      "Reason"
+    ],
+    "L03318": [
+      "focal length"
+    ],
+    "L03360": [
+      "Imaging with Lenses"
+    ],
+    "L03374": [
+      "perspective projection"
+    ],
+    "L03392": [
+      "perspective projection"
+    ],
+    "L03395": [
+      "magnification"
+    ],
+    "L03423": [
+      "Depth of Field"
+    ],
+    "L03425": [
+      "focal plane"
+    ],
+    "L03426": [
+      "circle of confusion"
+    ],
+    "L03454": [
+      "f-number"
+    ],
+    "L03486": [
+      "Concave Lenses"
+    ],
+    "L03488": [
+      "concave"
+    ],
+    "L03513": [
+      "left side"
+    ],
+    "L03514": [
+      "virtual focal point"
+    ],
+    "L03518": [
+      "Lenses in a Telescope"
+    ],
+    "L03584": [
+      "Concluding Remarks"
+    ],
+    "L03601": [
+      "Introduction"
+    ],
+    "L03614": [
+      "Flatland"
+    ],
+    "L03621": [
+      "light field"
+    ],
+    "L03626": [
+      "Cameras as Linear Systems"
+    ],
+    "L03672": [
+      "More General Imagers"
+    ],
+    "L03678": [
+      "Edge Camera"
+    ],
+    "L03680": [
+      "edge camera"
+    ],
+    "L03719": [
+      "Pinspeck Camera"
+    ],
+    "L03723": [
+      "pinspeck camera"
+    ],
+    "L03732": [
+      "Corner Camera"
+    ],
+    "L03734": [
+      "corner camera"
+    ],
+    "L03778": [
+      "Concluding Remarks"
+    ],
+    "L03787": [
+      "Introduction"
+    ],
+    "L03800": [
+      "Color Physics"
+    ],
+    "L03818": [
+      "spectrum"
+    ],
+    "L03830": [
+      "refraction"
+    ],
+    "L03833": [
+      "diffraction"
+    ],
+    "L03858": [
+      "Light Power Spectra"
+    ],
+    "L03860": [
+      "power spectrum"
+    ],
+    "L03884": [
+      "The Color Appearance of Different Spectral Bands"
+    ],
+    "L03896": [
+      "minus red"
+    ],
+    "L03901": [
+      "Light Reflecting from Surfaces"
+    ],
+    "L03907": [
+      "reflectance spectrum"
+    ],
+    "L03910": [
+      "transmittance spectrum"
+    ],
+    "L03913": [
+      "Hepatica Nobilis",
+      "Pyrostegia venusta"
+    ],
+    "L03915": [
+      "Hepatica nobilis",
+      "Pyrostegia venusta"
+    ],
+    "L03948": [
+      "Color Perception"
+    ],
+    "L03952": [
+      "The Machinery of the Eye"
+    ],
+    "L03977": [
+      "fovea"
+    ],
+    "L04007": [
+      "Color Matching"
+    ],
+    "L04036": [
+      "Color Metamerism"
+    ],
+    "L04053": [
+      "Linear Algebraic Interpretation of Color Matching"
+    ],
+    "L04071": [
+      "color reproduction system"
+    ],
+    "L04084": [
+      "Color Matching Functions and Primary Lights"
+    ],
+    "L04092": [
+      "primary lights"
+    ],
+    "L04102": [
+      "gamut"
+    ],
+    "L04195": [
+      "CIE Color Space"
+    ],
+    "L04219": [
+      "CIE chromaticity coordinates"
+    ],
+    "L04222": [
+      "Spatial Resolution and Color"
+    ],
+    "L04251": [
+      "Concluding Remarks"
+    ],
+    "L04268": [
+      "Introduction"
+    ],
+    "L04283": [
+      "training"
+    ],
+    "L04285": [
+      "testing"
+    ],
+    "L04288": [
+      "Learning from Examples"
+    ],
+    "L04291": [
+      "supervised learning"
+    ],
+    "L04336": [
+      "supervised learning"
+    ],
+    "L04338": [
+      "fitting a model"
+    ],
+    "L04359": [
+      "Learning without Examples"
+    ],
+    "L04364": [
+      "unsupervised learning",
+      "reinforcement learning"
+    ],
+    "L04366": [
+      "input data"
+    ],
+    "L04370": [
+      "objective function"
+    ],
+    "L04376": [
+      "reward function"
+    ],
+    "L04389": [
+      "Key Ingredients"
+    ],
+    "L04403": [
+      "compute"
+    ],
+    "L04410": [
+      "learned function"
+    ],
+    "L04413": [
+      "objective function",
+      "loss function",
+      "loss"
+    ],
+    "L04415": [
+      "Importance of Parameterization"
+    ],
+    "L04438": [
+      "Overparameterized"
+    ],
+    "L04444": [
+      "ERM"
+    ],
+    "L04459": [
+      "Learning as Probabilistic Inference"
+    ],
+    "L04470": [
+      "likelihood"
+    ],
+    "L04472": [
+      "maximum likelihood learning"
+    ],
+    "L04476": [
+      "priors"
+    ],
+    "L04479": [
+      "("
+    ],
+    "L04487": [
+      "Case Studies"
+    ],
+    "L04492": [
+      "Example 1: Linear Least-Squares Regression"
+    ],
+    "L04508": [
+      "hypothesis space"
+    ],
+    "L04605": [
+      "Example 2: Program Induction"
+    ],
+    "L04629": [
+      "Example 3: Classification and Softmax Regression"
+    ],
+    "L04661": [
+      "0-1 loss"
+    ],
+    "L04677": [
+      "represent the probability"
+    ],
+    "L04683": [
+      "pmf"
+    ],
+    "L04686": [
+      "simplex"
+    ],
+    "L04701": [
+      "softmax"
+    ],
+    "L04711": [
+      "logits"
+    ],
+    "L04746": [
+      "Learning to Learn"
+    ],
+    "L04748": [
+      "metalearning"
+    ],
+    "L04787": [
+      "Evolution"
+    ],
+    "L04789": [
+      "Concluding Remarks"
+    ],
+    "L04798": [
+      "Introduction"
+    ],
+    "L04800": [
+      "gradient descent"
+    ],
+    "L04802": [
+      "gradient-based learning algorithms"
+    ],
+    "L04804": [
+      "operating point"
+    ],
+    "L04806": [
+      "Technical Setting"
+    ],
+    "L04819": [
+      "zeroth-order optimization"
+    ],
+    "L04821": [
+      "gradient-based optimization",
+      "first-order optimization"
+    ],
+    "L04825": [
+      "Basic Gradient Descent"
+    ],
+    "L04831": [
+      "learning rate"
+    ],
+    "L04833": [
+      "Learning Rate Schedules"
+    ],
+    "L04835": [
+      "learning rate schedule"
+    ],
+    "L04859": [
+      "Momentum"
+    ],
+    "L04861": [
+      "momentum"
+    ],
+    "L04879": [
+      "one-sided derivative"
+    ],
+    "L04881": [
+      "vanished",
+      "exploding gradient"
+    ],
+    "L04888": [
+      "Gradient-Like Optimization for Functions without Good Gradients"
+    ],
+    "L04892": [
+      "surrogate loss",
+      "evolution strategies"
+    ],
+    "L04900": [
+      "Gradient Clipping"
+    ],
+    "L04902": [
+      "gradient clipping"
+    ],
+    "L04915": [
+      "Stochastic Gradient Descent"
+    ],
+    "L04927": [
+      "batch size"
+    ],
+    "L04936": [
+      "stochastic gradient descent"
+    ],
+    "L04945": [
+      "Concluding Remarks"
+    ],
+    "L04951": [
+      "Introduction"
+    ],
+    "L04954": [
+      "training set"
+    ],
+    "L04955": [
+      "test set"
+    ],
+    "L04964": [
+      "overfitting"
+    ],
+    "L04966": [
+      "generalize"
+    ],
+    "L04969": [
+      "Underfitting and Overfitting"
+    ],
+    "L04981": [
+      "Background: The Polynomial Regression Learning Problem"
+    ],
+    "L05014": [
+      "data matrix"
+    ],
+    "L05021": [
+      "Polynomial Regression as a Lens into Generalization"
+    ],
+    "L05035": [
+      "data generating process"
+    ],
+    "L05063": [
+      "Approximation error"
+    ],
+    "L05074": [
+      "Generalization error"
+    ],
+    "L05107": [
+      "Regularization"
+    ],
+    "L05114": [
+      "Regularization"
+    ],
+    "L05118": [
+      "Occam's razor"
+    ],
+    "L05135": [
+      "Tikonov regression"
+    ],
+    "L05148": [
+      "Regularizers as Probabilistic Priors"
+    ],
+    "L05150": [
+      "priors"
+    ],
+    "L05161": [
+      "Revisiting the star Problem"
+    ],
+    "L05210": [
+      "Rethinking Generalization"
+    ],
+    "L05289": [
+      "Experiment 1: Effect of Data"
+    ],
+    "L05355": [
+      "Experiment 2: Effect of Priors"
+    ],
+    "L05395": [
+      "Experiment 3: Effect of the Hypothesis Space"
+    ],
+    "L05426": [
+      "Summary of the Experiments"
+    ],
+    "L05449": [
+      "Concluding Remarks"
+    ],
+    "L05457": [
+      "for all"
+    ],
+    "L05466": [
+      "Introduction"
+    ],
+    "L05504": [
+      "bias"
+    ],
+    "L05509": [
+      "The Perceptron as a Classifier"
+    ],
+    "L05525": [
+      "Learning with a Perceptron"
+    ],
+    "L05533": [
+      ", b^"
+    ],
+    "L05560": [
+      "Multilayer Perceptrons"
+    ],
+    "L05571": [
+      "layer"
+    ],
+    "L05573": [
+      "hidden units"
+    ],
+    "L05587": [
+      "("
+    ],
+    "L05604": [
+      "Activations Versus Parameters"
+    ],
+    "L05644": [
+      "Fast Activations and Slow Parameters"
+    ],
+    "L05661": [
+      "Deep Nets"
+    ],
+    "L05732": [
+      "Rectified linear unit",
+      "relu"
+    ],
+    "L05757": [
+      "universal approximation theorem"
+    ],
+    "L05829": [
+      "Depth versus Width"
+    ],
+    "L05833": [
+      "width"
+    ],
+    "L05840": [
+      "depth"
+    ],
+    "L05856": [
+      "Deep Learning: Learning with Neural Nets"
+    ],
+    "L05858": [
+      "hypothesis space"
+    ],
+    "L05860": [
+      "Deep learning"
+    ],
+    "L05865": [
+      "backpropagation"
+    ],
+    "L05876": [
+      "Hebb's rule"
+    ],
+    "L05881": [
+      "infomax"
+    ],
+    "L05892": [
+      "Data Structures for Deep Learning: Tensors and Batches"
+    ],
+    "L05894": [
+      "tensor"
+    ],
+    "L05917": [
+      "channels"
+    ],
+    "L05972": [
+      "Catalog of Layers"
+    ],
+    "L05975": [
+      "parameters"
+    ],
+    "L05976": [
+      "data/activations"
+    ],
+    "L05987": [
+      "Linear Layers"
+    ],
+    "L06001": [
+      "Activation Layers"
+    ],
+    "L06008": [
+      "Activation layers"
+    ],
+    "L06033": [
+      "Normalization Layers"
+    ],
+    "L06039": [
+      "batchnorm"
+    ],
+    "L06041": [
+      "standardizes"
+    ],
+    "L06064": [
+      "and"
+    ],
+    "L06065": [
+      "layernorm"
+    ],
+    "L06113": [
+      "Output Layers"
+    ],
+    "L06115": [
+      "output layer"
+    ],
+    "L06136": [
+      "temperature"
+    ],
+    "L06202": [
+      "internal representations"
+    ],
+    "L06206": [
+      "Concluding Remarks"
+    ],
+    "L06224": [
+      "Introduction"
+    ],
+    "L06226": [
+      "geometric transformation of a data distribution"
+    ],
+    "L06228": [
+      "A Different Way of Plotting Functions"
+    ],
+    "L06244": [
+      "How Deep Nets Remap a Data Distribution"
+    ],
+    "L06254": [
+      "embedding"
+    ],
+    "L06264": [
+      "Binary Classifier Example"
+    ],
+    "L06292": [
+      "checkpoints"
+    ],
+    "L06304": [
+      "How High-Dimensional Datapoints Get Remapped by Deep Net"
+    ],
+    "L06306": [
+      "dimensionality reduction",
+      "t-Distributed Stochastic Neighbor Embedding",
+      "t-SNE"
+    ],
+    "L06312": [
+      "disentangled"
+    ],
+    "L06314": [
+      "Concluding Remarks"
+    ],
+    "L06320": [
+      "Introduction"
+    ],
+    "L06324": [
+      "computation graph"
+    ],
+    "L06355": [
+      "Backpropagation"
+    ],
+    "L06363": [
+      "The Trick of Backpropagation: Reuse of Computation"
+    ],
+    "L06428": [
+      "dynamic programming"
+    ],
+    "L06430": [
+      "Backward for a Generic Layer"
+    ],
+    "L06454": [
+      "at a single operating point"
+    ],
+    "L06506": [
+      "The Full Algorithm: Forward, Then Backward"
+    ],
+    "L06520": [
+      "forward pass"
+    ],
+    "L06533": [
+      "backward pass"
+    ],
+    "L06545": [
+      "Backpropagation Over Data Batches"
+    ],
+    "L06580": [
+      "Example: Backpropagation for an MLP"
+    ],
+    "L06593": [
+      "Backpropagation for a Linear Layer"
+    ],
+    "L06752": [
+      "Backpropagation for a Pointwise Nonlinearity"
+    ],
+    "L06802": [
+      "Backpropagation for Loss Layers"
+    ],
+    "L06829": [
+      "Putting It All Together: Backpropagation through an MLP"
+    ],
+    "L06910": [
+      "hypernetwork"
+    ],
+    "L06924": [
+      "Backpropagation through DAGs: Branch and Merge"
+    ],
+    "L06928": [
+      "DAGs"
+    ],
+    "L07020": [
+      "Parameter Sharing"
+    ],
+    "L07022": [
+      "Parameter sharing"
+    ],
+    "L07039": [
+      "Backpropagation to the Data"
+    ],
+    "L07087": [
+      "Concluding Remarks"
+    ],
+    "L07095": [
+      "Introduction"
+    ],
+    "L07104": [
+      "low-level features"
+    ],
+    "L07119": [
+      "signal processing"
+    ],
+    "L07123": [
+      "Signals and Images"
+    ],
+    "L07125": [
+      "signal"
+    ],
+    "L07127": [
+      "system"
+    ],
+    "L07130": [
+      "Continuous and Discrete Signals"
+    ],
+    "L07133": [
+      "continuous signals"
+    ],
+    "L07135": [
+      "discrete signal"
+    ],
+    "L07137": [
+      "Sampling"
+    ],
+    "L07143": [
+      "sampled"
+    ],
+    "L07150": [
+      "sampling period"
+    ],
+    "L07173": [
+      "Images"
+    ],
+    "L07189": [
+      "reorganize"
+    ],
+    "L07210": [
+      "Properties of a Signal"
+    ],
+    "L07217": [
+      "Infinite length"
+    ],
+    "L07219": [
+      "Finite length"
+    ],
+    "L07222": [
+      "periodic"
+    ],
+    "L07225": [
+      "DC value"
+    ],
+    "L07227": [
+      "direct current"
+    ],
+    "L07231": [
+      "DC value"
+    ],
+    "L07237": [
+      "energy of a signal"
+    ],
+    "L07247": [
+      "finite energy"
+    ],
+    "L07268": [
+      "Systems"
+    ],
+    "L07287": [
+      "Linear Systems"
+    ],
+    "L07289": [
+      "Linear systems"
+    ],
+    "L07350": [
+      "fully connected layer"
+    ],
+    "L07356": [
+      "fully connected layer"
+    ],
+    "L07368": [
+      "Linear Translation Invariant Systems"
+    ],
+    "L07371": [
+      "linear translation invariant"
+    ],
+    "L07372": [
+      "systems"
+    ],
+    "L07397": [
+      "equivariant"
+    ],
+    "L07401": [
+      "convolution"
+    ],
+    "L07402": [
+      "convolution kernel"
+    ],
+    "L07405": [
+      "Convolution"
+    ],
+    "L07408": [
+      "convolutional kernel"
+    ],
+    "L07422": [
+      "correlation"
+    ],
+    "L07479": [
+      "convolutional layer"
+    ],
+    "L07528": [
+      "Properties of the Convolution"
+    ],
+    "L07534": [
+      "Commutative"
+    ],
+    "L07539": [
+      "Associative"
+    ],
+    "L07544": [
+      "Distributive"
+    ],
+    "L07547": [
+      "Shift"
+    ],
+    "L07560": [
+      "Support"
+    ],
+    "L07564": [
+      "Identity"
+    ],
+    "L07565": [
+      "impulse"
+    ],
+    "L07591": [
+      "Some Examples"
+    ],
+    "L07611": [
+      "Handling Boundaries"
+    ],
+    "L07687": [
+      "Circular Convolution"
+    ],
+    "L07713": [
+      "Convolution in the Continuous Domain"
+    ],
+    "L07756": [
+      "Cross-Correlation Versus Convolution"
+    ],
+    "L07763": [
+      "cross-correlation"
+    ],
+    "L07799": [
+      "Template Matching and Normalized Correlation"
+    ],
+    "L07857": [
+      "System Identification"
+    ],
+    "L07921": [
+      "Concluding Remarks"
+    ],
+    "L07933": [
+      "Introduction"
+    ],
+    "L07939": [
+      "spatial frequency"
+    ],
+    "L07950": [
+      "Image Transforms"
+    ],
+    "L07971": [
+      "Fourier Series"
+    ],
+    "L07977": [
+      "Fourier series"
+    ],
+    "L07989": [
+      "periodic function"
+    ],
+    "L07992": [
+      "sine series"
+    ],
+    "L08000": [
+      "higher frequency"
+    ],
+    "L08008": [
+      "Fourier series"
+    ],
+    "L08009": [
+      "change of representation"
+    ],
+    "L08015": [
+      "transformation"
+    ],
+    "L08034": [
+      "Continuous and Discrete Waves"
+    ],
+    "L08039": [
+      "continuous time sine wave"
+    ],
+    "L08041": [
+      "amplitude",
+      "frequency",
+      "phase"
+    ],
+    "L08046": [
+      "discrete time sine wave"
+    ],
+    "L08079": [
+      "Sines and Cosines in 2D"
+    ],
+    "L08092": [
+      "Complex Exponentials"
+    ],
+    "L08122": [
+      "The Discrete Fourier Transform"
+    ],
+    "L08130": [
+      "Discrete Fourier Transform and Inverse Transform"
+    ],
+    "L08132": [
+      "Discrete Fourier Transform"
+    ],
+    "L08194": [
+      "Fast Fourier Transform"
+    ],
+    "L08196": [
+      "Matrix Form of the Fourier Transform"
+    ],
+    "L08228": [
+      "Visualizing the Fourier Transform"
+    ],
+    "L08269": [
+      "Useful Transforms"
+    ],
+    "L08275": [
+      "Delta Distribution"
+    ],
+    "L08290": [
+      "Cosine and Sine Waves"
+    ],
+    "L08338": [
+      "Box Function"
+    ],
+    "L08388": [
+      "discrete sinc"
+    ],
+    "L08390": [
+      "sincd"
+    ],
+    "L08425": [
+      "Discrete Fourier Transform Properties"
+    ],
+    "L08442": [
+      "Linearity"
+    ],
+    "L08452": [
+      "Separability"
+    ],
+    "L08460": [
+      "Separability"
+    ],
+    "L08473": [
+      "Parseval's Theorem"
+    ],
+    "L08486": [
+      "Convolution"
+    ],
+    "L08556": [
+      "Dual Convolution"
+    ],
+    "L08571": [
+      "Shift Property, Translation in Space"
+    ],
+    "L08596": [
+      "circular shift"
+    ],
+    "L08628": [
+      "Modulation, Translation in Frequency"
+    ],
+    "L08659": [
+      "A Family of Fourier Transforms"
+    ],
+    "L08675": [
+      "Fourier Transform for Continuous Signals"
+    ],
+    "L08703": [
+      "Fourier Transform for Infinite Length Discrete Signals"
+    ],
+    "L08728": [
+      "Fourier Analysis as an Image Representation"
+    ],
+    "L08840": [
+      "Fourier Analysis of Linear Filters"
+    ],
+    "L08860": [
+      "transfer function"
+    ],
+    "L08883": [
+      "amplitude gain"
+    ],
+    "L08884": [
+      "phase shift"
+    ],
+    "L08885": [
+      "DC gain"
+    ],
+    "L08897": [
+      "coarse"
+    ],
+    "L08899": [
+      "fine"
+    ],
+    "L08970": [
+      "Visual psychophysics"
+    ],
+    "L09003": [
+      "Campbell and Robson chart"
+    ],
+    "L09040": [
+      "Concluding Remarks"
+    ],
+    "L09049": [
+      "what"
+    ],
+    "L09051": [
+      "where"
+    ],
+    "L09068": [
+      "Introduction"
+    ],
+    "L09070": [
+      "blurry"
+    ],
+    "L09082": [
+      "Box Filter"
+    ],
+    "L09112": [
+      "Properties"
+    ],
+    "L09118": [
+      "DC gain"
+    ],
+    "L09144": [
+      "Limitations"
+    ],
+    "L09164": [
+      "triangular filter"
+    ],
+    "L09168": [
+      "Gaussian Filter"
+    ],
+    "L09187": [
+      "Discretization"
+    ],
+    "L09238": [
+      "Source"
+    ],
+    "L09240": [
+      "Properties of the Continuous Gaussian"
+    ],
+    "L09272": [
+      "Limitations"
+    ],
+    "L09286": [
+      "Binomial Filters"
+    ],
+    "L09288": [
+      "binomial coefficients"
+    ],
+    "L09291": [
+      "Pascal's triangle"
+    ],
+    "L09311": [
+      "Properties"
+    ],
+    "L09345": [
+      "zero-phase filter"
+    ],
+    "L09349": [
+      "2D Binomial Filters"
+    ],
+    "L09385": [
+      "Concluding Remarks"
+    ],
+    "L09402": [
+      "Introduction"
+    ],
+    "L09421": [
+      "Discretizing Image Derivatives"
+    ],
+    "L09495": [
+      "Roberts cross"
+    ],
+    "L09512": [
+      "Gradient-Based Image Representation"
+    ],
+    "L09582": [
+      "Image Editing in the Gradient Domain"
+    ],
+    "L09588": [
+      "encoded"
+    ],
+    "L09599": [
+      "decoded"
+    ],
+    "L09604": [
+      "Image inpainting"
+    ],
+    "L09611": [
+      "Gaussian Derivatives"
+    ],
+    "L09681": [
+      "High-Order Gaussian Derivatives"
+    ],
+    "L09745": [
+      "Derivatives using Binomial Filters"
+    ],
+    "L09789": [
+      "Sobel-Feldman operator"
+    ],
+    "L09819": [
+      "Image Gradient and Directional Derivatives"
+    ],
+    "L09860": [
+      "Image Laplacian"
+    ],
+    "L09862": [
+      "Laplacian filter"
+    ],
+    "L09886": [
+      "mexican hat wavelet"
+    ],
+    "L09889": [
+      "mexican hat wavelet"
+    ],
+    "L09956": [
+      "A Simple Model of the Early Visual System"
+    ],
+    "L09958": [
+      "early visual system"
+    ],
+    "L09982": [
+      "Vasarely visual illusion"
+    ],
+    "L10004": [
+      "Sharpening Filter"
+    ],
+    "L10006": [
+      "sharpening filter"
+    ],
+    "L10048": [
+      "Retinex"
+    ],
+    "L10083": [
+      "Retinex algorithm"
+    ],
+    "L10133": [
+      "intrinsic images decomposition"
+    ],
+    "L10136": [
+      "Concluding Remarks"
+    ],
+    "L10141": [
+      "Introduction"
+    ],
+    "L10145": [
+      "Modeling sequences"
+    ],
+    "L10161": [
+      "constant brightness assumption"
+    ],
+    "L10172": [
+      "Modeling sequences in the Fourier domain"
+    ],
+    "L10187": [
+      "sinc function"
+    ],
+    "L10197": [
+      "Temporal filters"
+    ],
+    "L10201": [
+      "Causal filters"
+    ],
+    "L10202": [
+      "Non-causal filters"
+    ],
+    "L10203": [
+      "Anti-causal filters"
+    ],
+    "L10231": [
+      "Spatiotemporal Gaussian"
+    ],
+    "L10254": [
+      "Temporal derivatives"
+    ],
+    "L10314": [
+      "nulling filter"
+    ],
+    "L10321": [
+      "Concluding Remarks"
+    ],
+    "L10327": [
+      "Introduction"
+    ],
+    "L10340": [
+      "sampling period"
+    ],
+    "L10344": [
+      "Aliasing"
+    ],
+    "L10360": [
+      "aliasing"
+    ],
+    "L10377": [
+      "Sampling Theorem"
+    ],
+    "L10384": [
+      "sampling theorem"
+    ],
+    "L10386": [
+      "Nyquist condition"
+    ],
+    "L10389": [
+      "radian frequency",
+      "hertz frequency"
+    ],
+    "L10393": [
+      "Modeling the Sampling Process"
+    ],
+    "L10397": [
+      "delta train",
+      "impulse train",
+      "Dirac comb"
+    ],
+    "L10444": [
+      "Sampling in the Fourier Domain"
+    ],
+    "L10487": [
+      "Reconstruction"
+    ],
+    "L10491": [
+      "Ideal Reconstruction"
+    ],
+    "L10503": [
+      "sinc"
+    ],
+    "L10546": [
+      "Approximate Reconstruction with Local Kernels"
+    ],
+    "L10563": [
+      "A Family of 2D Spatial Samplings"
+    ],
+    "L10571": [
+      "rectangular sampling",
+      "hexagonal sampling",
+      "irregular sampling"
+    ],
+    "L10646": [
+      "Anti-Aliasing Filter"
+    ],
+    "L10660": [
+      "Spatiotemporal Sampling"
+    ],
+    "L10668": [
+      "Moire patterns"
+    ],
+    "L10672": [
+      "Concluding Remarks"
+    ],
+    "L10683": [
+      "Introduction"
+    ],
+    "L10698": [
+      "Example: Aliasing-Based Adversarial Attack"
+    ],
+    "L10719": [
+      "strided convolution"
+    ],
+    "L10724": [
+      "aliasing"
+    ],
+    "L10756": [
+      "Downsampling"
+    ],
+    "L10765": [
+      "Decimation"
+    ],
+    "L10813": [
+      "Decimation in the Fourier Domain"
+    ],
+    "L10833": [
+      "delta train"
+    ],
+    "L10899": [
+      "Aliasing in Matrix Form"
+    ],
+    "L10925": [
+      "}{N} &= frac{1}{N}mathbf{F}{N/2}  [mathbf{F^"
+    ],
+    "L10977": [
+      "Anti-Aliasing Filters"
+    ],
+    "L11037": [
+      "Hamming window"
+    ],
+    "L11080": [
+      "ringing artifacts"
+    ],
+    "L11095": [
+      "Downsampling"
+    ],
+    "L11097": [
+      "downsampling"
+    ],
+    "L11141": [
+      "Upsampling"
+    ],
+    "L11159": [
+      "Nearest Neighbor Interpolation"
+    ],
+    "L11161": [
+      "nearest neighbor interpolation"
+    ],
+    "L11175": [
+      "Linear and Bilinear Interpolation"
+    ],
+    "L11191": [
+      "Bilinear interpolation"
+    ],
+    "L11209": [
+      "Expansion"
+    ],
+    "L11240": [
+      "Interpolation Filters"
+    ],
+    "L11249": [
+      "Nearest neighbor interpolation"
+    ],
+    "L11260": [
+      "Bilinear interpolation"
+    ],
+    "L11285": [
+      "bicubic interpolation"
+    ],
+    "L11286": [
+      "Lanczos interpolation"
+    ],
+    "L11288": [
+      "Upsampling"
+    ],
+    "L11344": [
+      "Concluding Remarks"
+    ],
+    "L11354": [
+      "Introduction"
+    ],
+    "L11368": [
+      "Gabor Filters"
+    ],
+    "L11474": [
+      "Quadrature Pairs and the Hilbert Transform"
+    ],
+    "L11477": [
+      "quadrature phase"
+    ],
+    "L11497": [
+      "analytic signal"
+    ],
+    "L11509": [
+      "local amplitude"
+    ],
+    "L11510": [
+      "local phase"
+    ],
+    "L11545": [
+      "Local Amplitude"
+    ],
+    "L11576": [
+      "sign invariant"
+    ],
+    "L11588": [
+      "Local Phase"
+    ],
+    "L11603": [
+      "Gabor Filter Bank"
+    ],
+    "L11605": [
+      "filter bank"
+    ],
+    "L11647": [
+      "Steerable Filters and Orientation Analysis"
+    ],
+    "L11678": [
+      "steering equation"
+    ],
+    "L11708": [
+      "basis filters"
+    ],
+    "L11709": [
+      "gain maps"
+    ],
+    "L11725": [
+      "Steering Theorem"
+    ],
+    "L11736": [
+      "steering condition"
+    ],
+    "L11806": [
+      "Steerable Quadrature Pairs"
+    ],
+    "L11905": [
+      "Motion Analysis"
+    ],
+    "L11912": [
+      "Spatiotemporal Gabor Filters"
+    ],
+    "L11936": [
+      "Velocity-Tuned Filters"
+    ],
+    "L11967": [
+      "Concluding Remarks"
+    ],
+    "L11990": [
+      "Introduction"
+    ],
+    "L11998": [
+      "Image Pyramids and Multiscale Image Analysis"
+    ],
+    "L12017": [
+      "scale invariance"
+    ],
+    "L12025": [
+      "multiscale image pyramid"
+    ],
+    "L12045": [
+      "Linear Image Transforms"
+    ],
+    "L12070": [
+      "critically sampled"
+    ],
+    "L12071": [
+      "oversampled"
+    ],
+    "L12072": [
+      "undersampled"
+    ],
+    "L12080": [
+      "self-inverting"
+    ],
+    "L12113": [
+      "Gaussian Pyramid"
+    ],
+    "L12159": [
+      "block"
+    ],
+    "L12203": [
+      "Laplacian Pyramid"
+    ],
+    "L12206": [
+      "Laplacian pyramid"
+    ],
+    "L12229": [
+      "block"
+    ],
+    "L12313": [
+      "low-pass residual"
+    ],
+    "L12336": [
+      "encoder"
+    ],
+    "L12339": [
+      "decoder"
+    ],
+    "L12340": [
+      "overcomplete representation"
+    ],
+    "L12345": [
+      "Encoder",
+      "decoder"
+    ],
+    "L12352": [
+      "Image Blending"
+    ],
+    "L12375": [
+      "mathbf{m} + boldsymbolell^B"
+    ],
+    "L12411": [
+      "mathbf{m}k + mathbf{l}i^B"
+    ],
+    "L12435": [
+      "Steerable Pyramid"
+    ],
+    "L12439": [
+      "steerable pyramid"
+    ],
+    "L12441": [
+      "multiscale oriented representation"
+    ],
+    "L12458": [
+      "block"
+    ],
+    "L12489": [
+      "A Pictorial Summary"
+    ],
+    "L12540": [
+      "Concluding Remarks"
+    ],
+    "L12575": [
+      "scale space"
+    ],
+    "L12580": [
+      "Introduction"
+    ],
+    "L12582": [
+      "Convolutional neural nets",
+      "convnets",
+      "CNNs"
+    ],
+    "L12591": [
+      "Photo source"
+    ],
+    "L12623": [
+      "with the same shape"
+    ],
+    "L12633": [
+      "Convolutional Layers"
+    ],
+    "L12635": [
+      "convolutional layers"
+    ],
+    "L12657": [
+      "span an identical hypothesis space"
+    ],
+    "L12666": [
+      "Multi-Input, Multi-Output Convolutional Layers"
+    ],
+    "L12691": [
+      "filter bank"
+    ],
+    "L12709": [
+      "feature map"
+    ],
+    "L12775": [
+      "Strided Convolution"
+    ],
+    "L12823": [
+      "Figure"
+    ],
+    "L12843": [
+      "Dilated Convolution"
+    ],
+    "L12942": [
+      "Low-Rank Filters"
+    ],
+    "L12990": [
+      "Downsampling and Upsampling Layers"
+    ],
+    "L12997": [
+      "downsampling and upsampling layers"
+    ],
+    "L13004": [
+      "pooling"
+    ],
+    "L13024": [
+      "Nonlinear Filtering Layers"
+    ],
+    "L13032": [
+      "Pooling Layers"
+    ],
+    "L13034": [
+      "Pooling layers"
+    ],
+    "L13036": [
+      "mean pooling",
+      "max pooling"
+    ],
+    "L13075": [
+      "Global Pooling Layers"
+    ],
+    "L13083": [
+      "global average pooling"
+    ],
+    "L13084": [
+      "global max pooling"
+    ],
+    "L13092": [
+      "Local Normalization Layers"
+    ],
+    "L13094": [
+      "local normalization layer"
+    ],
+    "L13102": [
+      "local response normalization",
+      "LRN"
+    ],
+    "L13115": [
+      "A Simple CNN Classifier"
+    ],
+    "L13153": [
+      "fully connected layer"
+    ],
+    "L13179": [
+      "A Worked Example"
+    ],
+    "L13188": [
+      "Training and Evaluation"
+    ],
+    "L13211": [
+      "Network Visualization"
+    ],
+    "L13217": [
+      "visualize"
+    ],
+    "L13237": [
+      "Out-of-Domain Generalization"
+    ],
+    "L13242": [
+      "out-of-domain test samples"
+    ],
+    "L13244": [
+      "out-of-distribution"
+    ],
+    "L13262": [
+      "Identifying Vulnerabilities"
+    ],
+    "L13288": [
+      "sinusoidal texture"
+    ],
+    "L13295": [
+      "adversarial example"
+    ],
+    "L13300": [
+      "adversarial examples"
+    ],
+    "L13305": [
+      "Feature Maps in CNNs"
+    ],
+    "L13355": [
+      "Receptive Fields"
+    ],
+    "L13357": [
+      "Receptive fields"
+    ],
+    "L13388": [
+      "Spatial Outputs"
+    ],
+    "L13430": [
+      "CNN as a Sliding Filter"
+    ],
+    "L13435": [
+      "or"
+    ],
+    "L13506": [
+      "agnostic to signal length"
+    ],
+    "L13511": [
+      "locality"
+    ],
+    "L13518": [
+      "translation invariant"
+    ],
+    "L13534": [
+      "Translation invariant"
+    ],
+    "L13545": [
+      "Popular CNN Architectures"
+    ],
+    "L13551": [
+      "Encoder and Decoders"
+    ],
+    "L13559": [
+      "encoder",
+      "decoder"
+    ],
+    "L13580": [
+      "encoder-decoder"
+    ],
+    "L13597": [
+      "U-Nets"
+    ],
+    "L13612": [
+      "U-Net"
+    ],
+    "L13624": [
+      "learned filters"
+    ],
+    "L13630": [
+      "ResNets"
+    ],
+    "L13633": [
+      "Residual Networks",
+      "ResNets"
+    ],
+    "L13637": [
+      "residual connections"
+    ],
+    "L13642": [
+      "residual block"
+    ],
+    "L13663": [
+      "Concluding Remarks"
+    ],
+    "L13667": [
+      "transformer"
+    ],
+    "L13677": [
+      "Introduction"
+    ],
+    "L13681": [
+      "feedforward"
+    ],
+    "L13683": [
+      "RNNs"
+    ],
+    "L13686": [
+      "recurrence"
+    ],
+    "L13688": [
+      "timestep"
+    ],
+    "L13742": [
+      "unrolled computation graph"
+    ],
+    "L13752": [
+      "Recurrent Layer"
+    ],
+    "L13767": [
+      "sequential computation"
+    ],
+    "L13773": [
+      "SRN"
+    ],
+    "L13785": [
+      "Backpropagation through Time"
+    ],
+    "L13790": [
+      "BPTT"
+    ],
+    "L13824": [
+      "The Problem of Exploding and Vanishing Gradients"
+    ],
+    "L13857": [
+      "Stacking Recurrent Layers"
+    ],
+    "L13894": [
+      "Long Short-Term Memory"
+    ],
+    "L13896": [
+      "LSTMs"
+    ],
+    "L13902": [
+      "cell state"
+    ],
+    "L13955": [
+      "Concluding Remarks"
+    ],
+    "L13972": [
+      "Introduction"
+    ],
+    "L13974": [
+      "Transformers"
+    ],
+    "L13978": [
+      "vision transformers",
+      "ViTs"
+    ],
+    "L13984": [
+      "attention layers"
+    ],
+    "L14015": [
+      "The Idea of Attention"
+    ],
+    "L14036": [
+      "A New Data Type: Tokens"
+    ],
+    "L14053": [
+      "code vector"
+    ],
+    "L14055": [
+      "Tokenizing Data"
+    ],
+    "L14064": [
+      "patch of pixels"
+    ],
+    "L14075": [
+      "Data Structures and Notation for Working with Tokens"
+    ],
+    "L14126": [
+      "Mixing Tokens"
+    ],
+    "L14131": [
+      "linear combination of tokens"
+    ],
+    "L14166": [
+      "Modifying Tokens"
+    ],
+    "L14211": [
+      "Token Nets"
+    ],
+    "L14212": [
+      "token nets"
+    ],
+    "L14215": [
+      "token nets"
+    ],
+    "L14231": [
+      "The Attention Layer"
+    ],
+    "L14233": [
+      "Attention layers"
+    ],
+    "L14245": [
+      "transformed data"
+    ],
+    "L14251": [
+      "dynamic pooling"
+    ],
+    "L14325": [
+      "query-key-value attention"
+    ],
+    "L14327": [
+      "Query-Key-Value Attention"
+    ],
+    "L14331": [
+      "query",
+      "key"
+    ],
+    "L14332": [
+      "value"
+    ],
+    "L14406": [
+      "Self-Attention"
+    ],
+    "L14420": [
+      "Self-attention"
+    ],
+    "L14553": [
+      "Multihead Self-Attention"
+    ],
+    "L14576": [
+      "multihead self-attention",
+      "MSA"
+    ],
+    "L14614": [
+      "The Full Transformer Architecture"
+    ],
+    "L14683": [
+      "Permutation Equivariance"
+    ],
+    "L14688": [
+      "permutation equivariant"
+    ],
+    "L14736": [
+      "CNNs in Disguise"
+    ],
+    "L14746": [
+      "Tokenization"
+    ],
+    "L14774": [
+      "Query-Key-Value Projections"
+    ],
+    "L14801": [
+      "Tokenwise MLP"
+    ],
+    "L14825": [
+      "The Similarities between CNNs and Transfomers"
+    ],
+    "L14837": [
+      "The Differences between CNNs and Transformers"
+    ],
+    "L14842": [
+      "only used 1x1 filters"
+    ],
+    "L14871": [
+      "Masked Attention"
+    ],
+    "L14920": [
+      "causal attention"
+    ],
+    "L14947": [
+      "Positional Encodings"
+    ],
+    "L14958": [
+      "position within the signal"
+    ],
+    "L14991": [
+      "Comparing Fully Connected, Convolutional, and Self-Attention Layers"
+    ],
+    "L15028": [
+      "Concluding Remarks"
+    ],
+    "L15037": [
+      "graph neural networks",
+      "GNNs"
+    ],
+    "L15048": [
+      "Introduction"
+    ],
+    "L15059": [
+      "natural image"
+    ],
+    "L15154": [
+      "Independent Pixels"
+    ],
+    "L15251": [
+      "Dead Leaves Model"
+    ],
+    "L15291": [
+      "The Power Spectrum of Natural Images"
+    ],
+    "L15352": [
+      "The Gaussian Model"
+    ],
+    "L15377": [
+      "Sampling Images"
+    ],
+    "L15442": [
+      "Image Denoising under the Gaussian Model: Wiener Filter"
+    ],
+    "L15475": [
+      "The Wavelet Marginal Model"
+    ],
+    "L15569": [
+      "Toy Model of Image Inpainting"
+    ],
+    "L15576": [
+      "image inpainting"
+    ],
+    "L15639": [
+      "Image Denoising (Bayesian Image Estimation)"
+    ],
+    "L15676": [
+      "coring function"
+    ],
+    "L15686": [
+      "Nonparametric Markov Random Field Image Models"
+    ],
+    "L15693": [
+      "Markov random field"
+    ],
+    "L15711": [
+      "Denoising Model (Nonlocal Means)"
+    ],
+    "L15714": [
+      "nonlocal means"
+    ],
+    "L15752": [
+      "Concluding Remarks"
+    ],
+    "L15774": [
+      "Introduction"
+    ],
+    "L15807": [
+      "A Few Notes about Human Perception"
+    ],
+    "L15821": [
+      "Perception of Sets"
+    ],
+    "L15841": [
+      "subitizing"
+    ],
+    "L15849": [
+      "Crowding"
+    ],
+    "L15861": [
+      "crowding"
+    ],
+    "L15879": [
+      "Pre-Attentive Texture Discrimination"
+    ],
+    "L15884": [
+      "textons"
+    ],
+    "L15907": [
+      "pre-attentive texture discrimination"
+    ],
+    "L15915": [
+      "Heeger-Bergen Texture Analysis and Synthesis"
+    ],
+    "L15923": [
+      "texture synthesis"
+    ],
+    "L15955": [
+      "Texture analysis"
+    ],
+    "L15977": [
+      "diffusion models"
+    ],
+    "L16011": [
+      "histogram matching"
+    ],
+    "L16063": [
+      "Parametric texture models"
+    ],
+    "L16065": [
+      "parametric texture models"
+    ],
+    "L16066": [
+      "nonparametric texture models"
+    ],
+    "L16070": [
+      "Efros-Leung Texture Analysis and Synthesis Model"
+    ],
+    "L16144": [
+      "Connection to Deep Generative Models"
+    ],
+    "L16154": [
+      "autoregressive model"
+    ],
+    "L16166": [
+      "("
+    ],
+    "L16176": [
+      "distribution over whole images"
+    ],
+    "L16183": [
+      "Concluding Remarks"
+    ],
+    "L16198": [
+      "Introduction"
+    ],
+    "L16200": [
+      "Probabilistic graphical models"
+    ],
+    "L16222": [
+      "Simple Examples"
+    ],
+    "L16228": [
+      "graph"
+    ],
+    "L16279": [
+      "Hammersley-Clifford theorem"
+    ],
+    "L16285": [
+      "clique"
+    ],
+    "L16291": [
+      "maximal clique"
+    ],
+    "L16297": [
+      "Hammersley-Clifford theorem"
+    ],
+    "L16311": [
+      "Markov chain"
+    ],
+    "L16333": [
+      "Markov random field"
+    ],
+    "L16360": [
+      "Directed Graphical Models"
+    ],
+    "L16363": [
+      "Directed graphical models"
+    ],
+    "L16383": [
+      "Inference in Graphical Models"
+    ],
+    "L16388": [
+      "belief propagation"
+    ],
+    "L16395": [
+      "likelihood term"
+    ],
+    "L16397": [
+      "prior probability"
+    ],
+    "L16399": [
+      "evidence"
+    ],
+    "L16423": [
+      "minimum mean squared error"
+    ],
+    "L16461": [
+      "Simple Example of Inference in a Graphical Model"
+    ],
+    "L16524": [
+      "messages"
+    ],
+    "L16545": [
+      "Belief Propagation"
+    ],
+    "L16554": [
+      "Derivation of Message-Passing Rule"
+    ],
+    "L16575": [
+      "belief propagation message"
+    ],
+    "L16631": [
+      "Marginal Probability"
+    ],
+    "L16648": [
+      "Message Update Sequence"
+    ],
+    "L16690": [
+      "Synchronous parallel update schedule"
+    ],
+    "L16703": [
+      "Depth-first BP message passing schedule"
+    ],
+    "L16706": [
+      "Example Belief Propagation Application: Stereo"
+    ],
+    "L16738": [
+      "disparity"
+    ],
+    "L16799": [
+      "Loopy Belief Propagation"
+    ],
+    "L16805": [
+      "treewidth"
+    ],
+    "L16833": [
+      "max-product"
+    ],
+    "L16839": [
+      "Numerical Example of Belief Propagation"
+    ],
+    "L17089": [
+      "Relationship of Probabilistic Graphical Models to Neural Networks"
+    ],
+    "L17097": [
+      "Nodes"
+    ],
+    "L17101": [
+      "Edges"
+    ],
+    "L17105": [
+      "Computation"
+    ],
+    "L17120": [
+      "Concluding Remarks"
+    ],
+    "L17131": [
+      "Introduction"
+    ],
+    "L17149": [
+      "Problem Setting"
+    ],
+    "L17161": [
+      "encoding"
+    ],
+    "L17164": [
+      "vector embedding"
+    ],
+    "L17171": [
+      "disentangled"
+    ],
+    "L17181": [
+      "Compression"
+    ],
+    "L17198": [
+      "Occam's razor"
+    ],
+    "L17212": [
+      "minimum description length principle"
+    ],
+    "L17221": [
+      "contrastive learning"
+    ],
+    "L17225": [
+      "Prediction"
+    ],
+    "L17235": [
+      "imputation"
+    ],
+    "L17258": [
+      "Types of Representation Learners"
+    ],
+    "L17268": [
+      "Learning Method",
+      "Learning Principle",
+      "Short Summary"
+    ],
+    "L17280": [
+      "Autoencoders"
+    ],
+    "L17282": [
+      "Autoencoders"
+    ],
+    "L17285": [
+      "bottleneck"
+    ],
+    "L17297": [
+      "encoder"
+    ],
+    "L17298": [
+      "decoder"
+    ],
+    "L17302": [
+      "dimensionality reduction"
+    ],
+    "L17310": [
+      "reconstruction loss"
+    ],
+    "L17351": [
+      "principle components ananlysis",
+      "PCA"
+    ],
+    "L17436": [
+      "Predictive Encodings"
+    ],
+    "L17437": [
+      "pretext task"
+    ],
+    "L17439": [
+      "predictive coding"
+    ],
+    "L17487": [
+      "Object Detectors Emerge from Scene-Level Supervision"
+    ],
+    "L17492": [
+      "emergent structure"
+    ],
+    "L17523": [
+      "Self-Supervised Learning"
+    ],
+    "L17530": [
+      "self-supervision"
+    ],
+    "L17544": [
+      "Imputation"
+    ],
+    "L17546": [
+      "Imputation"
+    ],
+    "L17581": [
+      "perceptual groups"
+    ],
+    "L17584": [
+      "Abstract Pretext Tasks"
+    ],
+    "L17597": [
+      "Clustering"
+    ],
+    "L17602": [
+      "clustering"
+    ],
+    "L17609": [
+      "vector quantization"
+    ],
+    "L17632": [
+      "code vector"
+    ],
+    "L17633": [
+      "cluster center"
+    ],
+    "L17641": [
+      "K-Means"
+    ],
+    "L17645": [
+      "-means"
+    ],
+    "L17698": [
+      "Optimizing k-means"
+    ],
+    "L17769": [
+      "K-Means from Multiple Perspectives"
+    ],
+    "L17799": [
+      "Clustering in Vision"
+    ],
+    "L17802": [
+      "perceptual grouping"
+    ],
+    "L17810": [
+      "Contrastive Learning"
+    ],
+    "L17811": [
+      "information bottleneck",
+      "Contrastive learning",
+      "views"
+    ],
+    "L17813": [
+      "exact same"
+    ],
+    "L17820": [
+      "hypothesis space"
+    ],
+    "L17828": [
+      "alignment"
+    ],
+    "L17838": [
+      "positive pairs",
+      "negative pairs"
+    ],
+    "L17874": [
+      "views"
+    ],
+    "L17898": [
+      "triplet loss"
+    ],
+    "L17899": [
+      "InfoNCE loss"
+    ],
+    "L17901": [
+      "margin"
+    ],
+    "L17927": [
+      "Alignment and Uniformity"
+    ],
+    "L17934": [
+      "Uniformity"
+    ],
+    "L17957": [
+      "Experiment: Designing Embeddings with Contrastive Learning"
+    ],
+    "L17999": [
+      "Concluding Remarks"
+    ],
+    "L18006": [
+      "general-purpose representations"
+    ],
+    "L18013": [
+      "Introduction"
+    ],
+    "L18021": [
+      "perceptual group"
+    ],
+    "L18045": [
+      "perceptual organization"
+    ],
+    "L18097": [
+      "Segments"
+    ],
+    "L18099": [
+      "Segmentation"
+    ],
+    "L18115": [
+      "K-Means Segmentation"
+    ],
+    "L18151": [
+      "Photo source"
+    ],
+    "L18153": [
+      "Affinity-Based Segmentation"
+    ],
+    "L18155": [
+      "affinity"
+    ],
+    "L18224": [
+      "Edges, Boundaries, and Contours"
+    ],
+    "L18253": [
+      "Layers"
+    ],
+    "L18264": [
+      "layer"
+    ],
+    "L18272": [
+      "layer-based"
+    ],
+    "L18276": [
+      "2.5D representations"
+    ],
+    "L18285": [
+      "ordinal"
+    ],
+    "L18290": [
+      "Emergent Groups"
+    ],
+    "L18302": [
+      "Concluding Remarks"
+    ],
+    "L18318": [
+      "Introduction"
+    ],
+    "L18334": [
+      "many-to-one"
+    ],
+    "L18336": [
+      "one-to-many"
+    ],
+    "L18338": [
+      "stochastic function"
+    ],
+    "L18345": [
+      "generator"
+    ],
+    "L18371": [
+      "latent variables"
+    ],
+    "L18379": [
+      "Unconditional Generative Models"
+    ],
+    "L18395": [
+      "unconditional generative model"
+    ],
+    "L18396": [
+      "conditional generative model"
+    ],
+    "L18404": [
+      "content creation"
+    ],
+    "L18437": [
+      "Learning Generative Models"
+    ],
+    "L18447": [
+      "sampling"
+    ],
+    "L18499": [
+      "The Direct Approach and the Indirect Approach"
+    ],
+    "L18517": [
+      "generative adversarial networks",
+      "GANs",
+      "diffusion models"
+    ],
+    "L18526": [
+      "Density Models"
+    ],
+    "L18538": [
+      "("
+    ],
+    "L18543": [
+      "Learning Density Models"
+    ],
+    "L18548": [
+      "divergence"
+    ],
+    "L18565": [
+      "Kullback-Leibler (KL) divergence"
+    ],
+    "L18583": [
+      "max likelihood learning"
+    ],
+    "L18597": [
+      "all of which"
+    ],
+    "L18606": [
+      "Energy-Based Models"
+    ],
+    "L18618": [
+      "Boltzmann",
+      "Gibbs distribution"
+    ],
+    "L18626": [
+      "Energy-based models",
+      "EBM"
+    ],
+    "L18664": [
+      "Learning Energy-Based Models"
+    ],
+    "L18748": [
+      "Comparing Different Kinds of Generative Models"
+    ],
+    "L18815": [
+      "Gaussian Density Models"
+    ],
+    "L18844": [
+      "} = frac{1}{2theta2^"
+    ],
+    "L18847": [
+      "} - frac{1}{N}sum{i=1}^N 2(x^{(i)}-theta1^"
+    ],
+    "L18848": [
+      "- frac{1}{N}sum{i=1}^N 2(x^{(i)}-theta1^"
+    ],
+    "L18849": [
+      "= frac{1}{N}sum{i=1}^N (x^{(i)}-theta1^"
+    ],
+    "L18871": [
+      "Gaussian mixture model",
+      "GMM"
+    ],
+    "L18879": [
+      "Autoregressive Density Models"
+    ],
+    "L18885": [
+      "autoregressive model"
+    ],
+    "L18896": [
+      "context"
+    ],
+    "L18981": [
+      "chain rule of probability"
+    ],
+    "L18996": [
+      "Training an Autoregressive Model"
+    ],
+    "L19011": [
+      "type 1 batch"
+    ],
+    "L19020": [
+      "type 2 batch"
+    ],
+    "L19035": [
+      "share computation between all our overlapping predictions"
+    ],
+    "L19040": [
+      "Sampling from Autoregressive Models"
+    ],
+    "L19054": [
+      "Diffusion Models"
+    ],
+    "L19057": [
+      "Diffusion models"
+    ],
+    "L19066": [
+      "signal corruption"
+    ],
+    "L19097": [
+      "training examples"
+    ],
+    "L19103": [
+      "denoiser"
+    ],
+    "L19154": [
+      "Generative Adversarial Networks"
+    ],
+    "L19160": [
+      "generative adversarial network",
+      "GAN"
+    ],
+    "L19170": [
+      "generator"
+    ],
+    "L19172": [
+      "discriminator"
+    ],
+    "L19227": [
+      ", then d{phi}^"
+    ],
+    "L19255": [
+      "Concluding Remarks"
+    ],
+    "L19260": [
+      "image representations"
+    ],
+    "L19276": [
+      "Introduction"
+    ],
+    "L19284": [
+      "embeddings"
+    ],
+    "L19308": [
+      "Latent Variables as Representations"
+    ],
+    "L19334": [
+      "Technical Setting"
+    ],
+    "L19371": [
+      "marginal likelihood"
+    ],
+    "L19392": [
+      "Variational Autoencoders"
+    ],
+    "L19394": [
+      "variational autoencoder"
+    ],
+    "L19395": [
+      "VAE"
+    ],
+    "L19432": [
+      "Variational autoencoders VAEs"
+    ],
+    "L19446": [
+      "The VAE Hypothesis Space"
+    ],
+    "L19465": [
+      "mixture models"
+    ],
+    "L19466": [
+      "mixture of Gaussians"
+    ],
+    "L19520": [
+      "Optimizing VAEs"
+    ],
+    "L19533": [
+      "Trick 1: Approximating the objective via sampling"
+    ],
+    "L19538": [
+      "Monte Carlo estimate"
+    ],
+    "L19580": [
+      "Trick 2: Efficient approximation via importance sampling"
+    ],
+    "L19628": [
+      "importance sampling"
+    ],
+    "L19686": [
+      "variational inference"
+    ],
+    "L19780": [
+      ", psi^"
+    ],
+    "L19783": [
+      "Evidence Lower Bound"
+    ],
+    "L19784": [
+      "ELBO"
+    ],
+    "L19799": [
+      "Connection to Autoencoders"
+    ],
+    "L19862": [
+      "reconstruction error"
+    ],
+    "L19886": [
+      "reparameterization trick"
+    ],
+    "L19910": [
+      "as close to zero as possible"
+    ],
+    "L19947": [
+      "disentanglement"
+    ],
+    "L19955": [
+      "Example: Learning a VAE for Rivers"
+    ],
+    "L19973": [
+      "neural net"
+    ],
+    "L19974": [
+      "Gaussian noise"
+    ],
+    "L20052": [
+      "Concluding Remarks"
+    ],
+    "L20070": [
+      "Introduction"
+    ],
+    "L20076": [
+      "as a way to solve prediction problems"
+    ],
+    "L20078": [
+      "A Motivating Example: Image Colorization"
+    ],
+    "L20091": [
+      "The Failure of Point Prediction: Multimodal Distributions"
+    ],
+    "L20183": [
+      "softmax regression"
+    ],
+    "L20235": [
+      "vector quantization"
+    ],
+    "L20237": [
+      "The Failure of Independent Predictions: Joint Structure"
+    ],
+    "L20276": [
+      "unstructured prediction"
+    ],
+    "L20303": [
+      "Conditional Generative Models Solve Multimodal Structured Prediction"
+    ],
+    "L20317": [
+      "structured prediction"
+    ],
+    "L20322": [
+      "Relationship to Conditional Random Fields"
+    ],
+    "L20330": [
+      "think fast"
+    ],
+    "L20332": [
+      "amortized inference"
+    ],
+    "L20337": [
+      "A Tour of Popular Conditional Models"
+    ],
+    "L20355": [
+      "Conditional Generative Adversarial Networks"
+    ],
+    "L20378": [
+      "Conditional Variational Autoencoders"
+    ],
+    "L20386": [
+      "conditional VAEs",
+      "cVAEs"
+    ],
+    "L20434": [
+      "target encoder"
+    ],
+    "L20436": [
+      "Conditional Autoregressive Models"
+    ],
+    "L20453": [
+      "Conditional Diffusion Models"
+    ],
+    "L20478": [
+      "Structured Prediction in Vision"
+    ],
+    "L20498": [
+      "Image-to-Image Translation"
+    ],
+    "L20516": [
+      "Image-to-Image Translation with a Conditional GAN"
+    ],
+    "L20549": [
+      "learned loss function"
+    ],
+    "L20568": [
+      "PatchGAN"
+    ],
+    "L20608": [
+      "Unpaired Image-to-Image Translation"
+    ],
+    "L20619": [
+      "Input photo source"
+    ],
+    "L20637": [
+      "unpaired translation"
+    ],
+    "L20690": [
+      "unpaired",
+      "unsupervised"
+    ],
+    "L20697": [
+      "cycle-consistency"
+    ],
+    "L20707": [
+      "backtranslation"
+    ],
+    "L20753": [
+      "Concluding Remarks"
+    ],
+    "L20768": [
+      "Introduction"
+    ],
+    "L20772": [
+      "identically distributed"
+    ],
+    "L20833": [
+      "Out-of-Distribution Generalization"
+    ],
+    "L20856": [
+      "All the time"
+    ],
+    "L20870": [
+      "A Toy Example"
+    ],
+    "L20961": [
+      "Dataset Bias"
+    ],
+    "L20983": [
+      "Name That Dataset!"
+    ],
+    "L20994": [
+      "The Value of Training Examples"
+    ],
+    "L21014": [
+      "Sources of Bias"
+    ],
+    "L21024": [
+      "Photographer Bias"
+    ],
+    "L21074": [
+      "Collection Bias"
+    ],
+    "L21109": [
+      "Annotation Bias"
+    ],
+    "L21120": [
+      "Social Bias"
+    ],
+    "L21137": [
+      "Testing and Benchmark Bias"
+    ],
+    "L21159": [
+      "Adversarial Shifts"
+    ],
+    "L21170": [
+      "Adversarial Attacks"
+    ],
+    "L21176": [
+      "adversarial attacks"
+    ],
+    "L21208": [
+      "Defenses"
+    ],
+    "L21213": [
+      "worst case"
+    ],
+    "L21214": [
+      "adversarially robust"
+    ],
+    "L21220": [
+      "Concluding Remarks"
+    ],
+    "L21242": [
+      "Introduction"
+    ],
+    "L21254": [
+      "Data Augmentation"
+    ],
+    "L21290": [
+      "invariant"
+    ],
+    "L21313": [
+      "equivariance"
+    ],
+    "L21344": [
+      "out-of-distribution"
+    ],
+    "L21357": [
+      "Learned Data Augmentation"
+    ],
+    "L21430": [
+      "Adversarial Training"
+    ],
+    "L21438": [
+      "worst case"
+    ],
+    "L21464": [
+      "robust optimization"
+    ],
+    "L21467": [
+      "Toward General-Purpose Vision Models"
+    ],
+    "L21477": [
+      "Multitask training"
+    ],
+    "L21507": [
+      "Concluding Remarks"
+    ],
+    "L21521": [
+      "Introduction"
+    ],
+    "L21523": [
+      "one-shot learning"
+    ],
+    "L21526": [
+      "few-shot learning",
+      "zero-shot"
+    ],
+    "L21543": [
+      "Problem Setting"
+    ],
+    "L21564": [
+      "Pretraining"
+    ],
+    "L21566": [
+      "Adaptation"
+    ],
+    "L21586": [
+      "Finetuning"
+    ],
+    "L21592": [
+      "Finetuning"
+    ],
+    "L21650": [
+      "Finetuning Subparts of a Network"
+    ],
+    "L21699": [
+      "Heads and Probes"
+    ],
+    "L21703": [
+      "read out"
+    ],
+    "L21706": [
+      "linear probes"
+    ],
+    "L21717": [
+      "Learning from a Teacher"
+    ],
+    "L21737": [
+      "how the teacher processes the queries"
+    ],
+    "L21749": [
+      "Knowledge distillation"
+    ],
+    "L21751": [
+      "Knowledge distillation"
+    ],
+    "L21791": [
+      "Prompting"
+    ],
+    "L21793": [
+      "input data"
+    ],
+    "L21836": [
+      "adversarial reprogramming"
+    ],
+    "L21849": [
+      "et al"
+    ],
+    "L21884": [
+      "Domain Adaptation"
+    ],
+    "L21891": [
+      "Domain adaptation"
+    ],
+    "L21928": [
+      "Generative Data"
+    ],
+    "L21936": [
+      "generative data"
+    ],
+    "L21976": [
+      "learned loss"
+    ],
+    "L21984": [
+      "A Combinatorial Catalog of Transfer Learning Methods"
+    ],
+    "L22012": [
+      "Sequence Models from the Lens of Adaptation"
+    ],
+    "L22056": [
+      "in-context learning"
+    ],
+    "L22059": [
+      "Concluding Remarks"
+    ],
+    "L22075": [
+      "Introduction"
+    ],
+    "L22099": [
+      "set of pixels"
+    ],
+    "L22149": [
+      "Homogeneous and Heteregenous Coordinates"
+    ],
+    "L22179": [
+      "heterogeneous coordinates"
+    ],
+    "L22180": [
+      "homogeneous coordinate"
+    ],
+    "L22231": [
+      "2D Image Transformations"
+    ],
+    "L22249": [
+      "Translation"
+    ],
+    "L22354": [
+      "Scaling"
+    ],
+    "L22374": [
+      "Rotation"
+    ],
+    "L22425": [
+      "Shearing"
+    ],
+    "L22447": [
+      "Chaining Transformations"
+    ],
+    "L22514": [
+      "similarity transform"
+    ],
+    "L22517": [
+      "affine transformation"
+    ],
+    "L22520": [
+      "Generic 2D Transformations"
+    ],
+    "L22551": [
+      "elations"
+    ],
+    "L22554": [
+      "Geometric Transformations as Convolutions"
+    ],
+    "L22584": [
+      "Lines and Planes in Homogeneous Coordinates"
+    ],
+    "L22659": [
+      "Image Warping"
+    ],
+    "L22682": [
+      "backward mapping"
+    ],
+    "L22710": [
+      "Implicit Image Representations"
+    ],
+    "L22723": [
+      "Interpolation"
+    ],
+    "L22746": [
+      "Image Warping with Implicit Representations"
+    ],
+    "L22786": [
+      "image alignment"
+    ],
+    "L22793": [
+      "Concluding Remarks"
+    ],
+    "L22811": [
+      "Introduction"
+    ],
+    "L22854": [
+      "3D Camera Projections in Homogeneous Coordinates"
+    ],
+    "L22949": [
+      "Parallel Projection"
+    ],
+    "L22963": [
+      "Camera-Intrinsic Parameters"
+    ],
+    "L22977": [
+      "From Meters to Pixels"
+    ],
+    "L23053": [
+      "From Pixels to Rays"
+    ],
+    "L23093": [
+      "A Simple, although Unreliable, Calibration Method"
+    ],
+    "L23159": [
+      "Other Camera Parameters"
+    ],
+    "L23173": [
+      "Camera-Extrinsic Parameters"
+    ],
+    "L23277": [
+      "extrinsic camera parameters"
+    ],
+    "L23286": [
+      "Full Camera Model"
+    ],
+    "L23402": [
+      "A Few Concrete Examples"
+    ],
+    "L23738": [
+      "Camera Calibration"
+    ],
+    "L23740": [
+      "calibrated"
+    ],
+    "L23748": [
+      "Direct Linear Transform"
+    ],
+    "L23835": [
+      "direct linear transform"
+    ],
+    "L23843": [
+      "Recovering Intrinsic and Extrinsic Camera Parameters"
+    ],
+    "L23890": [
+      "reprojection error"
+    ],
+    "L23892": [
+      "Multiplane Calibration Method"
+    ],
+    "L23900": [
+      "Nonlinear Optimization by Minimizing Reprojection Error"
+    ],
+    "L23934": [
+      "A Toy Example"
+    ],
+    "L24056": [
+      "Concluding Remarks"
+    ],
+    "L24078": [
+      "Introduction"
+    ],
+    "L24080": [
+      "stereo anaglyph"
+    ],
+    "L24103": [
+      "image rectification"
+    ],
+    "L24109": [
+      "Stereo Cues"
+    ],
+    "L24154": [
+      "triangulation"
+    ],
+    "L24158": [
+      "Depth from Image Disparities"
+    ],
+    "L24162": [
+      "parallax effect"
+    ],
+    "L24173": [
+      "random dot stereograms"
+    ],
+    "L24185": [
+      "Building a Stereo Pinhole Camera"
+    ],
+    "L24190": [
+      "stereo pinhole camera"
+    ],
+    "L24237": [
+      "Model-Based Methods"
+    ],
+    "L24245": [
+      "Triangulation"
+    ],
+    "L24292": [
+      "disparity"
+    ],
+    "L24293": [
+      "inversely proportional to the depth"
+    ],
+    "L24303": [
+      "stereo matching"
+    ],
+    "L24305": [
+      "Stereo Matching"
+    ],
+    "L24333": [
+      "disparity space image"
+    ],
+    "L24365": [
+      "Finding image features"
+    ],
+    "L24443": [
+      "Local image descriptors"
+    ],
+    "L24469": [
+      "Interpolation between feature matches"
+    ],
+    "L24483": [
+      "Constraints for Arbitrary Cameras"
+    ],
+    "L24527": [
+      "epipolar plane"
+    ],
+    "L24530": [
+      "epipolar lines"
+    ],
+    "L24534": [
+      "epipoles"
+    ],
+    "L24559": [
+      "The Essential and Fundamental Matrices"
+    ],
+    "L24607": [
+      "essential matrix"
+    ],
+    "L24647": [
+      "The fundamental matrix"
+    ],
+    "L24659": [
+      "fundamental matrix"
+    ],
+    "L24670": [
+      "Estimation of the essential/fundamental matrix"
+    ],
+    "L24691": [
+      "Finding the epipoles"
+    ],
+    "L24704": [
+      "Epipolar lines: The game"
+    ],
+    "L24737": [
+      "Image Rectification"
+    ],
+    "L24771": [
+      "Learning-Based Methods"
+    ],
+    "L24779": [
+      "Output Representation"
+    ],
+    "L24822": [
+      "Two-Stage Networks"
+    ],
+    "L24875": [
+      "Evaluation"
+    ],
+    "L24883": [
+      "Concluding Remarks"
+    ],
+    "L24903": [
+      "Introduction"
+    ],
+    "L24929": [
+      "homography"
+    ],
+    "L24943": [
+      "Homography"
+    ],
+    "L24998": [
+      "Camera Rotation"
+    ],
+    "L25151": [
+      "Planar Surface"
+    ],
+    "L25254": [
+      "Creating Image Panoramas"
+    ],
+    "L25274": [
+      "Direct Linear Transform Algorithm"
+    ],
+    "L25298": [
+      "Robust Model Fitting: Random Sampling with Consensus"
+    ],
+    "L25325": [
+      "inliers"
+    ],
+    "L25364": [
+      "Image Stitching"
+    ],
+    "L25374": [
+      "Concluding Remarks"
+    ],
+    "L25390": [
+      "Introduction"
+    ],
+    "L25448": [
+      "Ames room"
+    ],
+    "L25475": [
+      "front wall"
+    ],
+    "L25497": [
+      "Linear Perspective"
+    ],
+    "L25513": [
+      "Projection of 3D Lines"
+    ],
+    "L25549": [
+      "Vanishing Points"
+    ],
+    "L25594": [
+      "leaning tower illusion"
+    ],
+    "L25668": [
+      "Horizon Line"
+    ],
+    "L25674": [
+      "horizon line"
+    ],
+    "L25706": [
+      "Detecting Vanishing Points"
+    ],
+    "L25727": [
+      "Measuring Heights Using Parallel Lines"
+    ],
+    "L25739": [
+      "Cross-Ratio"
+    ],
+    "L25799": [
+      "Measuring the Height of an Object"
+    ],
+    "L25926": [
+      "Projective invariants"
+    ],
+    "L25929": [
+      "Height Propagation to Supported Objects"
+    ],
+    "L25978": [
+      "supported-by hierarchy"
+    ],
+    "L25980": [
+      "3D Metrology from a Single View"
+    ],
+    "L26000": [
+      "Calibration of the Projected World Axis"
+    ],
+    "L26050": [
+      "Locating a 3D Point"
+    ],
+    "L26091": [
+      "Camera Calibration from Vanishing Points"
+    ],
+    "L26131": [
+      "conic matrix"
+    ],
+    "L26177": [
+      "Concluding Remarks"
+    ],
+    "L26195": [
+      "Introduction"
+    ],
+    "L26215": [
+      "Monocular Depth Cues"
+    ],
+    "L26226": [
+      "Shading"
+    ],
+    "L26231": [
+      "Shape from shading"
+    ],
+    "L26235": [
+      "texture gradients"
+    ],
+    "L26267": [
+      "familiar objects"
+    ],
+    "L26273": [
+      "linear perspective"
+    ],
+    "L26276": [
+      "3D Representations"
+    ],
+    "L26325": [
+      "turbo colormap",
+      "jet colormap"
+    ],
+    "L26339": [
+      "Supervised Methods for Depth from a Single Image"
+    ],
+    "L26365": [
+      "Collecting Training Data"
+    ],
+    "L26392": [
+      "Loss"
+    ],
+    "L26403": [
+      "scale-invariant loss"
+    ],
+    "L26418": [
+      "Architecture"
+    ],
+    "L26477": [
+      "Unsupervised Methods for Depth from a Single Image"
+    ],
+    "L26524": [
+      "reference frame",
+      "target frame"
+    ],
+    "L26603": [
+      "Concluding Remarks"
+    ],
+    "L26619": [
+      "Introduction"
+    ],
+    "L26646": [
+      "Structure from Motion"
+    ],
+    "L26656": [
+      "biological motion"
+    ],
+    "L26669": [
+      "rigidity assumption"
+    ],
+    "L26676": [
+      "sparse SFM"
+    ],
+    "L26725": [
+      "Sparse SFM"
+    ],
+    "L26788": [
+      "Problem Formulation"
+    ],
+    "L26849": [
+      "scale drift"
+    ],
+    "L26851": [
+      "Reprojection Error"
+    ],
+    "L26853": [
+      "reprojection error"
+    ],
+    "L26891": [
+      "visibility"
+    ],
+    "L26910": [
+      "bundle adjustment"
+    ],
+    "L26913": [
+      "bundle adjustment"
+    ],
+    "L26927": [
+      "Finding Matches across Images"
+    ],
+    "L26939": [
+      "Interest point detector"
+    ],
+    "L26944": [
+      "interest points"
+    ],
+    "L26947": [
+      "interest points",
+      "moving element"
+    ],
+    "L27015": [
+      "Local image descriptors"
+    ],
+    "L27058": [
+      "Optimization"
+    ],
+    "L27117": [
+      "Concluding Remarks"
+    ],
+    "L27156": [
+      "Introduction"
+    ],
+    "L27166": [
+      "plenoptic function"
+    ],
+    "L27169": [
+      "The Plenoptic Function"
+    ],
+    "L27215": [
+      "radiance field"
+    ],
+    "L27228": [
+      "density"
+    ],
+    "L27251": [
+      "A Running Example: Seeing in Flatland"
+    ],
+    "L27276": [
+      "Aside: Representing Scenes with Fields"
+    ],
+    "L27278": [
+      "vector fields"
+    ],
+    "L27296": [
+      "Pixel"
+    ],
+    "L27300": [
+      "Voxel"
+    ],
+    "L27306": [
+      "Optical flow fields"
+    ],
+    "L27310": [
+      "Signed distance functions",
+      "SDFs"
+    ],
+    "L27324": [
+      "Representing Radiance Fields With Parameterized Functions"
+    ],
+    "L27362": [
+      "Neural Radiance Fields (NeRFs)"
+    ],
+    "L27365": [
+      "Neural radiance fields"
+    ],
+    "L27366": [
+      "NeRFs"
+    ],
+    "L27416": [
+      "Other Ways of Parameterizing Radiance fields"
+    ],
+    "L27429": [
+      "Rendering Radiance Fields"
+    ],
+    "L27441": [
+      "volume rendering"
+    ],
+    "L27495": [
+      "ray casting"
+    ],
+    "L27505": [
+      "Computing the Volume Rendering Integral"
+    ],
+    "L27615": [
+      "Fitting a Radiance Field to Explain a Scene"
+    ],
+    "L27636": [
+      "Computation Graph for Rendering an Image"
+    ],
+    "L27652": [
+      "Optimizing the Parameters of this Computation Graph"
+    ],
+    "L27730": [
+      "Beyond Radiance Fields: The Rendering Equation"
+    ],
+    "L27792": [
+      "Concluding Remarks"
+    ],
+    "L27807": [
+      "Introduction"
+    ],
+    "L27877": [
+      "Motion Perception in the Human Visual System"
+    ],
+    "L27898": [
+      "apparent motion"
+    ],
+    "L27951": [
+      "Matching-Based Motion Estimation"
+    ],
+    "L27989": [
+      "correspondences"
+    ],
+    "L28079": [
+      "pattern matching methods"
+    ],
+    "L28081": [
+      "spatiotemporal filtering"
+    ],
+    "L28155": [
+      "Concluding Remarks"
+    ],
+    "L28172": [
+      "Introduction"
+    ],
+    "L28183": [
+      "3D Motion and Its 2D Projection"
+    ],
+    "L28277": [
+      "Vanishing Point"
+    ],
+    "L28293": [
+      "vanishing point"
+    ],
+    "L28306": [
+      "vanishing point"
+    ],
+    "L28316": [
+      "Camera Translation"
+    ],
+    "L28377": [
+      "Lateral camera motion"
+    ],
+    "L28412": [
+      "Camera forward motion and focus of expansion"
+    ],
+    "L28438": [
+      "time to contact"
+    ],
+    "L28459": [
+      "focus of expansion"
+    ],
+    "L28470": [
+      "Camera Rotation"
+    ],
+    "L28489": [
+      "Euler angles"
+    ],
+    "L28745": [
+      "Motion under Varying Focal Length"
+    ],
+    "L28797": [
+      "Concluding Remarks"
+    ],
+    "L28810": [
+      "Introduction"
+    ],
+    "L28833": [
+      "2D Motion Field and Optical Flow"
+    ],
+    "L28838": [
+      "Optical flow"
+    ],
+    "L28893": [
+      "The Aperture Problem"
+    ],
+    "L28896": [
+      "aperture problem"
+    ],
+    "L28906": [
+      "Barber-pole illusion"
+    ],
+    "L28911": [
+      "Representation of Optical Flow"
+    ],
+    "L28913": [
+      "dense optical flow"
+    ],
+    "L28941": [
+      "Model-Based Approaches"
+    ],
+    "L28952": [
+      "Brightness Constancy Assumption"
+    ],
+    "L28954": [
+      "brightness constancy assumption"
+    ],
+    "L28986": [
+      "Gradient-Based Optical Flow Estimation"
+    ],
+    "L29008": [
+      "gradient constraint equation"
+    ],
+    "L29140": [
+      "good features to track"
+    ],
+    "L29154": [
+      "Iterative Refinement for Optical Flow"
+    ],
+    "L29200": [
+      "slow prior"
+    ],
+    "L29208": [
+      "smooth prior"
+    ],
+    "L29217": [
+      "Layer-Based Motion Estimation"
+    ],
+    "L29240": [
+      "Concluding Remarks"
+    ],
+    "L29256": [
+      "Introduction"
+    ],
+    "L29281": [
+      "Learning-Based Approaches"
+    ],
+    "L29289": [
+      "Supervised Models for Optical Flow Estimation"
+    ],
+    "L29299": [
+      "Architectures"
+    ],
+    "L29352": [
+      "Loss functions"
+    ],
+    "L29355": [
+      "endpoint error"
+    ],
+    "L29366": [
+      "Handling occlusions"
+    ],
+    "L29376": [
+      "Training set"
+    ],
+    "L29402": [
+      "Unsupervised Learning of Optical Flow"
+    ],
+    "L29445": [
+      "Concluding Remarks"
+    ],
+    "L29456": [
+      "Introduction"
+    ],
+    "L29477": [
+      "A Few Notes About Object Recognition in Humans"
+    ],
+    "L29488": [
+      "Recognition by Components"
+    ],
+    "L29509": [
+      "Geons"
+    ],
+    "L29520": [
+      "Compositionality"
+    ],
+    "L29534": [
+      "Invariances"
+    ],
+    "L29554": [
+      "mental rotation"
+    ],
+    "L29575": [
+      "Principles of Categorization"
+    ],
+    "L29617": [
+      "prototypes"
+    ],
+    "L29648": [
+      "Image Classification"
+    ],
+    "L29672": [
+      "Formulation"
+    ],
+    "L29703": [
+      "Exclusive classes"
+    ],
+    "L29716": [
+      "simplex"
+    ],
+    "L29752": [
+      "Multilabel classification"
+    ],
+    "L29768": [
+      "Classification Loss"
+    ],
+    "L29772": [
+      "missclassication error"
+    ],
+    "L29788": [
+      "Exclusive classes"
+    ],
+    "L29803": [
+      "cross-entropy loss"
+    ],
+    "L29815": [
+      "Multilabel classification"
+    ],
+    "L29822": [
+      "multiclass binary cross-entropy loss"
+    ],
+    "L29829": [
+      "Evaluation"
+    ],
+    "L29837": [
+      "top-1"
+    ],
+    "L29850": [
+      "top-5"
+    ],
+    "L29860": [
+      "confusion matrix"
+    ],
+    "L29889": [
+      "Shortcomings"
+    ],
+    "L29964": [
+      "Object Localization"
+    ],
+    "L29973": [
+      "bounding box"
+    ],
+    "L29977": [
+      "Formulation"
+    ],
+    "L30007": [
+      "Window scanning approach"
+    ],
+    "L30026": [
+      "Selective search"
+    ],
+    "L30040": [
+      "cascade"
+    ],
+    "L30061": [
+      "nonmaximum suppression"
+    ],
+    "L30087": [
+      "Cascade of classifiers"
+    ],
+    "L30133": [
+      "Other approaches"
+    ],
+    "L30145": [
+      "Object Localization Loss"
+    ],
+    "L30190": [
+      "Intersection over Union"
+    ],
+    "L30232": [
+      "Evaluation"
+    ],
+    "L30243": [
+      "Assign detections to ground truth labels"
+    ],
+    "L30255": [
+      "Precision-recall curve"
+    ],
+    "L30263": [
+      "precision"
+    ],
+    "L30272": [
+      "recall"
+    ],
+    "L30289": [
+      "Shortcomings"
+    ],
+    "L30299": [
+      "stuff",
+      "objects"
+    ],
+    "L30324": [
+      "Class Segmentation"
+    ],
+    "L30377": [
+      "Shortcomings"
+    ],
+    "L30390": [
+      "Instance Segmentation"
+    ],
+    "L30453": [
+      "Shortcomings"
+    ],
+    "L30465": [
+      "Concluding Remarks"
+    ],
+    "L30526": [
+      "Introduction"
+    ],
+    "L30548": [
+      "Background: Representing Text as Tokens"
+    ],
+    "L30550": [
+      "vision-language models",
+      "VLMs"
+    ],
+    "L30551": [
+      "language models"
+    ],
+    "L30553": [
+      "natural language processing",
+      "NLP"
+    ],
+    "L30589": [
+      "byte-pair"
+    ],
+    "L30593": [
+      "generative pretrained transformer",
+      "GPT"
+    ],
+    "L30595": [
+      "("
+    ],
+    "L30619": [
+      "Learning Visual Representations from Language Supervision"
+    ],
+    "L30701": [
+      "("
+    ],
+    "L30789": [
+      "Translating between Images and Text"
+    ],
+    "L30835": [
+      "Text-to-Image"
+    ],
+    "L30838": [
+      "text-to-image"
+    ],
+    "L30906": [
+      "Image-to-Text"
+    ],
+    "L30909": [
+      "image encoder"
+    ],
+    "L30911": [
+      "image-to-text",
+      "image captioning"
+    ],
+    "L30930": [
+      "cross-attention"
+    ],
+    "L30973": [
+      "Text as a Visual Representation"
+    ],
+    "L30996": [
+      "Visual Question Answering"
+    ],
+    "L31001": [
+      "Visual question answering",
+      "VQA"
+    ],
+    "L31021": [
+      "Concluding Remarks"
+    ],
+    "L31045": [
+      "Introduction"
+    ],
+    "L31049": [
+      "Research Advice"
+    ],
+    "L31051": [
+      "\"Slow down to speed up.\""
+    ],
+    "L31061": [
+      "Please don't tell me \"it doesn't work.\""
+    ],
+    "L31063": [
+      "\"This sounds like hard work.\"",
+      "hard workers"
+    ],
+    "L31069": [
+      "The above isn't completely true",
+      "steering"
+    ],
+    "L31071": [
+      "Toy models"
+    ],
+    "L31079": [
+      "Strategies for success"
+    ],
+    "L31085": [
+      "It's also sometimes useful to remember"
+    ],
+    "L31089": [
+      "Cultivate your strengths and play to those strengths"
+    ],
+    "L31093": [
+      "Progress"
+    ],
+    "L31095": [
+      "Please don't hide from me"
+    ],
+    "L31097": [
+      "On collaboration"
+    ],
+    "L31099": [
+      "On authorship"
+    ],
+    "L31101": [
+      "Concluding Remarks"
+    ],
+    "L31106": [
+      "One final note about doing research"
+    ],
+    "L31111": [
+      "Introduction"
+    ],
+    "L31132": [
+      "Organization"
+    ],
+    "L31173": [
+      "The Paper's Introduction"
+    ],
+    "L31182": [
+      "Main Idea"
+    ],
+    "L31202": [
+      "Experimental Results"
+    ],
+    "L31216": [
+      "How to End the Paper"
+    ],
+    "L31232": [
+      "General Writing Tips"
+    ],
+    "L31244": [
+      "Use Fewer Words"
+    ],
+    "L31246": [
+      "The Elements of Style"
+    ],
+    "L31303": [
+      "Title, Figure Captions, and Equations"
+    ],
+    "L31351": [
+      "Tone"
+    ],
+    "L31383": [
+      "Author List"
+    ],
+    "L31393": [
+      "Avoiding Rejection"
+    ],
+    "L31444": [
+      "Table Caption"
+    ],
+    "L31447": [
+      "Concluding Remarks"
+    ],
+    "L31457": [
+      "Introduction"
+    ],
+    "L31474": [
+      "A Taxonomy of Talks"
+    ],
+    "L31497": [
+      "Very Short Talks (2 -- 10 minutes)"
+    ],
+    "L31524": [
+      "Preparation"
+    ],
+    "L31551": [
+      "Nervousness"
+    ],
+    "L31570": [
+      "Your Distracted Audience"
+    ],
+    "L31580": [
+      "Ways to Engage the Audience"
+    ],
+    "L31594": [
+      "Layer Your Talk"
+    ],
+    "L31620": [
+      "People Like to See a Good Fight"
+    ],
+    "L31633": [
+      "Show Yourself to the Audience"
+    ],
+    "L31647": [
+      "How to End the Talk"
+    ],
+    "L31663": [
+      "Concluding Remarks"
+    ],
+    "L31673": [
+      "Introduction"
+    ],
+    "L31699": [
+      "A Simple Neural Network"
+    ],
+    "L31747": [
+      "Adapting the Output"
+    ],
+    "L31845": [
+      "From 2D Images to 3D"
+    ],
+    "L31892": [
+      "Large Language Model-based Scene Understanding"
+    ],
+    "L31919": [
+      "Unsolved Solved Computer Vision Problems"
+    ],
+    "L31940": [
+      "Concluding Remarks"
+    ]
+  },
+  "counts": {
+    "terms": 1352,
+    "lines_with_terms": 1484
+  }
+}

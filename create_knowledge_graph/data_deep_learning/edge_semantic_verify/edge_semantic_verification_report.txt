@@ -1,0 +1,24 @@
+Semantic edge verification report
+concepts: 681
+edges reviewed: 894
+threshold: 0.55
+
+verdicts:
+  drop: 31
+  keep: 804
+  relabel: 59
+
+kept prereq: 389
+kept overlay: 474
+dropped: 31
+
+kept kinds:
+  contrast_with: 27
+  formalizes: 30
+  generalizes: 15
+  illustrates: 11
+  requires: 389
+  see_also: 263
+  special_case_of: 114
+  teaches_after: 9
+  used_to_prove: 5

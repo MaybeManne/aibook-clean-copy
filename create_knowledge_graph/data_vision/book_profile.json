@@ -1,0 +1,21 @@
+{
+  "format": "qmd",
+  "created": "2026-05-19",
+  "source_type": "quarto_book",
+  "book_dir": "/Users/su/Documents/su/alex",
+  "book_title": "Foundations of Computer Vision",
+  "heading": {
+    "chapter_level": 1,
+    "section_level": 2,
+    "subsection_level": 3,
+    "chapter_style": "any_case",
+    "section_numbered": false
+  },
+  "images": {
+    "source": "local",
+    "path_style": "relative_to_book_dir",
+    "id_style": "quarto_attr"
+  },
+  "crossref_style": "quarto",
+  "structure_in_ingest": true
+}

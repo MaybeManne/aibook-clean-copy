@@ -50,11 +50,12 @@ def load_jsonl(path: Path) -> list[dict]:
         return [json.loads(l) for l in f if l.strip()]
 
 
-def prefer_validated(data_dir: Path, base: str) -> Path:
-    """Return <base>.validated.jsonl if it exists, else <base>.jsonl."""
-    v = data_dir / f"{base}.validated.jsonl"
-    if v.exists():
-        return v
+def prefer_final(data_dir: Path, base: str) -> Path:
+    """Return the most reviewed available edge artifact."""
+    for tag in ("final", "semantic", "validated", "combined"):
+        candidate = data_dir / f"{base}.{tag}.jsonl"
+        if candidate.exists():
+            return candidate
     return data_dir / f"{base}.jsonl"
 
 
@@ -71,17 +72,29 @@ def main() -> None:
                     help="Emit minified JSON (default: indented, newline per record).")
     ap.add_argument("--source-file", type=str, default=None,
                     help="Override the source_file recorded in meta.")
+    ap.add_argument("--prereq", type=Path, default=None,
+                    help="Explicit prerequisite edge JSONL (overrides artifact discovery).")
+    ap.add_argument("--overlay", type=Path, default=None,
+                    help="Explicit overlay edge JSONL (overrides artifact discovery).")
     args = ap.parse_args()
 
     d = args.data_dir
+    for label, explicit_path in (
+        ("prerequisite", args.prereq),
+        ("overlay", args.overlay),
+    ):
+        if explicit_path is not None and not explicit_path.exists():
+            raise SystemExit(
+                f"explicit {label} edge artifact does not exist: {explicit_path}"
+            )
 
     chapters = load_jsonl(d / "chapters.jsonl")
     sections = load_jsonl(d / "sections.jsonl")
     concepts = load_jsonl(d / "concepts.jsonl")
     items    = load_jsonl(d / "items.jsonl")
     images   = load_jsonl(d / "images.jsonl")
-    edges_prereq  = load_jsonl(prefer_validated(d, "edges_prereq"))
-    edges_overlay = load_jsonl(prefer_validated(d, "edges_overlay"))
+    edges_prereq = load_jsonl(args.prereq or prefer_final(d, "edges_prereq"))
+    edges_overlay = load_jsonl(args.overlay or prefer_final(d, "edges_overlay"))
 
     # Source file: guess from what's in the data dir
     source_file = args.source_file

@@ -1,0 +1,15 @@
+{
+  "format": "pdf",
+  "created": "2026-06-03",
+  "source_type": "pdf",
+  "src": "/Users/su/Documents/su/alex/pdf_books/UnderstandingDeepLearning_02_09_26_C.pdf",
+  "extraction": "pymupdf",
+  "heading": {
+    "detection": "llm"
+  },
+  "images": {
+    "source": "embedded"
+  },
+  "crossref_style": "none",
+  "structure_in_ingest": false
+}

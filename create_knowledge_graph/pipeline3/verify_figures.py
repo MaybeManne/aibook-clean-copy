@@ -24,7 +24,8 @@ import sys
 from pathlib import Path
 
 
-VALID_TOKEN_RE = re.compile(r"\[FIGURE:([0-9a-f]{16})(?:\s*\|[^\]]*)?\]")
+FIGURE_ID_PATTERN = r"(?:[0-9a-f]{16}|(?:fig|tbl)[-_:][A-Za-z0-9][A-Za-z0-9_.:-]*)"
+VALID_TOKEN_RE = re.compile(rf"\[FIGURE:({FIGURE_ID_PATTERN})(?:\s*\|[^\]]*)?\]")
 LINE_RE = re.compile(r"^L(\d{5}):\s?(.*)$")
 
 

@@ -19,10 +19,16 @@ Stages (in order):
  14. format_items       format_items.py              -> items.jsonl
  15. repair_items       repair_items.py              (only if items.failures.jsonl non-empty)
  16. link_items         link_items_to_concepts.py    rewrites concepts.jsonl + items.jsonl
- 17. extract_edges      extract_edges.py             -> edges_prereq.jsonl, edges_overlay.jsonl
- 18. validate_edges     validate_edges.py            -> edges_*.validated.jsonl
- 19. image_reproduce    image_reproduce.py           (optional; updates images.jsonl with repro code)
- 20. split_raw          split_raw_body.py            move raw_body into concepts.raw.jsonl / items.raw.jsonl; strip from main files
+ 17. extract_edges          extract_edges.py          -> base semantic edges
+ 18. audit_local_edges      audit_local_edges.py      -> explicit local-pair decisions + supplemental edges
+ 19. merge_edge_sets        merge_edge_sets.py        -> non-destructive combined edges
+ 20. validate_augmented     validate_edges.py         -> structurally validated combined edges
+ 21. verify_edges_semantic  verify_edges_semantic.py  -> independently reviewed edges
+ 22. validate_verified      validate_edges.py         -> final edge artifacts
+ 23. image_reproduce        image_reproduce.py        (optional; updates images.jsonl with repro code)
+ 24. split_raw              split_raw_body.py         move raw bodies to sidecar files
+ 25. merge_graph            merge_graph.py            -> graph.json
+ 26. fill_slots             fill_slots.py             -> concepts.slotted.jsonl
 
 State is tracked in <data-dir>/pipeline.state.json. Run:
     python run.py                  # run from the next unfinished stage (default data-dir: data3)
@@ -84,30 +90,79 @@ def save_state(state: dict, data_dir: Path) -> None:
     sf.write_text(json.dumps(state, indent=2) + "\n")
 
 
-def build_stages(src: Path, book_stem: str, data_dir: Path) -> list[Stage]:
+def _load_profile(data_dir: Path) -> dict:
+    """Load book_profile.json if present; return {} for legacy MD-only runs."""
+    p = data_dir / "book_profile.json"
+    return json.loads(p.read_text()) if p.exists() else {}
+
+
+def build_stages(
+    src: Path,
+    book_stem: str,
+    data_dir: Path,
+    edge_model: str = "gemini-flash-latest",
+    audit_model: str = "gemini-flash-latest",
+    verify_model: str = "gpt-4.1-mini",
+    verification_threshold: float = 0.7,
+    graph_out: Path | None = None,
+) -> list[Stage]:
     d = data_dir
+    graph_path = graph_out or d / "graph.json"
     chunks_dir = d / "chunks"
     pa_dir = d / "pass_a_verified"
+    profile = _load_profile(data_dir)
+    fmt = profile.get("format", "md")   # "qmd" | "md" | "pdf"
+    book_dir = profile.get("book_dir")  # only set for QMD
+
+    # ── Stage 1: parse structure ──────────────────────────────────────────────
+    # QMD: ingest.py already wrote chapters/sections; mark as pre-done by
+    #      checking profile.structure_in_ingest. We still include the stage
+    #      so --list shows it; the orchestrator skips it when already completed.
+    if fmt == "qmd" and profile.get("structure_in_ingest"):
+        parse_structure = Stage(
+            "parse_structure",
+            "ingest.py",   # placeholder — won't actually run; marked complete by ingest
+            ["--format", "qmd", "--book-dir", book_dir or ".",
+             "--out-dir", str(d), "--list"],
+        )
+    else:
+        parse_structure = Stage(
+            "parse_structure",
+            "parse_book_structure.py",
+            ["--src", str(src),
+             "--out-chapters", str(d / "chapters.jsonl"),
+             "--out-sections", str(d / "sections.jsonl")],
+        )
+
+    # ── Stage 2: images ───────────────────────────────────────────────────────
+    if fmt == "qmd":
+        download_images = Stage(
+            "download_images",
+            "copy_images_local.py",
+            ["--src", str(src),
+             "--book-dir", book_dir or ".",
+             "--out-dir", str(d / "images"),
+             "--out-manifest", str(d / "images.jsonl")],
+        )
+    else:
+        download_images = Stage(
+            "download_images",
+            "download_images.py",
+            ["--src", str(src),
+             "--out-dir", str(d / "images"),
+             "--out-manifest", str(d / "images.jsonl"),
+             "--workers", "16"],
+        )
 
     return [
-        Stage("parse_structure",
-              "parse_book_structure.py",
-              ["--src", str(src),
-               "--out-chapters", str(d / "chapters.jsonl"),
-               "--out-sections", str(d / "sections.jsonl")]),
-
-        Stage("download_images",
-              "download_images.py",
-              ["--src", str(src),
-               "--out-dir", str(d / "images"),
-               "--out-manifest", str(d / "images.jsonl"),
-               "--workers", "16"]),
+        parse_structure,
+        download_images,
 
         Stage("alt_text",
               "image_alt_text.py",
               ["--images-manifest", str(d / "images.jsonl"),
                "--src", str(src),
-               "--workers", "16"],
+               "--workers", "8"],
               llm=True),
 
         Stage("enrich",
@@ -142,7 +197,9 @@ def build_stages(src: Path, book_stem: str, data_dir: Path) -> list[Stage]:
                "--chunks-dir", str(chunks_dir),
                "--out-concepts", str(d / "pass_a_concepts.jsonl"),
                "--out-items",    str(d / "pass_a_items.jsonl"),
-               "--workers", "16"],
+               "--profile",      str(d / "book_profile.json"),
+               "--vocab",        str(d / "vocab.json"),
+               "--workers", "8"],
               llm=True),
 
         Stage("verify_pass_a",
@@ -172,28 +229,32 @@ def build_stages(src: Path, book_stem: str, data_dir: Path) -> list[Stage]:
               "dedup_concepts.py",
               ["--spliced", str(d / "concepts.spliced.jsonl"),
                "--out",     str(d / "concepts.deduped.jsonl"),
-               "--map-out", str(d / "concept_merge_map.json")],
+               "--map-out", str(d / "concept_merge_map.json"),
+               "--model",   "gpt-4.1-mini"],
               llm=True),
 
         Stage("format_concepts",
               "format_concepts.py",
               ["--spliced", str(d / "concepts.deduped.jsonl"),
                "--out",     str(d / "concepts.jsonl"),
-               "--workers", "32"],
+               "--workers", "16",
+               "--model",   "gpt-4.1-mini"],
               llm=True),
 
         Stage("format_items",
               "format_items.py",
               ["--spliced", str(d / "items.spliced.jsonl"),
                "--out",     str(d / "items.jsonl"),
-               "--workers", "32"],
+               "--workers", "16",
+               "--model",   "gpt-4.1-mini"],
               llm=True),
 
         Stage("repair_items",
               "repair_items.py",
               ["--failures", str(d / "items.failures.jsonl"),
                "--items",    str(d / "items.jsonl"),
-               "--workers", "6"],
+               "--workers", "6",
+               "--model",   "gpt-4.1-mini"],
               optional=True, llm=True),
 
         Stage("link_items",
@@ -201,7 +262,8 @@ def build_stages(src: Path, book_stem: str, data_dir: Path) -> list[Stage]:
               ["--concepts", str(d / "concepts.jsonl"),
                "--items",    str(d / "items.jsonl"),
                "--merge-map", str(d / "concept_merge_map.json"),
-               "--workers", "32"],
+               "--workers", "16",
+               "--model",   "gpt-4.1-mini"],
               llm=True),
 
         Stage("extract_edges",
@@ -210,15 +272,63 @@ def build_stages(src: Path, book_stem: str, data_dir: Path) -> list[Stage]:
                "--out-prereq",  str(d / "edges_prereq.jsonl"),
                "--out-overlay", str(d / "edges_overlay.jsonl"),
                "--merge-map",   str(d / "concept_merge_map.json"),
-               "--workers", "16"],
+               "--numbered",    str(d / f"{book_stem}.numbered.md"),
+               "--workers", "8",
+               "--model", edge_model],
               llm=True),
 
-        Stage("validate_edges",
+        Stage("audit_local_edges",
+              "audit_local_edges.py",
+              ["--concepts", str(d / "concepts.jsonl"),
+               "--prereq", str(d / "edges_prereq.jsonl"),
+               "--overlay", str(d / "edges_overlay.jsonl"),
+               "--numbered", str(d / f"{book_stem}.numbered.md"),
+               "--out-prereq", str(d / "edges_prereq.local.jsonl"),
+               "--out-overlay", str(d / "edges_overlay.local.jsonl"),
+               "--out-decisions", str(d / "edge_local_decisions.jsonl"),
+               "--workers", "8",
+               "--batch-size", "8",
+               "--max-gap", "2",
+               "--model", audit_model],
+              llm=True),
+
+        Stage("merge_edge_sets",
+              "merge_edge_sets.py",
+              ["--base-prereq", str(d / "edges_prereq.jsonl"),
+               "--base-overlay", str(d / "edges_overlay.jsonl"),
+               "--supplemental-prereq", str(d / "edges_prereq.local.jsonl"),
+               "--supplemental-overlay", str(d / "edges_overlay.local.jsonl"),
+               "--out-prereq", str(d / "edges_prereq.combined.jsonl"),
+               "--out-overlay", str(d / "edges_overlay.combined.jsonl"),
+               "--report", str(d / "edge_merge_report.json")]),
+
+        Stage("validate_augmented_edges",
               "validate_edges.py",
               ["--concepts", str(d / "concepts.jsonl"),
-               "--prereq",   str(d / "edges_prereq.jsonl"),
-               "--overlay",  str(d / "edges_overlay.jsonl"),
+               "--prereq",   str(d / "edges_prereq.combined.jsonl"),
+               "--overlay",  str(d / "edges_overlay.combined.jsonl"),
                "--out-dir",  str(d)]),
+
+        Stage("verify_edges_semantic",
+              "verify_edges_semantic.py",
+              ["--concepts", str(d / "concepts.jsonl"),
+               "--prereq", str(d / "edges_prereq.validated.jsonl"),
+               "--overlay", str(d / "edges_overlay.validated.jsonl"),
+               "--numbered", str(d / f"{book_stem}.numbered.md"),
+               "--out-dir", str(d),
+               "--workers", "6",
+               "--batch-size", "6",
+               "--threshold", str(verification_threshold),
+               "--model", verify_model],
+              llm=True),
+
+        Stage("validate_verified_edges",
+              "validate_edges.py",
+              ["--concepts", str(d / "concepts.jsonl"),
+               "--prereq", str(d / "edges_prereq.semantic.jsonl"),
+               "--overlay", str(d / "edges_overlay.semantic.jsonl"),
+               "--out-dir", str(d),
+               "--output-tag", "final"]),
 
         Stage("image_reproduce",
               "image_reproduce.py",
@@ -236,6 +346,23 @@ def build_stages(src: Path, book_stem: str, data_dir: Path) -> list[Stage]:
                "--items",            str(d / "items.jsonl"),
                "--out-concepts-raw", str(d / "concepts.raw.jsonl"),
                "--out-items-raw",    str(d / "items.raw.jsonl")]),
+
+        Stage("merge_graph",
+              "merge_graph.py",
+              ["--data-dir", str(d),
+               "--prereq", str(d / "edges_prereq.final.jsonl"),
+               "--overlay", str(d / "edges_overlay.final.jsonl"),
+               "--out", str(graph_path)]),
+
+        Stage("fill_slots",
+              "fill_slots.py",
+              ["--raw",      str(d / "concepts.raw.jsonl"),
+               "--concepts", str(d / "concepts.jsonl"),
+               "--out",      str(d / "concepts.slotted.jsonl"),
+               "--graph",    str(graph_path),
+               "--workers",  "8",
+               "--model",    "gpt-4.1-mini"],
+              llm=True),
     ]
 
 
@@ -266,12 +393,42 @@ def main() -> None:
     ap.add_argument("--force", type=str, help="Rerun from this stage name onward.")
     ap.add_argument("--skip-optional", action="store_true",
                     help="Skip stages marked optional (audit_chunks, image_reproduce, repair_items).")
+    ap.add_argument("--edge-model", default="gemini-flash-latest",
+                    help="Model used for broad semantic edge extraction.")
+    ap.add_argument("--audit-model", default="gemini-flash-latest",
+                    help="Model used to classify missing local concept pairs.")
+    ap.add_argument("--verify-model", default="gpt-4.1-mini",
+                    help="Independent model used to verify proposed edges.")
+    ap.add_argument("--edge-verification-threshold", type=float, default=0.7,
+                    help="Minimum verifier confidence retained in the final graph.")
+    ap.add_argument(
+        "--graph-out",
+        type=Path,
+        default=None,
+        help="Final graph JSON path. Defaults to <data-dir>/graph.json.",
+    )
     args = ap.parse_args()
 
     data_dir = (ROOT / args.data_dir).resolve()
     src = args.src if args.src is not None else data_dir / "book_raw.md"
+    graph_out = None
+    if args.graph_out is not None:
+        graph_out = (
+            args.graph_out
+            if args.graph_out.is_absolute()
+            else (ROOT / args.graph_out).resolve()
+        )
 
-    stages = build_stages(src, args.stem, data_dir)
+    stages = build_stages(
+        src,
+        args.stem,
+        data_dir,
+        edge_model=args.edge_model,
+        audit_model=args.audit_model,
+        verify_model=args.verify_model,
+        verification_threshold=args.edge_verification_threshold,
+        graph_out=graph_out,
+    )
     stage_names = [s.name for s in stages]
     state = load_state(data_dir)
 
@@ -294,7 +451,11 @@ def main() -> None:
             raise SystemExit(f"unknown stage: {args.force}")
         idx = stage_names.index(args.force)
         # Clear completion from this stage onward
-        state["completed"] = [c for c in state["completed"] if stage_names.index(c) < idx]
+        stage_index = {name: i for i, name in enumerate(stage_names)}
+        state["completed"] = [
+            completed for completed in state["completed"]
+            if completed in stage_index and stage_index[completed] < idx
+        ]
         save_state(state, data_dir)
         todo = stages[idx:]
     else:

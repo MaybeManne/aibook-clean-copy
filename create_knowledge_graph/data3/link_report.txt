@@ -1,17 +1,12 @@
 Link report
-items queried (LLM): 2388
-items inherited:     279
-changed assignments: 2667
-warnings:            2
+items queried (LLM): 459
+items inherited:     1
+changed assignments: 403
+warnings:            93
 
 === top-10 most-linked concepts (exercises+examples only) ===
-   162  thm_2_6_1_chain_rule
-   130  def_inflection_point
-    90  def_critical_point
-    87  thm_4_1_2_increasing_decreasing
-    87  thm_2_4_1_product_rule
-    83  tech_procedure_applied_optimization
-    74  tech_applying_lhopital
-    73  tech_finding_tangent_line_equation
-    73  technique_implicit_differentiation
-    73  thm_4_1_4_concavity_test
+     1  idea_fourier_transform_periodicity
+     1  definition_discrete_fourier_transform
+     1  concept_contrast_sensitivity_function
+     1  definition_aliasing
+     1  definition_adversarial_attacks

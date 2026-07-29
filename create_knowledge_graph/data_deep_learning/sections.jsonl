@@ -1,0 +1,143 @@
+{"section": "1.1", "section_title": "Supervised learning", "chapter": 1, "start_line": 646, "section_order": 1, "chapter_title": "Introduction", "end_line": 814, "book_order": 1}
+{"section": "1.2", "section_title": "Unsupervised learning", "chapter": 1, "start_line": 815, "section_order": 2, "chapter_title": "Introduction", "end_line": 951, "book_order": 2}
+{"section": "1.3", "section_title": "Reinforcement learning", "chapter": 1, "start_line": 952, "section_order": 3, "chapter_title": "Introduction", "end_line": 1026, "book_order": 3}
+{"section": "1.4", "section_title": "Ethics", "chapter": 1, "start_line": 1027, "section_order": 4, "chapter_title": "Introduction", "end_line": 1128, "book_order": 4}
+{"section": "1.5", "section_title": "Structure of book", "chapter": 1, "start_line": 1129, "section_order": 5, "chapter_title": "Introduction", "end_line": 1152, "book_order": 5}
+{"section": "1.6", "section_title": "Other books", "chapter": 1, "start_line": 1153, "section_order": 6, "chapter_title": "Introduction", "end_line": 1184, "book_order": 6}
+{"section": "1.7", "section_title": "How to read this book", "chapter": 1, "start_line": 1185, "section_order": 7, "chapter_title": "Introduction", "end_line": 1232, "book_order": 7}
+{"section": "2.1", "section_title": "Supervised learning overview", "chapter": 2, "start_line": 1253, "section_order": 1, "chapter_title": "Supervised learning", "end_line": 1299, "book_order": 8}
+{"section": "2.2", "section_title": "Linear regression example", "chapter": 2, "start_line": 1300, "section_order": 2, "chapter_title": "Supervised learning", "end_line": 1462, "book_order": 9}
+{"section": "2.3", "section_title": "Summary", "chapter": 2, "start_line": 1463, "section_order": 3, "chapter_title": "Supervised learning", "end_line": 1551, "book_order": 10}
+{"section": "3.1", "section_title": "Neural network example", "chapter": 3, "start_line": 1559, "section_order": 1, "chapter_title": "Shallow neural networks", "end_line": 1695, "book_order": 11}
+{"section": "3.2", "section_title": "Universal approximation theorem", "chapter": 3, "start_line": 1696, "section_order": 2, "chapter_title": "Shallow neural networks", "end_line": 1750, "book_order": 12}
+{"section": "3.3", "section_title": "Multivariate inputs and outputs", "chapter": 3, "start_line": 1751, "section_order": 3, "chapter_title": "Shallow neural networks", "end_line": 1833, "book_order": 13}
+{"section": "3.4", "section_title": "Shallow neural networks: general case", "chapter": 3, "start_line": 1834, "section_order": 4, "chapter_title": "Shallow neural networks", "end_line": 1923, "book_order": 14}
+{"section": "3.5", "section_title": "Terminology", "chapter": 3, "start_line": 1924, "section_order": 5, "chapter_title": "Shallow neural networks", "end_line": 1992, "book_order": 15}
+{"section": "3.6", "section_title": "Summary", "chapter": 3, "start_line": 1993, "section_order": 6, "chapter_title": "Shallow neural networks", "end_line": 2229, "book_order": 16}
+{"section": "4.1", "section_title": "Composing neural networks", "chapter": 4, "start_line": 2244, "section_order": 1, "chapter_title": "Deep neural networks", "end_line": 2287, "book_order": 17}
+{"section": "4.2", "section_title": "From composing networks to deep networks", "chapter": 4, "start_line": 2288, "section_order": 2, "chapter_title": "Deep neural networks", "end_line": 2427, "book_order": 18}
+{"section": "4.3", "section_title": "Deep neural networks", "chapter": 4, "start_line": 2428, "section_order": 3, "chapter_title": "Deep neural networks", "end_line": 2581, "book_order": 19}
+{"section": "4.4", "section_title": "Matrix notation", "chapter": 4, "start_line": 2582, "section_order": 4, "chapter_title": "Deep neural networks", "end_line": 2681, "book_order": 20}
+{"section": "4.5", "section_title": "Shallow vs. deep neural networks", "chapter": 4, "start_line": 2682, "section_order": 5, "chapter_title": "Deep neural networks", "end_line": 2835, "book_order": 21}
+{"section": "4.6", "section_title": "Summary", "chapter": 4, "start_line": 2836, "section_order": 6, "chapter_title": "Deep neural networks", "end_line": 3027, "book_order": 22}
+{"section": "5.1", "section_title": "Maximum likelihood", "chapter": 5, "start_line": 3054, "section_order": 1, "chapter_title": "Loss functions", "end_line": 3256, "book_order": 23}
+{"section": "5.2", "section_title": "Recipe for constructing loss functions", "chapter": 5, "start_line": 3257, "section_order": 2, "chapter_title": "Loss functions", "end_line": 3292, "book_order": 24}
+{"section": "5.3", "section_title": "Example 1: univariate regression", "chapter": 5, "start_line": 3293, "section_order": 3, "chapter_title": "Loss functions", "end_line": 3565, "book_order": 25}
+{"section": "5.4", "section_title": "Example 2: binary classification", "chapter": 5, "start_line": 3566, "section_order": 4, "chapter_title": "Loss functions", "end_line": 3671, "book_order": 26}
+{"section": "5.5", "section_title": "Example 3: multiclass classification", "chapter": 5, "start_line": 3672, "section_order": 5, "chapter_title": "Loss functions", "end_line": 3752, "book_order": 27}
+{"section": "5.6", "section_title": "Multiple outputs", "chapter": 5, "start_line": 3753, "section_order": 6, "chapter_title": "Loss functions", "end_line": 3945, "book_order": 28}
+{"section": "5.7", "section_title": "Cross-entropy loss", "chapter": 5, "start_line": 3946, "section_order": 7, "chapter_title": "Loss functions", "end_line": 4120, "book_order": 29}
+{"section": "5.8", "section_title": "Summary", "chapter": 5, "start_line": 4121, "section_order": 8, "chapter_title": "Loss functions", "end_line": 4366, "book_order": 30}
+{"section": "6.1", "section_title": "Gradient descent", "chapter": 6, "start_line": 4383, "section_order": 1, "chapter_title": "Fitting models", "end_line": 4629, "book_order": 31}
+{"section": "6.2", "section_title": "Stochastic gradient descent", "chapter": 6, "start_line": 4630, "section_order": 2, "chapter_title": "Fitting models", "end_line": 4750, "book_order": 32}
+{"section": "6.3", "section_title": "Momentum", "chapter": 6, "start_line": 4751, "section_order": 3, "chapter_title": "Fitting models", "end_line": 4831, "book_order": 33}
+{"section": "6.4", "section_title": "Adam", "chapter": 6, "start_line": 4832, "section_order": 4, "chapter_title": "Fitting models", "end_line": 4967, "book_order": 34}
+{"section": "6.5", "section_title": "Training algorithm hyperparameters", "chapter": 6, "start_line": 4968, "section_order": 5, "chapter_title": "Fitting models", "end_line": 4978, "book_order": 35}
+{"section": "6.6", "section_title": "Summary", "chapter": 6, "start_line": 4979, "section_order": 6, "chapter_title": "Fitting models", "end_line": 5252, "book_order": 36}
+{"section": "7.1", "section_title": "Problem definitions", "chapter": 7, "start_line": 5269, "section_order": 1, "chapter_title": "Gradients and initialization", "end_line": 5292, "book_order": 37}
+{"section": "7.2", "section_title": "Computing derivatives", "chapter": 7, "start_line": 5293, "section_order": 2, "chapter_title": "Gradients and initialization", "end_line": 5420, "book_order": 38}
+{"section": "7.3", "section_title": "Toy example", "chapter": 7, "start_line": 5421, "section_order": 3, "chapter_title": "Gradients and initialization", "end_line": 5707, "book_order": 39}
+{"section": "7.4", "section_title": "Backpropagation algorithm", "chapter": 7, "start_line": 5708, "section_order": 4, "chapter_title": "Gradients and initialization", "end_line": 6022, "book_order": 40}
+{"section": "7.5", "section_title": "Parameter initialization", "chapter": 7, "start_line": 6023, "section_order": 5, "chapter_title": "Gradients and initialization", "end_line": 6317, "book_order": 41}
+{"section": "7.6", "section_title": "Example training code", "chapter": 7, "start_line": 6318, "section_order": 6, "chapter_title": "Gradients and initialization", "end_line": 6355, "book_order": 42}
+{"section": "7.7", "section_title": "Summary", "chapter": 7, "start_line": 6356, "section_order": 7, "chapter_title": "Gradients and initialization", "end_line": 6735, "book_order": 43}
+{"section": "8.1", "section_title": "Training a simple model", "chapter": 8, "start_line": 6749, "section_order": 1, "chapter_title": "Measuring performance", "end_line": 6822, "book_order": 44}
+{"section": "8.2", "section_title": "Sources of error", "chapter": 8, "start_line": 6823, "section_order": 2, "chapter_title": "Measuring performance", "end_line": 7083, "book_order": 45}
+{"section": "8.3", "section_title": "Reducing error", "chapter": 8, "start_line": 7084, "section_order": 3, "chapter_title": "Measuring performance", "end_line": 7162, "book_order": 46}
+{"section": "8.4", "section_title": "Double descent", "chapter": 8, "start_line": 7163, "section_order": 4, "chapter_title": "Measuring performance", "end_line": 7346, "book_order": 47}
+{"section": "8.5", "section_title": "Choosing hyperparameters", "chapter": 8, "start_line": 7347, "section_order": 5, "chapter_title": "Measuring performance", "end_line": 7365, "book_order": 48}
+{"section": "8.6", "section_title": "Summary", "chapter": 8, "start_line": 7366, "section_order": 6, "chapter_title": "Measuring performance", "end_line": 7621, "book_order": 49}
+{"section": "9.1", "section_title": "Explicit regularization", "chapter": 9, "start_line": 7642, "section_order": 1, "chapter_title": "Regularization", "end_line": 7781, "book_order": 50}
+{"section": "9.2", "section_title": "Implicit regularization", "chapter": 9, "start_line": 7782, "section_order": 2, "chapter_title": "Regularization", "end_line": 7858, "book_order": 51}
+{"section": "9.3", "section_title": "Heuristics to improve performance", "chapter": 9, "start_line": 7859, "section_order": 3, "chapter_title": "Regularization", "end_line": 8302, "book_order": 52}
+{"section": "9.4", "section_title": "Summary", "chapter": 9, "start_line": 8303, "section_order": 4, "chapter_title": "Regularization", "end_line": 8730, "book_order": 53}
+{"section": "10.1", "section_title": "Invariance and equivariance", "chapter": 10, "start_line": 8758, "section_order": 1, "chapter_title": "Convolutional networks", "end_line": 8808, "book_order": 54}
+{"section": "10.2", "section_title": "Convolutional networks for 1D inputs", "chapter": 10, "start_line": 8809, "section_order": 2, "chapter_title": "Convolutional networks", "end_line": 9087, "book_order": 55}
+{"section": "10.3", "section_title": "Convolutional networks for 2D inputs", "chapter": 10, "start_line": 9088, "section_order": 3, "chapter_title": "Convolutional networks", "end_line": 9131, "book_order": 56}
+{"section": "10.4", "section_title": "Downsampling and upsampling", "chapter": 10, "start_line": 9132, "section_order": 4, "chapter_title": "Convolutional networks", "end_line": 9242, "book_order": 57}
+{"section": "10.5", "section_title": "Applications", "chapter": 10, "start_line": 9243, "section_order": 5, "chapter_title": "Convolutional networks", "end_line": 9416, "book_order": 58}
+{"section": "10.6", "section_title": "Summary", "chapter": 10, "start_line": 9417, "section_order": 6, "chapter_title": "Convolutional networks", "end_line": 9740, "book_order": 59}
+{"section": "11.1", "section_title": "Sequential processing", "chapter": 11, "start_line": 9756, "section_order": 1, "chapter_title": "Residual networks", "end_line": 9866, "book_order": 60}
+{"section": "11.2", "section_title": "Residual connections and residual blocks", "chapter": 11, "start_line": 9867, "section_order": 2, "chapter_title": "Residual networks", "end_line": 10059, "book_order": 61}
+{"section": "11.3", "section_title": "Exploding gradients in residual networks", "chapter": 11, "start_line": 10060, "section_order": 3, "chapter_title": "Residual networks", "end_line": 10094, "book_order": 62}
+{"section": "11.4", "section_title": "Batch normalization", "chapter": 11, "start_line": 10095, "section_order": 4, "chapter_title": "Residual networks", "end_line": 10211, "book_order": 63}
+{"section": "11.5", "section_title": "Common residual architectures", "chapter": 11, "start_line": 10212, "section_order": 5, "chapter_title": "Residual networks", "end_line": 10360, "book_order": 64}
+{"section": "11.6", "section_title": "Why do nets with residual connections perform so well?", "chapter": 11, "start_line": 10361, "section_order": 6, "chapter_title": "Residual networks", "end_line": 10387, "book_order": 65}
+{"section": "11.7", "section_title": "Summary", "chapter": 11, "start_line": 10388, "section_order": 7, "chapter_title": "Residual networks", "end_line": 10737, "book_order": 66}
+{"section": "12.1", "section_title": "Processing text data", "chapter": 12, "start_line": 10753, "section_order": 1, "chapter_title": "Transformers", "end_line": 10785, "book_order": 67}
+{"section": "12.2", "section_title": "Dot-product self-attention", "chapter": 12, "start_line": 10786, "section_order": 2, "chapter_title": "Transformers", "end_line": 10976, "book_order": 68}
+{"section": "12.3", "section_title": "Extensions to dot-product self-attention", "chapter": 12, "start_line": 10977, "section_order": 3, "chapter_title": "Transformers", "end_line": 11097, "book_order": 69}
+{"section": "12.4", "section_title": "Transformer layers", "chapter": 12, "start_line": 11098, "section_order": 4, "chapter_title": "Transformers", "end_line": 11160, "book_order": 70}
+{"section": "12.5", "section_title": "Transformers for natural language processing", "chapter": 12, "start_line": 11161, "section_order": 5, "chapter_title": "Transformers", "end_line": 11242, "book_order": 71}
+{"section": "12.6", "section_title": "Encoder model example: BERT", "chapter": 12, "start_line": 11243, "section_order": 6, "chapter_title": "Transformers", "end_line": 11360, "book_order": 72}
+{"section": "12.7", "section_title": "Decoder model example: GPT3", "chapter": 12, "start_line": 11361, "section_order": 7, "chapter_title": "Transformers", "end_line": 11545, "book_order": 73}
+{"section": "12.8", "section_title": "Encoder-decoder model example: machine translation", "chapter": 12, "start_line": 11546, "section_order": 8, "chapter_title": "Transformers", "end_line": 11562, "book_order": 74}
+{"section": "12.9", "section_title": "Transformers for long sequences", "chapter": 12, "start_line": 11563, "section_order": 9, "chapter_title": "Transformers", "end_line": 11620, "book_order": 75}
+{"section": "12.10", "section_title": "Transformers for images", "chapter": 12, "start_line": 11621, "section_order": 10, "chapter_title": "Transformers", "end_line": 11758, "book_order": 76}
+{"section": "12.11", "section_title": "Summary", "chapter": 12, "start_line": 11759, "section_order": 11, "chapter_title": "Transformers", "end_line": 12219, "book_order": 77}
+{"section": "13.1", "section_title": "What is a graph?", "chapter": 13, "start_line": 12237, "section_order": 1, "chapter_title": "Graph neural networks", "end_line": 12313, "book_order": 78}
+{"section": "13.2", "section_title": "Graph representation", "chapter": 13, "start_line": 12314, "section_order": 2, "chapter_title": "Graph neural networks", "end_line": 12385, "book_order": 79}
+{"section": "13.3", "section_title": "Graph neural networks, tasks, and loss functions", "chapter": 13, "start_line": 12386, "section_order": 3, "chapter_title": "Graph neural networks", "end_line": 12525, "book_order": 80}
+{"section": "13.4", "section_title": "Graph convolutional networks", "chapter": 13, "start_line": 12526, "section_order": 4, "chapter_title": "Graph neural networks", "end_line": 12658, "book_order": 81}
+{"section": "13.5", "section_title": "Example: graph classification", "chapter": 13, "start_line": 12659, "section_order": 5, "chapter_title": "Graph neural networks", "end_line": 12752, "book_order": 82}
+{"section": "13.6", "section_title": "Inductive vs. transductive models", "chapter": 13, "start_line": 12753, "section_order": 6, "chapter_title": "Graph neural networks", "end_line": 12763, "book_order": 83}
+{"section": "13.7", "section_title": "Example: node classification", "chapter": 13, "start_line": 12764, "section_order": 7, "chapter_title": "Graph neural networks", "end_line": 12896, "book_order": 84}
+{"section": "13.8", "section_title": "Layers for graph convolutional networks", "chapter": 13, "start_line": 12897, "section_order": 8, "chapter_title": "Graph neural networks", "end_line": 13125, "book_order": 85}
+{"section": "13.9", "section_title": "Edge graphs", "chapter": 13, "start_line": 13126, "section_order": 9, "chapter_title": "Graph neural networks", "end_line": 13149, "book_order": 86}
+{"section": "13.10", "section_title": "Summary", "chapter": 13, "start_line": 13150, "section_order": 10, "chapter_title": "Graph neural networks", "end_line": 13635, "book_order": 87}
+{"section": "14.1", "section_title": "Taxonomy of unsupervised learning models", "chapter": 14, "start_line": 13656, "section_order": 1, "chapter_title": "Unsupervised learning", "end_line": 13719, "book_order": 88}
+{"section": "14.2", "section_title": "What makes a good generative model?", "chapter": 14, "start_line": 13720, "section_order": 2, "chapter_title": "Unsupervised learning", "end_line": 13806, "book_order": 89}
+{"section": "14.3", "section_title": "Quantifying performance", "chapter": 14, "start_line": 13807, "section_order": 3, "chapter_title": "Unsupervised learning", "end_line": 13928, "book_order": 90}
+{"section": "14.4", "section_title": "Summary", "chapter": 14, "start_line": 13929, "section_order": 4, "chapter_title": "Unsupervised learning", "end_line": 13975, "book_order": 91}
+{"section": "15.1", "section_title": "Discrimination as a signal", "chapter": 15, "start_line": 13994, "section_order": 1, "chapter_title": "Generative adversarial networks", "end_line": 14240, "book_order": 92}
+{"section": "15.2", "section_title": "Improving stability", "chapter": 15, "start_line": 14241, "section_order": 2, "chapter_title": "Generative adversarial networks", "end_line": 14731, "book_order": 93}
+{"section": "15.3", "section_title": "Progressive growing, minibatch discrimination, and truncation", "chapter": 15, "start_line": 14732, "section_order": 3, "chapter_title": "Generative adversarial networks", "end_line": 14789, "book_order": 94}
+{"section": "15.4", "section_title": "Conditional generation", "chapter": 15, "start_line": 14790, "section_order": 4, "chapter_title": "Generative adversarial networks", "end_line": 14854, "book_order": 95}
+{"section": "15.5", "section_title": "Image translation", "chapter": 15, "start_line": 14855, "section_order": 5, "chapter_title": "Generative adversarial networks", "end_line": 15020, "book_order": 96}
+{"section": "15.6", "section_title": "StyleGAN", "chapter": 15, "start_line": 15021, "section_order": 6, "chapter_title": "Generative adversarial networks", "end_line": 15089, "book_order": 97}
+{"section": "15.7", "section_title": "Summary", "chapter": 15, "start_line": 15090, "section_order": 7, "chapter_title": "Generative adversarial networks", "end_line": 15385, "book_order": 98}
+{"section": "16.1", "section_title": "1D example", "chapter": 16, "start_line": 15398, "section_order": 1, "chapter_title": "Normalizing flows", "end_line": 15489, "book_order": 99}
+{"section": "16.2", "section_title": "General case", "chapter": 16, "start_line": 15490, "section_order": 2, "chapter_title": "Normalizing flows", "end_line": 15659, "book_order": 100}
+{"section": "16.3", "section_title": "Invertible network layers", "chapter": 16, "start_line": 15660, "section_order": 3, "chapter_title": "Normalizing flows", "end_line": 16220, "book_order": 101}
+{"section": "16.4", "section_title": "Multi-scale flows", "chapter": 16, "start_line": 16221, "section_order": 4, "chapter_title": "Normalizing flows", "end_line": 16351, "book_order": 102}
+{"section": "16.5", "section_title": "Applications", "chapter": 16, "start_line": 16352, "section_order": 5, "chapter_title": "Normalizing flows", "end_line": 16417, "book_order": 103}
+{"section": "16.6", "section_title": "Summary", "chapter": 16, "start_line": 16418, "section_order": 6, "chapter_title": "Normalizing flows", "end_line": 16832, "book_order": 104}
+{"section": "17.1", "section_title": "Latent variable models", "chapter": 17, "start_line": 16851, "section_order": 1, "chapter_title": "Variational autoencoders", "end_line": 16929, "book_order": 105}
+{"section": "17.2", "section_title": "Nonlinear latent variable model", "chapter": 17, "start_line": 16930, "section_order": 2, "chapter_title": "Variational autoencoders", "end_line": 17012, "book_order": 106}
+{"section": "17.3", "section_title": "Training", "chapter": 17, "start_line": 17013, "section_order": 3, "chapter_title": "Variational autoencoders", "end_line": 17200, "book_order": 107}
+{"section": "17.4", "section_title": "ELBO properties", "chapter": 17, "start_line": 17201, "section_order": 4, "chapter_title": "Variational autoencoders", "end_line": 17371, "book_order": 108}
+{"section": "17.5", "section_title": "Variational approximation", "chapter": 17, "start_line": 17372, "section_order": 5, "chapter_title": "Variational autoencoders", "end_line": 17402, "book_order": 109}
+{"section": "17.6", "section_title": "The variational autoencoder", "chapter": 17, "start_line": 17403, "section_order": 6, "chapter_title": "Variational autoencoders", "end_line": 17550, "book_order": 110}
+{"section": "17.7", "section_title": "The reparameterization trick", "chapter": 17, "start_line": 17551, "section_order": 7, "chapter_title": "Variational autoencoders", "end_line": 17589, "book_order": 111}
+{"section": "17.8", "section_title": "Applications", "chapter": 17, "start_line": 17590, "section_order": 8, "chapter_title": "Variational autoencoders", "end_line": 17752, "book_order": 112}
+{"section": "17.9", "section_title": "Summary", "chapter": 17, "start_line": 17753, "section_order": 9, "chapter_title": "Variational autoencoders", "end_line": 18107, "book_order": 113}
+{"section": "18.1", "section_title": "Overview", "chapter": 18, "start_line": 18126, "section_order": 1, "chapter_title": "Diffusion models", "end_line": 18162, "book_order": 114}
+{"section": "18.2", "section_title": "Encoder (forward process)", "chapter": 18, "start_line": 18163, "section_order": 2, "chapter_title": "Diffusion models", "end_line": 18515, "book_order": 115}
+{"section": "18.3", "section_title": "Decoder model (reverse process)", "chapter": 18, "start_line": 18516, "section_order": 3, "chapter_title": "Diffusion models", "end_line": 18545, "book_order": 116}
+{"section": "18.4", "section_title": "Training", "chapter": 18, "start_line": 18546, "section_order": 4, "chapter_title": "Diffusion models", "end_line": 18942, "book_order": 117}
+{"section": "18.5", "section_title": "Reparameterization of loss function", "chapter": 18, "start_line": 18943, "section_order": 5, "chapter_title": "Diffusion models", "end_line": 19158, "book_order": 118}
+{"section": "18.6", "section_title": "Implementation", "chapter": 18, "start_line": 19159, "section_order": 6, "chapter_title": "Diffusion models", "end_line": 19539, "book_order": 119}
+{"section": "18.7", "section_title": "Summary", "chapter": 18, "start_line": 19540, "section_order": 7, "chapter_title": "Diffusion models", "end_line": 19828, "book_order": 120}
+{"section": "19.1", "section_title": "Markov decision processes, returns, and policies", "chapter": 19, "start_line": 19854, "section_order": 1, "chapter_title": "Reinforcement learning", "end_line": 20014, "book_order": 121}
+{"section": "19.2", "section_title": "Expected return", "chapter": 19, "start_line": 20015, "section_order": 2, "chapter_title": "Reinforcement learning", "end_line": 20194, "book_order": 122}
+{"section": "19.3", "section_title": "Tabular reinforcement learning", "chapter": 19, "start_line": 20195, "section_order": 3, "chapter_title": "Reinforcement learning", "end_line": 20406, "book_order": 123}
+{"section": "19.4", "section_title": "Fitted Q-learning", "chapter": 19, "start_line": 20407, "section_order": 4, "chapter_title": "Reinforcement learning", "end_line": 20547, "book_order": 124}
+{"section": "19.5", "section_title": "Policy gradient methods", "chapter": 19, "start_line": 20548, "section_order": 5, "chapter_title": "Reinforcement learning", "end_line": 21034, "book_order": 125}
+{"section": "19.6", "section_title": "Actor-critic methods", "chapter": 19, "start_line": 21035, "section_order": 6, "chapter_title": "Reinforcement learning", "end_line": 21082, "book_order": 126}
+{"section": "19.7", "section_title": "Offline reinforcement learning", "chapter": 19, "start_line": 21083, "section_order": 7, "chapter_title": "Reinforcement learning", "end_line": 21140, "book_order": 127}
+{"section": "19.8", "section_title": "Summary", "chapter": 19, "start_line": 21141, "section_order": 8, "chapter_title": "Reinforcement learning", "end_line": 21548, "book_order": 128}
+{"section": "20.1", "section_title": "The case against deep learning", "chapter": 20, "start_line": 21560, "section_order": 1, "chapter_title": "Why does deep learning work?", "end_line": 21581, "book_order": 129}
+{"section": "20.2", "section_title": "Factors that influence fitting performance", "chapter": 20, "start_line": 21582, "section_order": 2, "chapter_title": "Why does deep learning work?", "end_line": 21790, "book_order": 130}
+{"section": "20.3", "section_title": "Properties of loss functions", "chapter": 20, "start_line": 21791, "section_order": 3, "chapter_title": "Why does deep learning work?", "end_line": 21968, "book_order": 131}
+{"section": "20.4", "section_title": "Factors that determine generalization", "chapter": 20, "start_line": 21969, "section_order": 4, "chapter_title": "Why does deep learning work?", "end_line": 22165, "book_order": 132}
+{"section": "20.5", "section_title": "Do we need so many parameters?", "chapter": 20, "start_line": 22166, "section_order": 5, "chapter_title": "Why does deep learning work?", "end_line": 22288, "book_order": 133}
+{"section": "20.6", "section_title": "Do networks have to be deep?", "chapter": 20, "start_line": 22289, "section_order": 6, "chapter_title": "Why does deep learning work?", "end_line": 22329, "book_order": 134}
+{"section": "20.7", "section_title": "Summary", "chapter": 20, "start_line": 22330, "section_order": 7, "chapter_title": "Why does deep learning work?", "end_line": 22409, "book_order": 135}
+{"section": "21.1", "section_title": "Value alignment", "chapter": 21, "start_line": 22438, "section_order": 1, "chapter_title": "Deep learning and ethics", "end_line": 22706, "book_order": 136}
+{"section": "21.2", "section_title": "Intentional misuse", "chapter": 21, "start_line": 22707, "section_order": 2, "chapter_title": "Deep learning and ethics", "end_line": 22793, "book_order": 137}
+{"section": "21.3", "section_title": "Other social, ethical, and professional issues", "chapter": 21, "start_line": 22794, "section_order": 3, "chapter_title": "Deep learning and ethics", "end_line": 22887, "book_order": 138}
+{"section": "21.4", "section_title": "Case study", "chapter": 21, "start_line": 22888, "section_order": 4, "chapter_title": "Deep learning and ethics", "end_line": 22956, "book_order": 139}
+{"section": "21.5", "section_title": "The value-free ideal of science", "chapter": 21, "start_line": 22957, "section_order": 5, "chapter_title": "Deep learning and ethics", "end_line": 22986, "book_order": 140}
+{"section": "21.6", "section_title": "Responsible AI research as a collective action problem", "chapter": 21, "start_line": 22987, "section_order": 6, "chapter_title": "Deep learning and ethics", "end_line": 23061, "book_order": 141}
+{"section": "21.7", "section_title": "Ways forward", "chapter": 21, "start_line": 23062, "section_order": 7, "chapter_title": "Deep learning and ethics", "end_line": 23085, "book_order": 142}
+{"section": "21.8", "section_title": "Summary", "chapter": 21, "start_line": 23086, "section_order": 8, "chapter_title": "Deep learning and ethics", "end_line": 33402, "book_order": 143}

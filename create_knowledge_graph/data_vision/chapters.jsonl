@@ -1,0 +1,55 @@
+{"chapter": 1, "chapter_title": "The Challenge of Vision", "start_line": 1, "end_line": 1378, "order": 1, "part": null}
+{"chapter": 2, "chapter_title": "A Simple Vision System", "start_line": 1380, "end_line": 2068, "order": 2, "part": "foundations"}
+{"chapter": 3, "chapter_title": "Looking at Images", "start_line": 2070, "end_line": 2422, "order": 3, "part": "foundations"}
+{"chapter": 4, "chapter_title": "Computer Vision and Society", "start_line": 2424, "end_line": 2788, "order": 4, "part": "foundations"}
+{"chapter": 5, "chapter_title": "Imaging", "start_line": 2790, "end_line": 3157, "order": 5, "part": "image_formation"}
+{"chapter": 6, "chapter_title": "Lenses", "start_line": 3159, "end_line": 3596, "order": 6, "part": "image_formation"}
+{"chapter": 7, "chapter_title": "Cameras as Linear Systems", "start_line": 3598, "end_line": 3782, "order": 7, "part": "image_formation"}
+{"chapter": 8, "chapter_title": "Color", "start_line": 3784, "end_line": 4263, "order": 8, "part": "image_formation"}
+{"chapter": 9, "chapter_title": "Introduction to Learning", "start_line": 4265, "end_line": 4793, "order": 9, "part": "foundation_learning"}
+{"chapter": 10, "chapter_title": "Gradient-Based Learning Algorithms", "start_line": 4795, "end_line": 4946, "order": 10, "part": "foundation_learning"}
+{"chapter": 11, "chapter_title": "The Problem of Generalization", "start_line": 4948, "end_line": 5460, "order": 11, "part": "foundation_learning"}
+{"chapter": 12, "chapter_title": "Neural Networks", "start_line": 5462, "end_line": 6218, "order": 12, "part": "foundation_learning"}
+{"chapter": 13, "chapter_title": "Neural Networks as Distribution Transformers", "start_line": 6220, "end_line": 6314, "order": 13, "part": "foundation_learning"}
+{"chapter": 14, "chapter_title": "Backpropagation", "start_line": 6316, "end_line": 7089, "order": 14, "part": "foundation_learning"}
+{"chapter": 15, "chapter_title": "Linear Image Filtering", "start_line": 7091, "end_line": 7927, "order": 15, "part": "foundation_image_processing"}
+{"chapter": 16, "chapter_title": "Fourier Analysis", "start_line": 7929, "end_line": 9061, "order": 16, "part": "foundation_image_processing"}
+{"chapter": 17, "chapter_title": "Blur Filters", "start_line": 9063, "end_line": 9394, "order": 17, "part": "linear_filters"}
+{"chapter": 18, "chapter_title": "Image Derivatives", "start_line": 9396, "end_line": 10135, "order": 18, "part": "linear_filters"}
+{"chapter": 19, "chapter_title": "Temporal filters", "start_line": 10137, "end_line": 10320, "order": 19, "part": "linear_filters"}
+{"chapter": 20, "chapter_title": "Image Sampling and Aliasing", "start_line": 10322, "end_line": 10675, "order": 20, "part": "sampling_and_multiscale"}
+{"chapter": 21, "chapter_title": "Downsampling and Upsampling Images", "start_line": 10677, "end_line": 11346, "order": 21, "part": "sampling_and_multiscale"}
+{"chapter": 22, "chapter_title": "Filter Banks", "start_line": 11348, "end_line": 11982, "order": 22, "part": "sampling_and_multiscale"}
+{"chapter": 23, "chapter_title": "Image Pyramids", "start_line": 11984, "end_line": 12572, "order": 23, "part": "sampling_and_multiscale"}
+{"chapter": 24, "chapter_title": "Convolutional Neural Nets", "start_line": 12574, "end_line": 13669, "order": 24, "part": "neural_architectures"}
+{"chapter": 25, "chapter_title": "Recurrent Neural Nets", "start_line": 13671, "end_line": 13964, "order": 25, "part": "neural_architectures"}
+{"chapter": 26, "chapter_title": "Transformers", "start_line": 13966, "end_line": 15040, "order": 26, "part": "neural_architectures"}
+{"chapter": 27, "chapter_title": "Statistical Image Models", "start_line": 15042, "end_line": 15765, "order": 27, "part": "statistical_image_models"}
+{"chapter": 28, "chapter_title": "Textures", "start_line": 15767, "end_line": 16189, "order": 28, "part": "statistical_image_models"}
+{"chapter": 29, "chapter_title": "Probabilistic Graphical Models", "start_line": 16191, "end_line": 17122, "order": 29, "part": "statistical_image_models"}
+{"chapter": 30, "chapter_title": "Representation Learning", "start_line": 17124, "end_line": 18004, "order": 30, "part": "generative_models_and_representation"}
+{"chapter": 31, "chapter_title": "Perceptual Grouping", "start_line": 18006, "end_line": 18309, "order": 31, "part": "generative_models_and_representation"}
+{"chapter": 32, "chapter_title": "Generative Models", "start_line": 18311, "end_line": 19266, "order": 32, "part": "generative_models_and_representation"}
+{"chapter": 33, "chapter_title": "Generative Modeling Meets Representation Learning", "start_line": 19268, "end_line": 20059, "order": 33, "part": "generative_models_and_representation"}
+{"chapter": 34, "chapter_title": "Conditional Generative Models", "start_line": 20061, "end_line": 20757, "order": 34, "part": "generative_models_and_representation"}
+{"chapter": 35, "chapter_title": "Data Bias and Shift", "start_line": 20759, "end_line": 21231, "order": 35, "part": "challenges_in_learning_based_vision"}
+{"chapter": 36, "chapter_title": "Training for Robustness and Generality", "start_line": 21233, "end_line": 21510, "order": 36, "part": "challenges_in_learning_based_vision"}
+{"chapter": 37, "chapter_title": "Transfer Learning and Adaptation", "start_line": 21512, "end_line": 22064, "order": 37, "part": "challenges_in_learning_based_vision"}
+{"chapter": 38, "chapter_title": "Representing Images and Geometry", "start_line": 22066, "end_line": 22800, "order": 38, "part": "understanding_geometry"}
+{"chapter": 39, "chapter_title": "Camera Modeling and Calibration", "start_line": 22802, "end_line": 24067, "order": 39, "part": "understanding_geometry"}
+{"chapter": 40, "chapter_title": "Stereo Vision", "start_line": 24069, "end_line": 24891, "order": 40, "part": "understanding_geometry"}
+{"chapter": 41, "chapter_title": "Homographies", "start_line": 24893, "end_line": 25378, "order": 41, "part": "understanding_geometry"}
+{"chapter": 42, "chapter_title": "Single View Metrology", "start_line": 25380, "end_line": 26183, "order": 42, "part": "understanding_geometry"}
+{"chapter": 43, "chapter_title": "Learning to Estimate Depth from a Single Image", "start_line": 26185, "end_line": 26607, "order": 43, "part": "understanding_geometry"}
+{"chapter": 44, "chapter_title": "Multiview Geometry and Structure from Motion", "start_line": 26609, "end_line": 27144, "order": 44, "part": "understanding_geometry"}
+{"chapter": 45, "chapter_title": "Radiance Fields", "start_line": 27146, "end_line": 27794, "order": 45, "part": "understanding_geometry"}
+{"chapter": 46, "chapter_title": "Motion Estimation", "start_line": 27796, "end_line": 28159, "order": 46, "part": "understanding_motion"}
+{"chapter": 47, "chapter_title": "3D Motion and Its 2D Projection", "start_line": 28161, "end_line": 28797, "order": 47, "part": "understanding_motion"}
+{"chapter": 48, "chapter_title": "Optical Flow Estimation", "start_line": 28799, "end_line": 29243, "order": 48, "part": "understanding_motion"}
+{"chapter": 49, "chapter_title": "Learning to Estimate Motion", "start_line": 29245, "end_line": 29443, "order": 49, "part": "understanding_motion"}
+{"chapter": 50, "chapter_title": "Object Recognition", "start_line": 29445, "end_line": 30513, "order": 50, "part": "scene_understanding"}
+{"chapter": 51, "chapter_title": "Vision and Language", "start_line": 30515, "end_line": 31031, "order": 51, "part": "scene_understanding"}
+{"chapter": 52, "chapter_title": "How to Do Research", "start_line": 31033, "end_line": 31096, "order": 52, "part": "on_research"}
+{"chapter": 53, "chapter_title": "How to Write Papers", "start_line": 31098, "end_line": 31442, "order": 53, "part": "on_research"}
+{"chapter": 54, "chapter_title": "How to Give Talks", "start_line": 31444, "end_line": 31658, "order": 54, "part": "on_research"}
+{"chapter": 55, "chapter_title": "A Simple Vision System---Revisited", "start_line": 31660, "end_line": 31983, "order": 55, "part": "closing_remarks"}

@@ -1,0 +1,34 @@
+{
+  "completed": [
+    "parse_structure",
+    "download_images",
+    "alt_text",
+    "enrich",
+    "number",
+    "chunk",
+    "audit_chunks"
+  ],
+  "timings": {
+    "parse_structure": 1779153402,
+    "download_images": 1779153424,
+    "alt_text": 1779153620,
+    "enrich": 1779153620,
+    "number": 1779153620,
+    "chunk": 1779204852,
+    "audit_chunks": 1779306039,
+    "pass_a": 1779166746,
+    "verify_pass_a": 1779166746,
+    "salvage": 1779166746,
+    "splice": 1779166746,
+    "dedup": 1779167001,
+    "format_concepts": 1779167414,
+    "format_items": 1779167737,
+    "repair_items": 1779168183,
+    "link_items": 1779168474,
+    "extract_edges": 1779169565,
+    "validate_edges": 1779169565,
+    "image_reproduce": 1779170184,
+    "split_raw": 1779170184,
+    "fill_slots": 1779171612
+  }
+}

@@ -40,7 +40,8 @@ from spans import (
 LINE_RE = re.compile(r"^L(\d{5}): ?(.*)$")
 
 # Figure/table token + caption parsing
-FIGURE_TOKEN_RE = re.compile(r"\[FIGURE:([0-9a-f]{16})(?:\s*\|[^\]]*)?\]")
+FIGURE_ID_PATTERN = r"(?:[0-9a-f]{16}|(?:fig|tbl)[-_:][A-Za-z0-9][A-Za-z0-9_.:-]*)"
+FIGURE_TOKEN_RE = re.compile(rf"\[FIGURE:({FIGURE_ID_PATTERN})(?:\s*\|[^\]]*)?\]")
 # Book caption on the line right after a [FIGURE:...] line. The book uses
 # various leading markers before "Figure" / "Table": `△`, `A`, `<`, `▲`, `▼`,
 # `►`, `-`, bullet, etc. Mathpix sometimes emits a single stray character (often
