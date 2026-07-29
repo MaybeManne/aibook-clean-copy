@@ -1,0 +1,8 @@
+node_modules/
+.audio-cache/
+.author-cache/
+dist/
+.conda-node/
+*.log
+.DS_Store
+/tmp/

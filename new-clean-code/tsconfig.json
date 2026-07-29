@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "baseUrl": ".",
+    "paths": {
+      "@lessonstudio/state-machine": ["state_machine/index.ts"],
+      "@lessonstudio/render-contract": ["render_contract/index.ts"],
+      "@lessonstudio/timeline": ["timeline/index.ts"],
+      "@lessonstudio/visuals": ["visuals/index.ts"],
+      "@lessonstudio/audio": ["audio/index.ts"],
+      "@lessonstudio/lesson": ["lesson/index.ts"],
+      "@lessonstudio/live": ["live/index.ts"],
+      "@lessonstudio/template": ["template/index.ts"],
+      "@lessonstudio/scene-svg": ["scene_svg/index.ts"],
+      "@lessonstudio/render-web": ["rendering/render_web/index.ts"]
+    }
+  },
+  "include": ["state_machine", "render_contract", "timeline", "visuals", "audio", "lesson", "live", "template", "scene_svg", "rendering", "examples"]
+}
