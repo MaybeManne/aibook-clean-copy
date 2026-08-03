@@ -1,38 +1,11 @@
-// The Pinhole Camera & Image Formation — the reference single-file explainer rebuilt on
-// lessonStudio. Same physics, same script, same 3-D apparatus; the differences are structural:
-//
-//   • ONE persistent apparatus. The reference lesson fired imperative verbs at a global GSAP
-//     timeline; here every beat declares the STATE it wants (camera, u, v, what's visible) and
-//     the viz eases there — so entering a beat by advancing, by a wrong answer's detour, or by
-//     replay all look identical.
-//   • The learner's drag is lesson state. `grab: true` lets them pull the tree or the screen
-//     along the axis; the viz reports `demo.set {u|v}` back into the session, which is what
-//     turns a manipulation into something the tutor can observe (the reference wired the same
-//     drag to a local callback where nothing could see it).
-//   • Remediation is routed, not scripted. Both gates carry `onWrong` detours that rejoin the
-//     main line — the reference's "branch acts" as ordinary graph edges.
-//
-// Cards: the reference had six bespoke card types (title/derivation/split/graph/bar-chart/recap).
-// Five of them are just prose structure, and `article()` already parses headings, lists, callouts
-// and `$…$`/`$$…$$` KaTeX — so they are authored as prose here rather than as new components.
-
 import { defineLesson, explain, explorable, freeResponse, mcq } from "@lessonstudio/authoring";
-import { article, md } from "@lessonstudio/render-contract";
+import { article, md } from "@lessonstudio/intents";
 import { tex } from "./palette.js";
 import { PINHOLE_VIZ, type PinholeProps } from "./pinhole3d.js";
 
-// Colour-coded variables, from the same palette the 3-D label sprites use: the amber `u` in an
-// equation is the amber `u` floating along the optical axis in the figure. Authoring pays for it
-// by writing `${U}` instead of `u` inside the TeX — cheap, and it is what makes the figure and
-// the algebra one diagram instead of two. (`tex()` emits `\textcolor{…}{u}`; KaTeX does the rest.)
 const H = tex("h"), HP = tex("hp"), U = tex("u"), V = tex("v"), M = tex("m");
 const LR = tex("Lr"), LI = tex("Li"), RHO = tex("rho"), OMEGA = tex("Omega"), WI = tex("omega"), NRM = tex("normal");
 
-/**
- * Every beat drives the same mounted apparatus; `persistent` keeps it to ONE WebGL context.
- * Typing the argument as `PinholeProps` is what keeps a mistyped field (`highligh: …`) a
- * compile error — the cast to the intent's open prop bag happens once, here.
- */
 const apparatus = (props: PinholeProps): { name: string; props: Record<string, unknown>; persistent: true } => ({
   name: PINHOLE_VIZ,
   props: props as Record<string, unknown>,
@@ -44,7 +17,6 @@ export const lessonSpec = {
   version: 1,
   title: "The Pinhole Camera & Image Formation",
   flow: [
-    // ══ PART 1 — the blank-wall puzzle ═══════════════════════════════════════════════
     explain({
       id: "wall-1",
       narration:
@@ -91,7 +63,6 @@ export const lessonSpec = {
       next: "hole-1",
     }),
 
-    // ══ PART 2 — the pinhole sorts the rays ══════════════════════════════════════════
     explain({
       id: "hole-1",
       narration:
@@ -129,7 +100,6 @@ export const lessonSpec = {
       next: "gate-invert",
     }),
 
-    // ── Gate 1: is the image inverted? ───────────────────────────────────────────────
     mcq({
       id: "gate-invert",
       prompt: md("Through a pinhole, the image formed on the screen is…"),
@@ -160,7 +130,6 @@ export const lessonSpec = {
       next: "triangles",
     }),
 
-    // ══ PART 3 — image geometry ══════════════════════════════════════════════════════
     explain({
       id: "triangles",
       narration:
@@ -182,7 +151,6 @@ export const lessonSpec = {
       next: "move-screen",
     }),
 
-    // ══ PART 4 — move the screen (the two-paper experiment) ══════════════════════════
     explorable({
       id: "move-screen",
       narration:
@@ -204,7 +172,6 @@ export const lessonSpec = {
       next: "gate-m",
     }),
 
-    // ── Gate 2: compute the magnification ────────────────────────────────────────────
     freeResponse({
       id: "gate-m",
       prompt: md(`An object at $${U} = 5\\,\\text{m}$ forms an image on a screen at $${V} = 15\\,\\text{m}$. The magnification $${M} = ${V}/${U}$ is…`),
@@ -231,7 +198,6 @@ export const lessonSpec = {
       next: "move-object",
     }),
 
-    // ══ PART 4b — move the object ════════════════════════════════════════════════════
     explorable({
       id: "move-object",
       narration:
@@ -251,7 +217,6 @@ export const lessonSpec = {
       next: "sharp",
     }),
 
-    // ══ PART 5 — why sharp, and why it matters ═══════════════════════════════════════
     explain({
       id: "sharp",
       narration:

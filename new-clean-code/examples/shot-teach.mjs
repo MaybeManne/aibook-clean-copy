@@ -136,7 +136,7 @@ const inkFraction = () =>
   });
 
 // The director's camera and marks, published by `FocusFrame` as data attributes
-// (rendering/render_web/attention.tsx). Reading the attribute rather than sniffing computed
+// (web/attention.tsx). Reading the attribute rather than sniffing computed
 // transforms keeps the assertion about the STATE the protocol set, not about today's DOM shape.
 const focusAttr = () => p.evaluate(() => document.querySelector("[data-ls-focus]")?.getAttribute("data-ls-focus") ?? null);
 const markCount = () => p.evaluate(() => document.querySelector("[data-ls-marks]")?.getAttribute("data-ls-marks") ?? null);

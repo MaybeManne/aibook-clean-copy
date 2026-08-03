@@ -1,25 +1,3 @@
-// ADJUDICATION — the one gate every director command passes through, whoever sent it.
-//
-// A director (a live human teacher, an AI teacher, a policy) does not get to mutate the
-// running lesson; it gets to PROPOSE a turn of commands, which this module either turns
-// into a concrete, valid edit or rejects whole. Three properties come out of that:
-//
-//   • ATOMIC by construction. Planning runs against a SHADOW chart — new/rewritten nodes
-//     accumulate in `states` and the live chart is never touched — so a batch that fails
-//     its last command needs no rollback: nothing was installed. (The previous
-//     mutate-then-undo path in Session had to restore edge maps by hand.)
-//   • ONE place to say no. Structural validity (unknown beat type, dangling target),
-//     replay-safety (JSON-only, no inline fns), the "level stays completable" invariant
-//     and CAPABILITIES are all checked here, so no caller can route around any of them.
-//   • ONE place where sugar is expanded. `say` and `revisit` become plain `addBeat`s, and
-//     `setControl` becomes a write on the same blackboard channel the learner's own slider
-//     uses. The engine below therefore stays as small as it was before tier 2 existed:
-//     "answer the question with a beat" is not a new engine concept, it is a macro.
-//
-// Pure: it reads the lesson + the live context and returns a plan. The only side effect is
-// registering a new beat's named guards/actions in the lesson registry (via `lowerBeat`),
-// which is additive and unreferenced until the plan is installed.
-
 import type { Json, StateNode, Statechart } from "@lessonstudio/state-machine";
 import {
   CompileError,
@@ -47,10 +25,9 @@ import {
 } from "./protocol.js";
 
 /**
- * A validated, installable edit. `states` holds every node the turn creates or rewrites
- * (keyed by beat id); installing the plan is a plain assign into `chart.states`, which is
- * why it cannot half-apply. The three context patches are applied the same way — as one
- * merge on one committed step.
+ * A validated, installable edit. `states` holds every node the turn creates or rewrites (keyed
+ * by beat id); installing the plan is a plain assign into `chart.states`, so it cannot
+ * half-apply. The three context patches are applied the same way — one merge on one step.
  */
 export interface DirectionPlan {
   states: Record<string, StateNode>;
@@ -86,11 +63,9 @@ export interface AdjudicateOptions {
 }
 
 /**
- * What a director is TOLD about its turn. The plan is the engine's business; this is the
- * report — and it is the reason the tier-2/tier-3 symmetry actually holds: a human at a
- * terminal and a model in a tool loop both need to know "did that land, and if not, why",
- * in the same words. `format.ts` renders it; `observe()` carries the last one, so a model
- * can self-correct on its next turn without anybody parsing an exception.
+ * What a director is TOLD about its turn: "did that land, and if not, why". `format.ts` renders
+ * it; `observe()` carries the last one, so a model can self-correct on its next turn without
+ * anybody parsing an exception.
  */
 export interface DirectionResult {
   ok: boolean;
@@ -105,9 +80,14 @@ export interface DirectionResult {
   rerouted: string[];
   /** The beat the learner was moved into, if any. */
   enteredId: string | null;
-  /** Present iff `!ok`. `denied` = capabilities; `invalid` = structural; `error` = anything else. */
+  /**
+   * Present iff `!ok`, and the field a director branches on. `denied` = capabilities refused it
+   * outright; `review` = capabilities WOULD allow it once a human approves, so the same command
+   * may land later unchanged; `invalid` = structural; `error` = anything else. All four are
+   * REJECTIONS: nothing applied, and the engine holds no pending state.
+   */
   error?: {
-    kind: "denied" | "invalid" | "error";
+    kind: "denied" | "review" | "invalid" | "error";
     /** The op that was refused, when known. */
     op?: string;
     /** Why, in one line — safe to show a human AND to feed back to a model. */
@@ -132,14 +112,14 @@ export function planResult(plan: DirectionPlan, actor: DirectorActor, submitted:
 }
 
 /**
- * The report for a REJECTED turn — the interesting half. Classifies the throw so the
- * director learns which kind of "no" it got: a capability refusal is worth asking a human
- * about, a structural one is worth rewriting the command.
+ * The report for a REJECTED turn. Classifies the throw so the director learns which kind of "no"
+ * it got: a capability refusal is worth escalating, a structural one worth rewriting.
  */
 export function failureResult(actor: DirectorActor, err: unknown, submitted: number): DirectionResult {
   const base = { ok: false as const, actor, submitted, notes: [], added: [], patched: [], rerouted: [], enteredId: null };
   if (err instanceof DirectionDenied) {
-    return { ...base, error: { kind: "denied", op: err.op, detail: `${err.kind}: ${err.message}` } };
+    const kind = err.kind === "review" ? ("review" as const) : ("denied" as const);
+    return { ...base, error: { kind, op: err.op, detail: `${err.kind}: ${err.message}` } };
   }
   if (err instanceof CompileError) {
     return {
@@ -154,14 +134,11 @@ function emptyPlan(): DirectionPlan {
   return { states: {}, enterId: null, vars: {}, controls: {}, workspace: {}, added: [], patched: [], rerouted: [], notes: [] };
 }
 
-/** The `{type, params}` a beat node carries in its meta — what a clone or a patch reads. */
 function beatOf(chart: Statechart<LessonContext>, id: string): { type: string; params: Record<string, Json> } | null {
   const meta = chart.states[id]?.meta as { beat?: { type: string; params: Record<string, Json> } } | undefined;
   return meta?.beat ?? null;
 }
 
-/** A beat's live ADVANCE target: the id its `next` edge points at, or null if terminal.
- *  Recovered from the node (not the spec) so a prior `setNext` survives a `patchBeat`. */
 function advanceOf(node: StateNode): string | null {
   const edge = node.on?.next;
   if (!edge || edge.length === 0) return null;
@@ -177,23 +154,15 @@ function advanceOf(node: StateNode): string | null {
 export function adjudicate(lesson: CompiledLesson, commands: DirectorCommand[], opts: AdjudicateOptions): DirectionPlan {
   const plan = emptyPlan();
   const caps = opts.capabilities ?? FULL;
-  const seq = opts.context.history.length; // deterministic id counter — same on replay
-  // The shadow chart: the live one, overlaid with this turn's pending edits. Every
-  // validation below reads it, so a command may legitimately target a beat that an
-  // earlier command in the SAME turn introduced (spine insertion needs exactly that).
+  const seq = opts.context.history.length;
   const shadow = (): Statechart<LessonContext> => ({ ...lesson.chart, states: { ...lesson.chart.states, ...plan.states } });
-  // Where the learner will be standing when this turn commits. A `setControl` after a
-  // `revisit` targets the beat they are about to be looking at, which is what the
-  // director meant; before any jump, it is where they already are.
   const landing = (): string => plan.enterId ?? opts.activeBeatId;
-  let jumped = false; // a `goto` moved the learner without changing any edge
 
   for (let i = 0; i < commands.length; i++) {
     const cmd = commands[i]!;
     const op = cmd.op as DirectorOp;
 
     switch (cmd.op) {
-      // ── STRUCTURE ────────────────────────────────────────────────────────────
       case "addBeat": {
         assertPermitted(caps, op, i);
         install(cmd.spec, cmd.enter !== false);
@@ -207,9 +176,6 @@ export function adjudicate(lesson: CompiledLesson, commands: DirectorCommand[], 
         const beat = beatOf(chart, cmd.beatId);
         if (!node || !beat) throw dangling(cmd.beatId, `patchBeat: beat "${cmd.beatId}" does not exist`);
         const spec: BeatSpec = { id: cmd.beatId, type: beat.type, params: { ...beat.params, ...cmd.params } as Json, next: advanceOf(node) };
-        // Re-lowered exactly like a new beat: same validation, same wiring pass — so
-        // patching a gate's `onWrong` really does rewire it, and a patch that dangles is
-        // rejected. The advance edge is carried over above, so a prior reroute survives.
         const problems = validateBeatSpec(spec, lesson.beats, chart);
         if (problems.length) throw new CompileError(problems);
         plan.states[cmd.beatId] = lowerBeat(spec, lesson.beats[spec.type]!, lesson.registry, spec.next ?? null);
@@ -226,9 +192,6 @@ export function adjudicate(lesson: CompiledLesson, commands: DirectorCommand[], 
         const problems = validateReroute(reroute.beatId, reroute.target, chart);
         if (problems.length) throw new CompileError(problems);
         const node = chart.states[reroute.beatId]!;
-        // The rewritten edge is a single UNGUARDED transition (or [] = terminal). `next`
-        // edges carry no actions, so nothing is dropped; rewiring a guarded/branch edge is
-        // out of scope for v1 (it would need named guard refs).
         plan.states[reroute.beatId] = {
           ...node,
           on: { ...(node.on ?? {}), [reroute.key]: reroute.target === null ? [] : [{ target: reroute.target }] },
@@ -242,12 +205,10 @@ export function adjudicate(lesson: CompiledLesson, commands: DirectorCommand[], 
         assertPermitted(caps, op, i);
         if (!shadow().states[cmd.beatId]) throw dangling(cmd.beatId, `goto: beat "${cmd.beatId}" does not exist`);
         plan.enterId = cmd.beatId;
-        jumped = true;
         plan.notes.push(`moved the learner to ${cmd.beatId}`);
         break;
       }
 
-      // ── DISCOURSE — sugar, expanded into addBeat ──────────────────────────────
       case "say": {
         assertPermitted(caps, op, i);
         const from = landing();
@@ -257,8 +218,14 @@ export function adjudicate(lesson: CompiledLesson, commands: DirectorCommand[], 
         if (cmd.narrate) params.narration = cmd.narrate;
         const viz = showViz(cmd.show, from);
         if (viz) params.viz = viz;
+        const exits = sayExits(cmd.exits, resume, typeof cmd.resume === "string" ? cmd.resume : opts.activeBeatId);
+        if (exits) params.exits = exits as unknown as Json;
         install({ id, type: "explain", params: params as Json, next: resume }, true);
-        plan.notes.push(`said "${clip(cmd.text)}"${resume ? ` (resumes ${resume})` : " (ends the lesson)"}`);
+        const onward = exits?.find((e) => e.to !== resume);
+        plan.notes.push(
+          `said "${clip(cmd.text)}"${resume ? ` (resumes ${resume})` : " (ends the lesson)"}` +
+            (onward ? `, or on to ${onward.to ?? "the end"}` : ""),
+        );
         break;
       }
 
@@ -269,12 +236,8 @@ export function adjudicate(lesson: CompiledLesson, commands: DirectorCommand[], 
         if (!src) throw dangling(cmd.beatId, `revisit: beat "${cmd.beatId}" does not exist`);
         const resume = cmd.resume === undefined ? from : cmd.resume;
         const id = `__revisit-${cmd.beatId}-${seq}-${i}`;
-        // A CLONE, not a jump: the original keeps its own edges and the learner's place is
-        // never overwritten, so "show me that figure again" costs nothing to come back from.
-        // Its `defaults` are seeded with the learner's LIVE values (and the agent's `__ws`
-        // patch), so the revisited visual is the one they were actually looking at.
         const params: Record<string, Json> = { ...src.params };
-        delete params.narration; // a revisit is the teacher pointing back, not a re-lecture
+        delete params.narration;
         delete params.ephemeral;
         const live = (opts.context.beats[cmd.beatId] as Record<string, Json> | undefined) ?? {};
         if (Object.keys(live).length) {
@@ -286,7 +249,6 @@ export function adjudicate(lesson: CompiledLesson, commands: DirectorCommand[], 
         break;
       }
 
-      // ── WORKSPACE ────────────────────────────────────────────────────────────
       case "setControl":
       case "setControls": {
         assertPermitted(caps, op, i);
@@ -307,7 +269,6 @@ export function adjudicate(lesson: CompiledLesson, commands: DirectorCommand[], 
         break;
       }
 
-      // ── ATTENTION ────────────────────────────────────────────────────────────
       case "focus": {
         assertPermitted(caps, op, i);
         const rect = focusRectOf(cmd);
@@ -319,14 +280,11 @@ export function adjudicate(lesson: CompiledLesson, commands: DirectorCommand[], 
       case "annotate": {
         assertPermitted(caps, op, i);
         const shapes = cmd.clear ? [] : (cmd.shapes ?? []);
-        // Marks REPLACE rather than accumulate: drawing on a figure is a statement about
-        // it, and a director that wanted both would have sent both in one list.
         plan.vars[ANNOTATIONS_VAR] = shapes as unknown as Json;
         plan.notes.push(shapes.length ? `drew ${shapes.length} mark${shapes.length > 1 ? "s" : ""} on the stage` : "erased the marks");
         break;
       }
 
-      // ── PACING ───────────────────────────────────────────────────────────────
       case "hold": {
         assertPermitted(caps, op, i);
         plan.vars[HOLD_VAR] = { ...(cmd.reason ? { reason: cmd.reason } : {}) } as unknown as Json;
@@ -342,19 +300,12 @@ export function adjudicate(lesson: CompiledLesson, commands: DirectorCommand[], 
       }
 
       default: {
-        // An op the engine does not implement is a rejection, never a silent drop: a
-        // director (especially a model) must be told its command did nothing.
         throw new Error(`direction: unknown op "${String((cmd as { op?: unknown }).op)}"`);
       }
     }
   }
 
-  // Level-completable invariant: from wherever the learner LANDS after this turn, an
-  // ending must still be reachable. Checked whenever the turn could have changed the
-  // reachable graph or moved the learner onto a different part of it. Additive ops
-  // (`addBeat`/`say`/`revisit`) can't strand anyone — their `next` is validated against
-  // beats that already exist, or is deliberately terminal.
-  if (plan.rerouted.length || plan.patched.length || jumped) {
+  if (plan.rerouted.length || plan.patched.length || plan.enterId) {
     const from = landing();
     if (!reachesTerminal(shadow(), from)) {
       throw new CompileError([{ code: "NO_TERMINAL", detail: `this turn would strand the learner: no path from "${from}" to an ending` }]);
@@ -363,13 +314,8 @@ export function adjudicate(lesson: CompiledLesson, commands: DirectorCommand[], 
 
   return plan;
 
-  // ── helpers (closed over `plan`) ───────────────────────────────────────────────
-
-  /** Validate + lower one beat into the plan, honouring `enter`. Shared by addBeat and
-   *  the two sugar ops, so all three get identical treatment. */
   function install(spec: BeatSpec, enterIt: boolean): void {
     if (!spec || typeof spec.id !== "string" || !spec.id) throw new Error("addBeat: beat has no id");
-    // A runtime beat must be pure data or it cannot be replayed from the log.
     assertNoInlineFns(spec);
     const chart = shadow();
     if (chart.states[spec.id] === undefined) {
@@ -378,21 +324,41 @@ export function adjudicate(lesson: CompiledLesson, commands: DirectorCommand[], 
       plan.states[spec.id] = lowerBeat(spec, lesson.beats[spec.type]!, lesson.registry, spec.next ?? null);
       plan.added.push(spec.id);
     }
-    // Re-adding an existing beat is a no-op edit but still a legitimate jump request
-    // (idempotent replay lands here), so `enter` is honoured either way.
-    if (enterIt) plan.enterId = spec.id; // last requested-to-enter wins
+    if (enterIt) plan.enterId = spec.id;
+  }
+
+  /**
+   * A detour's ways out (see `SayCommand.exits`). `null` = leave the beat with its single Continue.
+   *
+   * `onwardFrom` is the beat the learner INTERRUPTED, not `back`, and the difference shows up when a
+   * turn contains several `say`s: those chain behind one another, so "back" is one step down the
+   * chain while "what's next" still means what's next in the LESSON. When the director names its own
+   * `resume`, that beat is both.
+   *
+   * A resume of `null` gets no exits: the turn ends the lesson, there is nothing to go back to, and
+   * the terminal Continue the empty `next` edge already renders is the honest affordance.
+   */
+  function sayExits(
+    spec: Extract<DirectorCommand, { op: "say" }>["exits"],
+    back: string | null,
+    onwardFrom: string,
+  ): Array<{ label: string; to: string | null }> | null {
+    if (!spec) return null;
+    if (Array.isArray(spec)) return spec.length ? spec : null;
+    if (back === null) return null;
+    const node = shadow().states[onwardFrom];
+    if (!node) return null;
+    const backExit = { label: "← Back to the lesson", to: back };
+    const onward = advanceOf(node);
+    if (onward === null) return [backExit, { label: "Finish the lesson →", to: null }];
+    if (onward === back) return [backExit];
+    return [backExit, { label: "Move on to what's next →", to: onward }];
   }
 
   function requireBeat(id: string, opName: string): void {
     if (!shadow().states[id]) throw dangling(id, `${opName}: beat "${id}" does not exist`);
   }
 
-  /**
-   * Resolve a `say`'s optional `show` into a viz declaration. `like: <beatId>` reuses that
-   * beat's registered visual — the reuse-existing-visuals affordance, spelled as data — and
-   * with no `show` at all the answer inherits the visual the learner is already looking at,
-   * so the workspace never lurches or blanks while a question is being answered.
-   */
   function showViz(show: Extract<DirectorCommand, { op: "say" }>["show"], from: string): Json | null {
     const inheritFrom = show?.like ?? (show?.name ? null : from);
     let name = show?.name;
@@ -405,8 +371,6 @@ export function adjudicate(lesson: CompiledLesson, commands: DirectorCommand[], 
         name = srcViz.name;
         props = { ...(srcViz.props ?? {}) };
         persistent = persistent ?? srcViz.persistent;
-        // The learner's live control values on that beat, so the reused figure shows what
-        // they have it set to rather than snapping back to the authored pose.
         const live = (opts.context.beats[inheritFrom] as Record<string, Json> | undefined) ?? {};
         for (const [k, v] of Object.entries(live)) if (k !== WORKSPACE_KEY) props[k] = v;
         Object.assign(props, (live[WORKSPACE_KEY] as Record<string, Json> | undefined) ?? {});

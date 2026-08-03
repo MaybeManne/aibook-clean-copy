@@ -1,23 +1,4 @@
 #!/usr/bin/env tsx
-// `direct` — the teacher's right-hand window: one command, sent into a live lesson.
-//
-//   tsx teach/cli/direct.ts say "look at the screen distance"
-//   tsx teach/cli/direct.ts revisit flip --note "same figure, new eyes"
-//   tsx teach/cli/direct.ts focus --scale 3 --at .4,.55 --label "the hole"
-//   tsx teach/cli/direct.ts set v=13 --beat lens-explore
-//   tsx teach/cli/direct.ts mark arrow .2,.3 .5,.6 --label "here"
-//   tsx teach/cli/direct.ts hold "one sec, building you something"   /  release
-//   tsx teach/cli/direct.ts json '[{"op":"say","text":"…"},{"op":"focus","clear":true}]'
-//   tsx teach/cli/direct.ts obs --help          (look, don't touch)
-//
-// The subcommands are shorthand for the ops in `lesson/direction/protocol.ts` — no more, no
-// less. `json` is the full escape hatch, so the CLI can never be the thing that limits what a
-// teacher may do: anything the protocol accepts is one `direct json` away, and the shorthands
-// exist only because typing JSON at speed while a student waits is not teaching.
-//
-// It prints the ENGINE's verdict, verbatim (`formatResult`) — the same bytes the log records
-// and the same bytes a model reads in tier 3. Exit code 1 on a refused turn, so a teacher can
-// script a sequence and have it stop where it broke.
 
 import { httpTransport, type DirectResponse } from "../index.js";
 import type { Annotation, DirectorCommand, StagePoint } from "@lessonstudio/lesson";
@@ -49,8 +30,6 @@ interface Flags {
   opt: Record<string, string | true>;
 }
 
-/** Split argv into positionals and `--flag [value]` pairs. A flag followed by another flag (or
- *  nothing) is a boolean, which is what lets `--stay` and `--label X` share one parser. */
 function parse(argv: string[]): Flags {
   const rest: string[] = [];
   const opt: Record<string, string | true> = {};
@@ -80,8 +59,6 @@ function parse(argv: string[]): Flags {
 
 const str = (v: string | true | undefined): string | undefined => (typeof v === "string" ? v : undefined);
 
-/** `k=v` → a typed value: JSON where it parses (numbers, booleans, arrays, objects), else the
- *  raw string. So `set v=13` is a number and `set title=hello` is a string, with no quoting. */
 function kv(pairs: string[]): Record<string, Json> {
   const out: Record<string, Json> = {};
   for (const p of pairs) {
@@ -110,7 +87,6 @@ function rect(s: string | undefined): { x: number; y: number; w: number; h: numb
   return { x: p[0]!, y: p[1]!, w: p[2]!, h: p[3]! };
 }
 
-/** One argv → the commands to send (empty ⇒ this was a read-only subcommand). */
 function build(f: Flags): DirectorCommand[] {
   const [cmd, ...args] = f.rest;
   switch (cmd) {
@@ -120,8 +96,6 @@ function build(f: Flags): DirectorCommand[] {
       const c: Extract<DirectorCommand, { op: "say" }> = { op: "say", text };
       const narrate = str(f.opt.narrate);
       if (narrate) c.narrate = narrate;
-      // `--stay` means "don't send them back" (a terminal aside); `--resume BEAT` overrides
-      // the default of returning to wherever the learner was standing.
       if (f.opt.stay === true) c.resume = null;
       else if (str(f.opt.resume)) c.resume = str(f.opt.resume)!;
       const like = str(f.opt.like);
@@ -216,7 +190,6 @@ function build(f: Flags): DirectorCommand[] {
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   if (!argv.length || argv[0] === "--help" || argv[0] === "-h") {
-    // eslint-disable-next-line no-console
     console.log(USAGE);
     process.exit(argv.length ? 0 : 1);
   }
@@ -227,16 +200,13 @@ async function main(): Promise<void> {
   try {
     commands = build(f);
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.error(`direct: ${e instanceof Error ? e.message : e}`);
     process.exit(2);
     return;
   }
 
-  // The read-only subcommand: print the situation through the one formatter.
   if (!commands.length) {
     const state = await t.observe({ catalog: f.opt["no-catalog"] !== true, help: f.opt.help === true });
-    // eslint-disable-next-line no-console
     console.log(f.opt.json === true ? JSON.stringify(state.observation, null, 2) : state.text);
     return;
   }
@@ -245,20 +215,15 @@ async function main(): Promise<void> {
   try {
     res = await t.direct(commands, { actor: f.actor, timeoutMs: f.timeoutMs });
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.error(`direct: cannot reach ${f.origin} — ${e instanceof Error ? e.message : e}`);
     process.exit(3);
     return;
   }
 
   if (res.applied && res.text) {
-    // eslint-disable-next-line no-console
     console.log(res.text);
     process.exit(res.result?.ok ? 0 : 1);
   }
-  // No verdict in time. Say which of the two silences this is — nobody polling, or a page that
-  // took the turn and has not answered — because the fixes are different.
-  // eslint-disable-next-line no-console
   console.error(
     res.status === "queued"
       ? `direct: turn ${res.turn} is QUEUED — no student page is polling ${f.origin}. It will apply when one connects.`

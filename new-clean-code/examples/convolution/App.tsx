@@ -1,26 +1,30 @@
-// M4 host: the discrete-convolution lesson (3b1b SimpleExample) in the clockless live studio.
-// Scene beats (flip/slide) play their storyboards on entry via SceneView's rAF clock; the
-// explorable gate waits for the learner. Advancing a non-interactive beat is now StudioView's
-// derived Continue affordance, so the old debug "Next →" harness is gone.
 import "katex/dist/katex.min.css";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { createSession } from "@lessonstudio/lesson";
 import { createLiveProgram } from "@lessonstudio/live";
-import { StudioView } from "@lessonstudio/render-web";
-import { defaultStudioLayout } from "@lessonstudio/template";
+import { attachMachineMirror } from "@lessonstudio/machine";
+import { StudioView, ThemeToggle, useThemeMode } from "@lessonstudio/web";
+import { resolvePreset } from "@lessonstudio/theme";
 import { lesson } from "./lesson.js";
 
 function App(): React.ReactElement {
   const program = React.useMemo(() => createLiveProgram(createSession(lesson)), []);
   React.useEffect(() => () => program.dispose(), [program]);
+  // Mirror the statechart to `/machine.html` — this lesson has the richer graph of the two.
+  React.useEffect(() => attachMachineMirror(program.session), [program]);
+
+  const { mode, setMode } = useThemeMode();
+  const { theme, layout } = resolvePreset("studio", mode);
 
   return (
     <StudioView
       program={program}
-      layout={defaultStudioLayout}
+      theme={theme}
+      layout={layout}
       eyebrow="lessonStudio · convolution"
-      placeholder="(live composer — wired in M5)"
+      placeholder="Ask a question…"
+      actions={<ThemeToggle theme={theme} mode={mode} onMode={setMode} />}
     />
   );
 }

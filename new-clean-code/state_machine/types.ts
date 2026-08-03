@@ -1,7 +1,3 @@
-// Generic statechart IR — pure JSON, generic over a context type `C`.
-// Knows nothing about lessons, beats, scores, or rendering. Guards/actions are
-// referenced BY NAME (resolved via the Registry) so the IR stays serializable.
-
 export type Json = null | boolean | number | string | Json[] | { [k: string]: Json };
 
 export type StateId = string;
@@ -28,16 +24,19 @@ export interface Transition {
   actions?: ActionRef[];
 }
 
-/**
- * Routing-table entry: a pattern-matched edge, resolved before `on[]`.
- * `match` selects a target from the event payload among PRE-AUTHORED states —
- * an LLM/policy picks an edge, it never invents one (targets are static ids).
- */
+/** Routing-table entry: a pattern-matched edge, resolved before `on[]`. */
 export interface Route {
   on: EventPattern;
   guard?: GuardRef;
   target?: StateId;
   actions?: ActionRef[];
+  /**
+   * Data-driven target selection: read `field` off the event payload and look it up in `cases`.
+   * The targets are STATIC ids written by whoever compiled the chart, so a payload chooses among
+   * pre-authored edges and cannot name a state that isn't there. (Introducing states and edges at
+   * play time is `lesson/direction`'s job — `addBeat`, `rerouteBeat` — where every proposal is
+   * validated against a shadow chart and installed all-or-nothing.)
+   */
   match?: { field: string; cases: Record<string, StateId>; default?: StateId };
 }
 

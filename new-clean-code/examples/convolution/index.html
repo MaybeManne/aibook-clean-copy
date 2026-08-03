@@ -4,11 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>lessonStudio — convolution (3b1b)</title>
+    <meta name="color-scheme" content="dark light" />
     <style>
-      html,body,#root{height:100%;margin:0;background:#0b0e1a}
+      /* The theme publishes these custom properties from StudioView (see useDocumentTheme), so the
+         page ground and the scrollbar follow a mode switch. The fallbacks are the dark studio's, which
+         is what paints for the instant before React mounts. */
+      html,body,#root{height:100%;margin:0;background:var(--ls-bg,#0a0d18)}
       *{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+      [data-lk-scroll]{scrollbar-color:var(--ls-scrollbar,rgba(129,140,248,0.35)) transparent;scrollbar-width:thin}
       [data-lk-scroll]::-webkit-scrollbar{width:8px}
-      [data-lk-scroll]::-webkit-scrollbar-thumb{background:rgba(129,140,248,0.35);border-radius:8px}
+      [data-lk-scroll]::-webkit-scrollbar-thumb{background:var(--ls-scrollbar,rgba(129,140,248,0.35));border-radius:8px}
       [data-lk-scroll]::-webkit-scrollbar-track{background:transparent}
     </style>
   </head>

@@ -1,8 +1,3 @@
-// Content-hash cache so identical narration lines reuse synthesized audio and
-// survive re-runs (SocraticAI-style audio_cache/). The `AudioCache` interface +
-// `narrationKey` are browser-safe (pure); `fileCache` loads Node's fs lazily so
-// this module never drags node built-ins into a browser bundle.
-
 import type { NarrationAudio } from "./tts.js";
 
 /** Small, stable, dependency-free string hash → 12 hex chars (cyrb53). */
@@ -24,18 +19,6 @@ export function narrationKey(text: string, voice = ""): string {
 export interface AudioCache {
   get(key: string): Promise<NarrationAudio | null>;
   put(key: string, audio: NarrationAudio): Promise<void>;
-}
-
-/** In-memory cache (tests, single run). */
-export function memoryCache(): AudioCache {
-  const m = new Map<string, NarrationAudio>();
-  return {
-    get: (k) => Promise.resolve(m.get(k) ?? null),
-    put: (k, a) => {
-      m.set(k, a);
-      return Promise.resolve();
-    },
-  };
 }
 
 /** Filesystem cache: one JSON per key under `dir`. Node only (lazy fs import). */

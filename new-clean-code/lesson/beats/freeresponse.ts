@@ -1,13 +1,8 @@
-// FreeResponse beat: a fill-in-the-blank gate. Two-phase like MCQ:
-//   "input.submit" (payload.value) → self-transition recording the answer
-//   "next"                          → routes wrong → onWrong, else advance
-// The submitted value is normalized and matched against `accept`. Answered-ness +
-// last result live on the blackboard under beats[id] (flat node, v1).
-
-import type { Action, Json, StateId, StateNode, Transition } from "@lessonstudio/state-machine";
-import type { RenderIntent, RichText } from "@lessonstudio/render-contract";
-import { md } from "@lessonstudio/render-contract";
+import type { Json, StateId, StateNode } from "@lessonstudio/state-machine";
+import type { RenderIntent, RichText } from "@lessonstudio/intents";
+import { md } from "../../intents/index.js";
 import type { LessonContext } from "../lesson_sm/context.js";
+import { gradedAction, gradedWiring, rich, type Grade } from "./graded.js";
 import { beatMeta, type BeatWireCtx, type BeatWiring, type RenderableBeat } from "./types.js";
 
 export interface FreeResponseParams {
@@ -18,12 +13,12 @@ export interface FreeResponseParams {
   hint?: string | RichText;
   correctFeedback?: string | RichText;
   wrongFeedback?: string | RichText;
-  promptSlot?: string; // default "prompt"
+  promptSlot?: string;
   /** Adaptivity: a correct answer raises mastery of this skill (to 1). */
   skill?: string;
   /** Adaptivity: a wrong answer bumps this misconception's strength. */
   misconception?: string;
-  onWrong?: string; // route a wrong answer to this beat id (a detour)
+  onWrong?: string;
 }
 
 interface FrLocal extends Record<string, Json> {
@@ -39,19 +34,12 @@ function readLocal(ctx: LessonContext, id: string): FrLocal {
   return (ctx.beats[id] as FrLocal | undefined) ?? { attempts: 0, lastValue: "", answered: false, lastCorrect: false };
 }
 
-function recordAnswer(id: string, params: FreeResponseParams): Action<LessonContext> {
-  const accepted = new Set(params.accept.map(norm));
-  return (ctx, event) => {
-    const value = ((event.payload ?? {}) as { value?: string }).value ?? "";
-    const correct = accepted.has(norm(value));
-    const prev = readLocal(ctx, id);
-    const next: FrLocal = { attempts: prev.attempts + 1, lastValue: value, answered: true, lastCorrect: correct };
-    const mastery = correct && params.skill ? { ...ctx.mastery, [params.skill]: 1 } : ctx.mastery;
-    const misconceptions =
-      !correct && params.misconception
-        ? { ...ctx.misconceptions, [params.misconception]: (ctx.misconceptions[params.misconception] ?? 0) + 1 }
-        : ctx.misconceptions;
-    return { context: { beats: { ...ctx.beats, [id]: next }, score: correct ? ctx.score + 1 : ctx.score, mastery, misconceptions } };
+function gradeText(accepted: Set<string>, params: FreeResponseParams, payload: Record<string, unknown>): Grade {
+  const value = typeof payload.value === "string" ? payload.value : "";
+  return {
+    correct: accepted.has(norm(value)),
+    local: { lastValue: value, answered: true },
+    misconception: params.misconception,
   };
 }
 
@@ -59,41 +47,47 @@ export const FreeResponseBeat: RenderableBeat<FreeResponseParams> = {
   type: "freeResponse",
   outcomes: ["correct", "wrong", "next"],
 
+  paramsSchema: {
+    doc:
+      "A typed-answer checkpoint, graded by exact match after normalization (trim, lowercase, " +
+      "strip whitespace). Only for answers with a short canonical form — use `mcq` otherwise.",
+    params: {
+      prompt: "the question; markdown + $math$",
+      accept: "[string] — every spelling you will accept; matched after normalization",
+      "?hint": "shown as the wrong-answer feedback when `wrongFeedback` is absent",
+      "?correctFeedback": "prose shown after a right answer",
+      "?wrongFeedback": "prose shown after a wrong answer",
+      "?onWrong": "beat id to detour to on a wrong answer",
+      "?skill": "a correct answer raises mastery of this skill name",
+      "?misconception": "a wrong answer bumps this misconception's strength",
+    },
+    example: {
+      prompt: "With $u=10$ and $v=5$, what is the magnification $m$?",
+      accept: ["0.5", "1/2", ".5"],
+      hint: "$m = v/u$.",
+    },
+  },
+
   build(params, id): StateNode {
     return { id, checkpoint: true, meta: beatMeta("freeResponse", params as unknown as Json) };
   },
 
-  wire(params, id: StateId, { registry, defaultNext }: BeatWireCtx): BeatWiring {
-    const recordRef = `fr.record:${id}`;
-    registry.action(recordRef, recordAnswer(id, params));
-    registry.guard(`fr.wasWrong:${id}`, (ctx) => {
-      const l = ctx.beats[id] as FrLocal | undefined;
-      return l ? !l.lastCorrect : false;
+  wire(params, id: StateId, ctx: BeatWireCtx): BeatWiring {
+    const accepted = new Set(params.accept.map(norm));
+    return gradedWiring({
+      ...ctx,
+      id,
+      prefix: "fr",
+      answerEvent: "input.submit",
+      onWrong: params.onWrong,
+      action: gradedAction(id, params, (payload) => gradeText(accepted, params, payload)),
     });
-
-    const dn = defaultNext();
-    const onNext: Transition[] = [];
-    if (params.onWrong) onNext.push({ guard: `fr.wasWrong:${id}`, target: params.onWrong });
-    if (dn) onNext.push({ target: dn });
-
-    return {
-      on: {
-        "input.submit": [{ target: id, actions: [recordRef] }],
-        next: onNext,
-      },
-    };
   },
 
   render(params, _state, ctx): RenderIntent[] {
     const id = (ctx.vars.__activeBeat as string) ?? "";
     const l = readLocal(ctx, id);
     const prompt = typeof params.prompt === "string" ? md(params.prompt) : params.prompt;
-
-    // Feedback is authored prose, so a string goes through `md()`: inline `$math$` and
-    // `**bold**` work here exactly as in a beat's body. (`text()` would print the dollar
-    // signs verbatim — a gate that says "$m = 15/5 = 3$" has to typeset, and colour, the m.)
-    const rich = (v: string | RichText | undefined, dflt: string): RichText =>
-      v === undefined ? md(dflt) : typeof v === "string" ? md(v) : v;
 
     let feedback: RichText | undefined;
     if (l.answered) {

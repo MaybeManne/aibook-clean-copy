@@ -1,31 +1,17 @@
-// Session: the one stateful object — the boundary between the pure engine and
-// the effectful world. It drives the pure interpreter, owns history, runs
-// effects (with cancellation), and consults policies. React (or any view) reads
-// render() and calls send().
-//
-// It lives in `lesson/runtime/` because it is the engine's HOST, not authoring: it
-// executes whatever it is handed (a learner's answer, a director's command, an
-// effect's result) and adjudicates it, but it never composes a lesson and never
-// calls a model. Deterministic authoring lives in `authoring/`, the command
-// vocabulary in `lesson/direction/`, and everything LLM in `forge/` — which this
-// file must never import.
-
 import {
   enter,
-  restore,
-  snapshot,
   start,
+  topId,
   transition,
   type Effect,
   type Json,
   type MachineEvent,
-  type Snapshot,
   type Step,
   type TransitionRecord,
 } from "@lessonstudio/state-machine";
-import type { RenderIntent, RenderModel } from "@lessonstudio/render-contract";
+import type { RenderIntent, RenderModel } from "@lessonstudio/intents";
 import { leafState, WORKSPACE_KEY, type RenderableBeat } from "../beats/index.js";
-import { lowerBeat, validateBeatSpec, CompileError, type BeatSpec, type CompiledLesson } from "../lesson_sm/compile.js";
+import { forkLesson, lowerBeat, validateBeatSpec, CompileError, type BeatSpec, type CompiledLesson } from "../lesson_sm/compile.js";
 import { initialContext, type EventRecord, type LearnerRuntime, type LessonContext } from "../lesson_sm/context.js";
 import type { LearnerModel } from "../policy/contracts.js";
 import { adjudicate, failureResult, planResult, type DirectionPlan, type DirectionResult } from "../direction/adjudicate.js";
@@ -36,20 +22,30 @@ import {
   AUTHORING_COMMAND_EVENT,
   DIRECTION_COMMAND_EVENT,
   directionCommand,
-  GENERATED_BEAT_EVENT,
   MESSAGE_SUBMIT_EVENT,
   normalizeCommands,
   type DirectorActor,
   type DirectorCommand,
 } from "../direction/protocol.js";
 
-// ── pluggable collaborators ──────────────────────────────────────────────────
-
 export interface EffectContext {
   /** aborted when the state that spawned this effect is exited. */
   signal: AbortSignal;
   send: (event: MachineEvent) => void;
   ctx: LessonContext;
+  /**
+   * THIS session's live view of the lesson — the fork that runtime-spliced beats are written
+   * into. Read-only from an effect's side, and NOT a route back into the engine: it carries no
+   * `send`, so the one way an effect affects the machine is still `ec.send`.
+   *
+   * It is here because the alternative was silently wrong. A runner that closed over the
+   * COMPILED lesson could not see any beat authored after construction: the `__ask-*` leaf the
+   * learner is standing on, and — worse — every `__say-*` answer a director had already given.
+   * `projectTranscript` found those turns but read their prose out of a chart that had no such
+   * state, so the director's own past answers reached it as empty strings and it re-answered as
+   * if it had never spoken.
+   */
+  lesson: CompiledLesson;
 }
 export interface EffectRunner {
   run(effect: Effect, ec: EffectContext): void | Promise<void>;
@@ -62,7 +58,7 @@ export interface Policy {
 
 /** Push-based: external adapter (gaze/LLM watcher) that emits semantic events anytime. */
 export interface SignalSource {
-  attach(send: (event: MachineEvent) => void): () => void; // returns detach
+  attach(send: (event: MachineEvent) => void): () => void;
 }
 
 /** Passive per-step observer. MUST NOT re-enter send() synchronously. */
@@ -101,12 +97,6 @@ export function defaultRunner(onPersist?: (payload: Json) => void): EffectRunner
   };
 }
 
-// ── Session ──────────────────────────────────────────────────────────────────
-
-function isPlainObject(v: unknown): v is Record<string, unknown> {
-  return !!v && typeof v === "object" && !Array.isArray(v);
-}
-
 interface InFlight {
   stateKey: string;
   controller: AbortController;
@@ -124,16 +114,22 @@ export class Session {
    *  it is feedback for whoever is directing, not state the lesson depends on. */
   private lastDirection: DirectionResult | null = null;
 
-  constructor(
-    readonly lesson: CompiledLesson,
-    opts: SessionOptions = {},
-  ) {
+  /**
+   * THIS session's view of the lesson, forked from the one it was constructed with: the spine
+   * and the beat definitions are shared, the chart's state map and the registry are its own.
+   * Everything that authors — `spliceBeat`, `applyDirection` — writes only here, so two
+   * learners running one compiled lesson cannot edit each other's. Read it, don't mutate it.
+   */
+  readonly lesson: CompiledLesson;
+
+  constructor(lesson: CompiledLesson, opts: SessionOptions = {}) {
+    this.lesson = forkLesson(lesson);
     this.runner = opts.runner ?? defaultRunner(opts.onPersist);
     this.policies = opts.policies ?? [];
     this.learnerModel = opts.learnerModel;
     if (opts.onStep) this.observers.add(opts.onStep);
 
-    this.step = start(lesson.chart, initialContext(opts.vars), lesson.registry);
+    this.step = start(this.lesson.chart, initialContext(opts.vars), this.lesson.registry);
     this.markActiveBeat();
     this.seedLearner();
     this.runEffects(this.step.effects);
@@ -144,8 +140,6 @@ export class Session {
     }
   }
 
-  // ── public API ───────────────────────────────────────────────────────────
-
   get done(): boolean {
     return this.step.done;
   }
@@ -153,17 +147,16 @@ export class Session {
     return this.step.context;
   }
   activeBeatId(): string {
-    const s = this.step.state;
-    return typeof s === "string" ? s : Object.keys(s)[0]!;
+    return topId(this.step.state);
   }
 
   send = (event: MachineEvent): void => {
-    this.apply(event, /* fromPolicy */ false);
+    this.apply(event, false);
   };
 
   /**
    * Observe every committed step — including effect-driven ones (a resolved
-   * `generate` → `beat.generated`, a `timer`, a SignalSource) that re-enter via the
+   * `generate` → `direction.command`, a `timer`, a SignalSource) that re-enter via the
    * runner's `send` rather than a caller's. The video layer subscribes here so those
    * async transitions drive a frame; without it they'd mutate the Session invisibly.
    * Passive: an observer must NOT call `send()` synchronously (re-entrancy). Returns
@@ -206,8 +199,6 @@ export class Session {
     if (opts?.autoplay === false) {
       return {
         intents: intents.map((i) => {
-          // A past/inactive step holds its FINAL frame: viz stops self-animating, and a
-          // scene renders statically at its storyboard end (see SceneView's local clock).
           if (i.kind === "scene") return { ...i, autoplay: false } as RenderIntent;
           if (i.kind !== "viz") return i;
           const props = (i as { props?: Record<string, unknown> }).props ?? {};
@@ -216,17 +207,6 @@ export class Session {
       };
     }
     return { intents };
-  }
-
-  /** O(1) capture of the live position. */
-  toSnapshot(): Snapshot<LessonContext> {
-    return snapshot(this.lesson.chart, this.step);
-  }
-  /** O(1) restore (no replay). Cancels in-flight effects. */
-  loadSnapshot(snap: Snapshot<LessonContext>): void {
-    this.cancelAll();
-    this.step = restore(this.lesson.chart, snap);
-    this.markActiveBeat();
   }
 
   /** Detach signal sources + cancel effects. Call when tearing down. */
@@ -238,38 +218,24 @@ export class Session {
   }
 
   /**
-   * Compile ONE runtime-authored (e.g. LLM-generated) beat into the live chart +
-   * registry. Idempotent and additive — an existing beat is never rewritten, so the
-   * spine and any other Session sharing this CompiledLesson are unaffected. Throws
-   * on a malformed spec (unknown type / dangling target / no id) — LLM output is the
-   * untrusted-input case, so it fails loudly rather than corrupting the chart.
+   * Compile ONE runtime-authored beat into THIS session's chart + registry. Idempotent and
+   * additive: an existing beat is never rewritten, so re-sending the same spec (which replay
+   * does) is a no-op rather than a second install. Throws on a malformed spec — unknown type,
+   * dangling target, no id.
    */
   spliceBeat(spec: BeatSpec): void {
     if (!spec || typeof spec.id !== "string" || !spec.id) throw new Error("spliceBeat: generated beat has no id");
-    if (this.lesson.chart.states[spec.id]) return; // already present → idempotent (replay-safe)
+    if (this.lesson.chart.states[spec.id]) return;
     const problems = validateBeatSpec(spec, this.lesson.beats, this.lesson.chart);
     if (problems.length) throw new CompileError(problems);
     this.lesson.chart.states[spec.id] = lowerBeat(spec, this.lesson.beats[spec.type]!, this.lesson.registry, spec.next ?? null);
   }
 
-  // ── internals ──────────────────────────────────────────────────────────────
-
   private apply(event: MachineEvent, fromPolicy: boolean): void {
-    // Ambient / meta moves the flat engine can't route are intercepted BEFORE the pure
-    // transition() (which would silently drop them). Each records its own history entry.
-
-    // Legacy alias: a bare BeatSpec payload → a single addBeat command (jump in).
-    if (event.type === GENERATED_BEAT_EVENT && isPlainObject(event.payload)) {
-      this.applyDirection(event, [{ op: "addBeat", spec: event.payload as unknown as BeatSpec, enter: true }], fromPolicy);
-      return;
-    }
-    // A director's turn — the whole command vocabulary, whoever sent it. `direction.command`
-    // is the current name; `authoring.command` is the v1 name, kept as a permanent alias.
     if (event.type === DIRECTION_COMMAND_EVENT || event.type === AUTHORING_COMMAND_EVENT) {
       this.applyDirection(event, normalizeCommands(event.payload), fromPolicy);
       return;
     }
-    // The learner's say-anytime / interrupt move.
     if (event.type === MESSAGE_SUBMIT_EVENT) {
       this.applyMessage(event, fromPolicy);
       return;
@@ -277,9 +243,8 @@ export class Session {
 
     const prev = this.step;
     const next = transition(this.lesson.chart, prev, event, this.lesson.registry);
-    if (next === prev) return; // unhandled — ignored by the engine
+    if (next === prev) return;
 
-    // Session owns history: append a sequenced record for the edge just taken.
     let ctx = next.context;
     let appended: EventRecord | null = null;
     if (next.lastRecord) {
@@ -290,7 +255,6 @@ export class Session {
     this.markActiveBeat();
     if (appended) this.foldLearner(appended);
 
-    // Cancellation: effects don't outlive the state that spawned them.
     this.cancelStale();
     this.runEffects(this.step.effects);
 
@@ -299,28 +263,24 @@ export class Session {
   }
 
   /**
-   * Execute a director's turn (a list of commands): splice added beats, reroute existing
-   * ones, patch the blackboard (controls / workspace / focus / annotations / hold),
-   * optionally jump into a beat, and record the carrier event in history so replay
-   * re-creates the same edits as data (no generator, no model, nobody re-invoked).
+   * Execute a director's turn (a list of commands): splice added beats, reroute existing ones,
+   * patch the blackboard (controls / workspace / focus / annotations / hold), optionally jump
+   * into a beat, and record the carrier event in history so replay re-creates the same edits as
+   * data — no generator, no model, nobody re-invoked.
    *
-   * The turn is ATOMIC because `adjudicate` plans against a shadow chart and this method
-   * installs the result in one assignment plus one context merge: a rejected command means
-   * nothing was ever applied, so a bad turn is a pure no-op that never reaches history
-   * (which is also why replay never sees a failed turn). On the live path the throw is
-   * caught by the runner or by `direct()`; a raw `send` surfaces it to the caller.
+   * The turn is ATOMIC: `adjudicate` plans against a shadow chart and this method installs the
+   * result in one assignment plus one context merge, so a rejected command applies nothing and
+   * never reaches history. On the live path the throw is caught by the runner or by `direct()`;
+   * a raw `send` surfaces it to the caller.
    */
   private applyDirection(event: MachineEvent, commands: DirectorCommand[], fromPolicy: boolean, caps?: Capabilities): DirectionPlan {
     const prev = this.step;
-    // Anchor to the REAL beat: if the learner is parked on an ephemeral "thinking" leaf,
-    // a `say`/`setControl` with no explicit target means the beat that leaf stands in for,
-    // never the leaf itself (which is about to be replaced by the answer).
     const plan = adjudicate(this.lesson, commands, {
       activeBeatId: this.resumeTargetOf(this.activeBeatId()),
       context: prev.context,
       ...(caps ? { capabilities: caps } : {}),
     });
-    Object.assign(this.lesson.chart.states, plan.states); // install — atomic, post-validation
+    Object.assign(this.lesson.chart.states, plan.states);
     const patched = this.patchContext(prev.context, plan);
 
     const base: Step<LessonContext> = plan.enterId
@@ -341,18 +301,17 @@ export class Session {
   }
 
   /**
-   * Fold a plan's three context patches into one new context. All three are MERGES on the
-   * same committed step, which is what makes "point at the figure, re-pose it and zoom in"
-   * one gesture rather than three the learner watches happen in sequence.
+   * Fold a plan's three context patches into one new context — all three as MERGES on the same
+   * committed step, so "point at the figure, re-pose it and zoom in" is one gesture rather than
+   * three the learner watches happen in sequence.
    *
-   * A `null` var DELETES its key (that is how `focus{clear}` and `release` are spelled), so
-   * a cleared focus leaves no residue in snapshots and `vars.__focus` is absent-or-real
-   * rather than absent-or-null-or-real.
+   * A `null` var DELETES its key (that is how `focus{clear}` and `release` are spelled), so a
+   * cleared focus leaves no residue in snapshots.
    */
   private patchContext(ctx: LessonContext, plan: DirectionPlan): LessonContext {
     const varKeys = Object.keys(plan.vars);
     const beatIds = new Set([...Object.keys(plan.controls), ...Object.keys(plan.workspace)]);
-    if (!varKeys.length && !beatIds.size) return ctx; // the common case: no copy at all
+    if (!varKeys.length && !beatIds.size) return ctx;
     const vars = { ...ctx.vars };
     for (const k of varKeys) {
       const v = plan.vars[k];
@@ -362,8 +321,6 @@ export class Session {
     const beats = { ...ctx.beats };
     for (const id of beatIds) {
       const prevLocal = (beats[id] as Record<string, Json> | undefined) ?? {};
-      // Learner-channel values land FLAT (the same keys their own slider writes); the
-      // director's viz patch lands under `__ws` — see beats/workspace.ts for the split.
       const nextLocal: Record<string, Json> = { ...prevLocal, ...(plan.controls[id] ?? {}) };
       const ws = plan.workspace[id];
       if (ws) nextLocal[WORKSPACE_KEY] = { ...((prevLocal[WORKSPACE_KEY] as Record<string, Json> | undefined) ?? {}), ...ws };
@@ -373,23 +330,20 @@ export class Session {
   }
 
   /**
-   * THE DIRECTOR'S DOOR — tier 2 and tier 3 both come through here, and they get identical
-   * treatment. Submits one turn of commands and returns a REPORT instead of throwing,
-   * because the caller on the other side is a teacher's terminal or a model's tool loop:
-   * both need "rejected, and here is why" as data they can act on, not as an exception.
+   * THE DIRECTOR'S DOOR — tier 2 and tier 3 both come through here and get identical treatment.
+   * Submits one turn of commands and returns a REPORT instead of throwing, because the caller is
+   * a teacher's terminal or a model's tool loop and both need "rejected, and here is why" as
+   * data they can act on.
    *
-   * `capabilities` bounds THIS turn only (default: unrestricted). It is deliberately not
-   * session state — a recorded command replays under no capability check at all, since it
-   * already passed one when it was made, and re-judging history under a regime that has
-   * since changed would make replay non-deterministic.
+   * `capabilities` bounds THIS turn only (default: unrestricted). It is deliberately not session
+   * state: a recorded command replays under no capability check at all, since it already passed
+   * one when it was made.
    */
   direct(commands: DirectorCommand | DirectorCommand[], actor: DirectorActor = "teacher", capabilities?: Capabilities): DirectionResult {
     const list = Array.isArray(commands) ? commands : [commands];
     try {
-      this.applyDirection(directionCommand(list, actor), list, /* fromPolicy */ false, capabilities);
+      this.applyDirection(directionCommand(list, actor), list, false, capabilities);
     } catch (e) {
-      // Nothing was installed (adjudication is plan-then-apply), so the learner's session
-      // is exactly as it was — the failure is a message, not a state.
       this.lastDirection = failureResult(actor, e, list.length);
     }
     return this.lastDirection!;
@@ -410,12 +364,8 @@ export class Session {
    */
   private applyMessage(event: MachineEvent, fromPolicy: boolean): void {
     const prev = this.step;
-    // Anchor to the REAL beat. If a prior message already put us on a thinking leaf
-    // (i.e. this message IS an interrupt), resume the beat that leaf stands in for —
-    // never the ephemeral leaf itself, which would strand Continue on a dead node.
     const fromId = this.resumeTargetOf(this.activeBeatId());
     const question = String(((event.payload ?? {}) as { text?: string }).text ?? "").trim();
-    // Deterministic ephemeral leaf id — history length is rebuilt identically on replay.
     const leafId = `__ask-${prev.context.history.length}`;
     this.spliceBeat(this.buildThinkingBeat(leafId, fromId));
 
@@ -426,10 +376,7 @@ export class Session {
     this.markActiveBeat();
     this.foldLearner(rec);
 
-    // Interrupt: the leaf just changed, so cancelStale aborts any prior generation.
     this.cancelStale();
-    // Author the answer (same request shape as explorable.requestAsk). Built inline as a
-    // plain Effect so Session doesn't import the authoring generate() helper (no cycle).
     const genEffect: Effect = { kind: "generate", intent: "answer", question, returnTo: fromId };
     this.runEffects([...this.step.effects, ...(question ? [genEffect] : [])]);
     if (!fromPolicy) this.consultPolicies();
@@ -452,7 +399,7 @@ export class Session {
     if (fromBeat?.type === "explorable" && fromBeat.params && typeof fromBeat.params === "object") {
       const p = fromBeat.params as { viz?: { name?: string; props?: Record<string, unknown> }; defaults?: Record<string, unknown> };
       if (p.viz?.name) {
-        const defaults = { ...(p.defaults ?? {}), ...stored }; // learner control values + agent __ws patch
+        const defaults = { ...(p.defaults ?? {}), ...stored };
         return {
           id: leafId,
           type: "explorable",
@@ -508,7 +455,7 @@ export class Session {
   private consultPolicies(): void {
     for (const p of this.policies) {
       for (const e of p.observe(this.step, this.lesson)) {
-        this.apply(e, /* fromPolicy */ true);
+        this.apply(e, true);
       }
     }
   }
@@ -523,7 +470,7 @@ export class Session {
     for (const effect of effects) {
       const controller = new AbortController();
       this.inFlight.push({ stateKey, controller });
-      void this.runner.run(effect, { signal: controller.signal, send: this.send, ctx });
+      void this.runner.run(effect, { signal: controller.signal, send: this.send, ctx, lesson: this.lesson });
     }
   }
 
@@ -553,22 +500,15 @@ export class Session {
   }
 }
 
-// ── factory + persistence helpers ──────────────────────────────────────────────
-
 export function createSession(lesson: CompiledLesson, opts?: SessionOptions): Session {
   return new Session(lesson, opts);
 }
 
-export function snapshotSession(s: Session): Snapshot<LessonContext> {
-  return s.toSnapshot();
-}
-export function restoreSession(lesson: CompiledLesson, snap: Snapshot<LessonContext>): Session {
-  const s = new Session(lesson, { runner: { run() {} } }); // no effects on restore
-  s.loadSnapshot(snap);
-  return s;
-}
-
-/** O(n) reconstruction by folding the event log through the pure interpreter. */
+/**
+ * O(n) reconstruction by folding the event log through the pure interpreter. A position-only
+ * snapshot cannot rebuild a chart a director has since edited (added beats, rerouted edges);
+ * replaying the log re-applies those turns from the recorded commands.
+ */
 export function replay(lesson: CompiledLesson, history: EventRecord[]): Session {
   const s = new Session(lesson, { runner: { run() {} }, policies: [] });
   for (const rec of history) s.send(rec.event);

@@ -1,19 +1,15 @@
-// Provider-agnostic text-to-speech with word-level timing. The rest of the
-// system depends only on `TtsAdapter`, never a specific vendor (ElevenLabs,
-// Azure, …). Times are in MILLISECONDS everywhere in this layer.
-
 export interface WordTiming {
   word: string;
-  start: number; // ms from clip start
-  end: number; // ms
+  start: number;
+  end: number;
 }
 
 export interface NarrationAudio {
   /** Encoded bytes (base64 string) or a URL/path to a cached file. */
   audio: string;
-  mime: string; // e.g. "audio/mpeg"
+  mime: string;
   durationMs: number;
-  words: WordTiming[]; // word-level timestamps
+  words: WordTiming[];
 }
 
 export interface SynthesizeOptions {

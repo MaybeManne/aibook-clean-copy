@@ -1,27 +1,11 @@
-// THE ONE SERIALIZATION. An observation and a command verdict, as text.
-//
-// There is exactly one of this file on purpose. The live human teacher is a programmer
-// reading a terminal; the AI teacher is a model reading a prompt. If those were two
-// renderings they would drift, and the day we swapped the human for the model we would be
-// debugging a formatter instead of a teacher. One formatter means the model is looking at
-// literally the bytes the human looked at — so anything a human could act on, the model
-// can, and a transcript of a human session is a usable example for the model.
-//
-// Written to be read by BOTH, which sets the style:
-//   • plain text, one fact per line, stable key order — greppable, diffable, promptable
-//   • ids verbatim and unadorned, because they are what a command must name
-//   • the previous turn's verdict included, since that is what turns a blind emitter into
-//     something that can correct itself
-//   • no ANSI, no emoji, no box drawing: a log file, a pipe and a prompt all take it as-is
-//
-// Pure string building. No dependency on the terminal, the transport, or a model.
-
 import type { Json } from "@lessonstudio/state-machine";
 import type { BeatCard, LessonCatalog } from "./catalog.js";
 import type { DirectionResult } from "./adjudicate.js";
 import type { Observation } from "./observe.js";
 import { DIRECTOR_OPS } from "./protocol.js";
 import type { Capabilities } from "./capabilities.js";
+import { formatAuthoring, formatVisuals, type VisualSchema } from "./schemas.js";
+import { defaultBeatRegistry, type BeatRegistry } from "../beats/index.js";
 
 export interface FormatOptions {
   /** Include the beat catalog (the id menu). Default true when the observation carries one. */
@@ -29,14 +13,15 @@ export interface FormatOptions {
   /** Include the "commands you may send" reference block. Default false — a human wants it
    *  once, a model wants it in the system prompt, neither wants it on every frame. */
   help?: boolean;
+  /** Which beat types the help documents. Default `defaultBeatRegistry()`; pass the host's own
+   *  registry when it registered extra types, so the help describes what actually exists. */
+  beats?: BeatRegistry;
 }
 
 /**
- * Render an observation as the teacher's screen / the model's user message.
- *
- * Sections appear in the order a director actually reads them: what happened to my last
- * turn, what is the learner asking, where are they, what is on the stage, what have we
- * said lately, and (optionally) what may I name.
+ * Render an observation as the teacher's screen / the model's user message. Sections appear in
+ * the order a director reads them: what happened to my last turn, what is the learner asking,
+ * where are they, what is on the stage, what have we said lately, and what may I name.
  */
 export function formatObservation(obs: Observation, opts: FormatOptions = {}): string {
   const L: string[] = [];
@@ -48,7 +33,6 @@ export function formatObservation(obs: Observation, opts: FormatOptions = {}): s
   }
 
   if (obs.pending) {
-    // First, because it is the thing a teacher is being paid to notice.
     L.push("");
     L.push(`## LEARNER ASKED (unanswered, seq ${obs.pending.seq}, from ${obs.pending.from})`);
     L.push(`  ${obs.pending.text}`);
@@ -62,8 +46,6 @@ export function formatObservation(obs: Observation, opts: FormatOptions = {}): s
   const edges = Object.entries(obs.at?.edges ?? {});
   if (edges.length) L.push(`  edges   ${edges.map(([k, t]) => `${k} -> ${t ?? "(end)"}`).join("   ")}`);
 
-  // The words the learner is reading. Deliberately verbatim and un-elided: this is the only
-  // section a teacher cannot reconstruct from the rest, and the section a question points AT.
   if (obs.showing) {
     L.push("");
     L.push(`## ON SCREEN (${obs.anchor})`);
@@ -103,7 +85,7 @@ export function formatObservation(obs: Observation, opts: FormatOptions = {}): s
 
   if (opts.help) {
     L.push("");
-    L.push(COMMAND_HELP);
+    L.push(directorHelp({ beats: opts.beats, visuals: obs.catalog?.visualSchemas }));
   }
   return L.join("\n");
 }
@@ -123,26 +105,30 @@ export function formatResult(r: DirectionResult): string {
     if (structural.length) L.push(`  = ${structural.join("; ")}`);
     return L.join("\n");
   }
-  // The whole batch was refused, which is the fact a director most needs stated plainly:
-  // it should RESEND a corrected turn, not assume a partial application happened.
   L.push(`## LAST TURN — REJECTED (${r.error?.kind ?? "error"}${r.error?.op ? ` on "${r.error.op}"` : ""}, by ${r.actor})`);
   L.push(`  ${r.error?.detail ?? "unknown failure"}`);
-  L.push(`  NOTHING was applied — all ${r.submitted} command(s) were discarded. Fix and resend.`);
+  const discarded = `NOTHING was applied — all ${r.submitted} command(s) were discarded.`;
+  L.push(
+    r.error?.kind === "review"
+      ? `  ${discarded} This op needs a human's approval; resending will not change that. Teach another way.`
+      : `  ${discarded} Fix and resend.`,
+  );
   return L.join("\n");
 }
 
-/** The id menu: what a command may name. Spine first, then whatever has been added since. */
-export function formatCatalog(cat: LessonCatalog): string {
+function formatCatalog(cat: LessonCatalog): string {
   const L: string[] = [`## BEATS (entry: ${cat.entry})`];
   for (const b of cat.beats) L.push(`  ${describeBeat(b)}`);
-  if (cat.visuals.length) {
+  if (cat.visualSchemas) {
+    L.push("");
+    L.push(formatVisuals(cat.visualSchemas));
+  } else if (cat.visuals.length) {
     L.push(`  visuals: ${cat.visuals.join(" ")}`);
   }
   return L.join("\n");
 }
 
-/** One beat on one line: id, type, flags, visual, controls, the first words of its prose. */
-export function describeBeat(b: BeatCard): string {
+function describeBeat(b: BeatCard): string {
   const flags = [b.runtime ? "runtime" : "", b.ephemeral ? "ephemeral" : "", b.checkpoint ? "checkpoint" : ""].filter(Boolean);
   const bits = [
     b.id.padEnd(16),
@@ -166,15 +152,15 @@ export function formatCapabilities(caps: Capabilities): string {
 }
 
 /**
- * The command reference. Deliberately terse and example-led: it is both the `--help` a
- * programmer reads once and the vocabulary section of a model's system prompt, and in the
- * second role every extra word is a token spent on every turn.
+ * The command reference — terse and example-led. It is both the `--help` a programmer reads once
+ * and the vocabulary section of a model's system prompt.
  */
 export const COMMAND_HELP = [
   `## COMMANDS (JSON objects; send one or a list — a list is ONE all-or-nothing turn)`,
   `  say         {"op":"say","text":"...","narrate":"...","resume":"<beatId>|null","show":{"like":"<beatId>"}}`,
   `                answer in your own voice: a new beat, entered now, Continue returns to \`resume\``,
   `                (omit resume => back to where the learner was; omit show => keep the current visual)`,
+  `                "exits":"both" gives TWO ways out — back to where they were, or on to what follows`,
   `  revisit     {"op":"revisit","beatId":"<id>","note":"..."}`,
   `                show that beat again as a CLONE, posed with the learner's current values; their place is kept`,
   `  goto        {"op":"goto","beatId":"<id>"}                     move the learner, change no edges`,
@@ -200,16 +186,25 @@ export const COMMAND_HELP = [
   `  ops: ${DIRECTOR_OPS.join(" ")}`,
 ].join("\n");
 
-// ── small helpers ───────────────────────────────────────────────────────────────
+/**
+ * The WHOLE reference: the ops, the beat types those ops install, the drawing vocabulary a beat is
+ * written in, and the visuals it may name.
+ *
+ * `COMMAND_HELP` alone is what a director used to be given, and it is why `addBeat` went unused:
+ * the ops were documented and the things they take were not, so prose in `say` was the only move a
+ * model could be confident about. This composes all four halves, and takes the registry as a
+ * parameter so a host that added a beat type does not have to remember to document it twice.
+ */
+export function directorHelp(opts: { beats?: BeatRegistry; visuals?: Record<string, VisualSchema> } = {}): string {
+  return [COMMAND_HELP, "", formatAuthoring(opts.beats ?? defaultBeatRegistry(), opts.visuals)].join("\n");
+}
 
 function kv(o: Record<string, Json>): string {
-  const keys = Object.keys(o).sort(); // stable order: diffable across frames
+  const keys = Object.keys(o).sort();
   if (!keys.length) return "(none)";
   return keys.map((k) => `${k}=${compact(o[k])}`).join(" ");
 }
 
-/** Values inline on one line; long arrays/objects are summarized rather than dumped, so a
- *  9-cell kernel or a 200-point ink stroke doesn't drown the situation it appears in. */
 function compact(v: Json | undefined, max = 40): string {
   const s = JSON.stringify(v ?? null);
   if (s.length <= max) return s;

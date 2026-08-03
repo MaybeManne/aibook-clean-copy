@@ -1,49 +1,24 @@
-// The pinhole apparatus as a registered WebGL viz — the escape-hatch path (registerViz),
-// browser-only by design. Object (a tree) → barrier with a pinhole → screen. Rays travel in
-// straight lines, cross at the hole, and paint an inverted image of height h' = h·v/u.
-//
-// DECLARATIVE, NOT IMPERATIVE. The reference single-file lesson drove an equivalent scene with
-// eleven imperative verbs (`frame`, `showRays`, `moveScreen`, `highlightInversion`, …) fired as
-// GSAP tweens on a global timeline. That cannot work here: the live host is clockless and a beat
-// may be entered by advancing, by a wrong answer's detour, or by replay — an imperative verb
-// stream has no meaning under seek. So each beat instead states the DESIRED STATE as props and
-// this module eases from wherever it currently is toward that state:
-//
-//   yaw, pitch, radius   orbit camera        u, v      object / screen distance
-//   rays, image, labels   what is visible    spin      idle auto-orbit
-//   highlight            "inversion" | null  grab      learner may drag the tree / screen
-//
-// Same discipline as the ValueTracker decision: a changing scalar is a PARAM, and per-frame
-// recompute happens at the render leaf. Here the leaf owns its own rAF loop (VizView has no
-// clock to lend) and its own easing — imported from @lessonstudio/timeline so 3-D motion uses
-// the same Manim rate functions as every 2-D storyboard rather than a second easing dialect.
-//
-// The learner's drag is the one thing that flows OUTWARD: dragging the tree or the screen emits
-// `demo.set {key:"u"|"v"}` through VizApi.send, so a manipulation becomes recorded, replayable
-// lesson state (the reference file wired the same drag to a local callback, where it was
-// invisible to the tutor). Camera angle stays inside — ephemeral render state, never sent.
-
 import * as THREE from "three";
 import { easings } from "@lessonstudio/timeline";
-import { registerViz, type VizApi, type VizHandle, type VizProps } from "@lessonstudio/render-web";
-import { SYMBOL_COLOR } from "./palette.js";
+import { registerViz, type VizApi, type VizHandle, type VizProps } from "@lessonstudio/web";
+import type { Theme } from "@lessonstudio/theme";
+import { symbolColors } from "./palette.js";
 
 /** The apparatus' full authored state. Every field is a target the scene eases toward. */
 export interface PinholeProps {
-  yaw?: number; // orbit azimuth (radians)
-  pitch?: number; // orbit elevation (radians)
-  radius?: number; // camera distance
-  u?: number; // object distance from the hole (scene units)
-  v?: number; // screen distance from the hole
-  rays?: boolean; // draw the three principal rays
-  image?: boolean; // draw the projected (inverted) image
-  labels?: boolean; // draw the h / h' / u / v annotations
-  spin?: boolean; // idle auto-orbit
+  yaw?: number;
+  pitch?: number;
+  radius?: number;
+  u?: number;
+  v?: number;
+  rays?: boolean;
+  image?: boolean;
+  labels?: boolean;
+  spin?: boolean;
   highlight?: "inversion" | null;
-  grab?: boolean; // learner may drag the tree (u) and the screen (v)
+  grab?: boolean;
 }
 
-/** The apparatus state with every field present — what the render loop actually reads. */
 type Resolved = { [K in keyof PinholeProps]-?: PinholeProps[K] };
 
 const DEFAULTS: Resolved = {
@@ -51,11 +26,6 @@ const DEFAULTS: Resolved = {
   rays: false, image: false, labels: false, spin: false, highlight: null, grab: false,
 };
 
-/**
- * Props arrive as an open bag: authored literals from a beat, plus slider values the
- * learner moved, plus any agent `workspace.set` patch — all merged upstream. Coerce
- * rather than trust, so a stringy slider value or a missing key can never NaN the scene.
- */
 function resolve(props: VizProps): Resolved {
   const num = (k: keyof PinholeProps, dflt: number): number => {
     const n = Number(props[k as string]);
@@ -78,15 +48,35 @@ function resolve(props: VizProps): Resolved {
   };
 }
 
-const OBJH = 4.2; // object height in scene units — the "h" of h' = h·v/u
-const COL = {
-  tree: 0x4caf50, trunk: 0x9d806f, pin: 0xfbbf24, barrier: 0x3a4250, screen: 0xcbd5e1,
-  ray: [0x34d399, 0xf59e0b, 0x818cf8], axis: 0x3b3b57, bg: 0x0f0e17,
-};
-const EASE = easings.smooth; // the Manim default, shared with every 2-D storyboard
+const OBJH = 4.2;
+
+/** Object colours that are PHYSICAL facts of the apparatus — a tree is green in either mode. */
+const OBJECT_COL = { tree: 0x4caf50, trunk: 0x9d806f, pin: 0xfbbf24, barrier: 0x3a4250 };
+
+const hex = (css: string): number => new THREE.Color(css).getHex();
+
+/**
+ * The apparatus colours that DO depend on the theme: the ground it floats on, the optical axis, the
+ * projection screen, and the three light rays (which are data marks, so they come from `series`).
+ *
+ * A WebGL viz has to paint its own background, so it is the one figure kind that cannot inherit the
+ * page. `VizApi.theme` supplies it at mount and `VizHandle.setTheme` on every switch after — without
+ * a remount, so the learner keeps the camera angle they dragged to.
+ */
+function themeCol(theme: Theme): { bg: number; axis: number; screen: number; screenEdge: number; ray: number[] } {
+  const series = theme.figure.series;
+  return {
+    bg: hex(theme.color.stage),
+    axis: hex(theme.figure.axis),
+    // The screen is a translucent plane, so it needs to be the OPPOSITE of the ground to read at all.
+    screen: hex(theme.figure.ink),
+    screenEdge: hex(theme.figure.muted),
+    ray: [series[2], series[4], series[0]].map((c, i) => hex(c ?? [theme.color.correct, theme.color.alert, theme.color.accent][i]!)),
+  };
+}
+const EASE = easings.smooth;
 const TWEEN_MS = 900;
 
-/** One eased scalar: `set(target)` starts a tween from the current value; `at(now)` reads it. */
 function scalar(initial: number): { set(to: number, now: number): void; at(now: number): number } {
   let from = initial, to = initial, start = -1;
   return {
@@ -107,11 +97,11 @@ function makeTree(): THREE.Group {
   const g = new THREE.Group();
   const trunk = new THREE.Mesh(
     new THREE.CylinderGeometry(0.18, 0.3, 2, 8),
-    new THREE.MeshStandardMaterial({ color: COL.trunk, roughness: 0.85, transparent: true }),
+    new THREE.MeshStandardMaterial({ color: OBJECT_COL.trunk, roughness: 0.85, transparent: true }),
   );
   trunk.position.y = 1;
   g.add(trunk);
-  const fol = new THREE.MeshStandardMaterial({ color: COL.tree, roughness: 0.7, transparent: true });
+  const fol = new THREE.MeshStandardMaterial({ color: OBJECT_COL.tree, roughness: 0.7, transparent: true });
   for (const [x, y, z, r] of [[0, 2.6, 0, 1.15], [0.7, 2.1, 0.2, 0.9], [-0.6, 1.9, -0.3, 0.75], [0, 3.5, 0.1, 0.8]] as const) {
     const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 16), fol);
     m.position.set(x, y, z);
@@ -120,26 +110,39 @@ function makeTree(): THREE.Group {
   return g;
 }
 
-/** A canvas-drawn text sprite — cheap 3-D labels without loading a font atlas. */
-function makeLabel(text: string, color: string): THREE.Sprite {
+function paintLabel(canvas: HTMLCanvasElement, text: string, color: string): void {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.font = "600 40px ui-sans-serif, system-ui, sans-serif";
+  ctx.fillStyle = color;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, 128, 32);
+}
+
+/**
+ * A symbol label as a sprite. `recolour` repaints the same canvas texture rather than building a new
+ * sprite, so the lesson's symbol key can follow a mode switch in place — the label for `v` stays the
+ * same blue as `v` in the prose, in both modes.
+ */
+function makeLabel(text: string, color: string): THREE.Sprite & { recolour: (c: string) => void } {
   const canvas = document.createElement("canvas");
   canvas.width = 256;
   canvas.height = 64;
-  const ctx = canvas.getContext("2d");
-  if (ctx) {
-    ctx.font = "600 40px ui-sans-serif, system-ui, sans-serif";
-    ctx.fillStyle = color;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(text, 128, 32);
-  }
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true }));
+  paintLabel(canvas, text, color);
+  const texture = new THREE.CanvasTexture(canvas);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
   sprite.scale.set(3.2, 0.8, 1);
-  return sprite;
+  return Object.assign(sprite, {
+    recolour(next: string): void {
+      paintLabel(canvas, text, next);
+      texture.needsUpdate = true;
+    },
+  });
 }
 
 function pinholeFactory(el: HTMLElement, initial: VizProps, api: VizApi): VizHandle {
-  // ── mount ──
   const canvas = document.createElement("canvas");
   canvas.style.cssText = "width:100%;height:100%;display:block;border-radius:12px;cursor:grab";
   el.style.cssText = "width:100%;height:100%;min-height:320px";
@@ -147,6 +150,8 @@ function pinholeFactory(el: HTMLElement, initial: VizProps, api: VizApi): VizHan
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  let COL = themeCol(api.theme);
+  let symbols = symbolColors(api.theme.mode);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(COL.bg);
   const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
@@ -159,13 +164,12 @@ function pinholeFactory(el: HTMLElement, initial: VizProps, api: VizApi): VizHan
   dir.position.set(6, 10, 8);
   scene.add(dir);
 
-  // optical axis
+  const axisMat = new THREE.LineBasicMaterial({ color: COL.axis });
   root.add(new THREE.Line(
     new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, -20), new THREE.Vector3(0, 0, 20)]),
-    new THREE.LineBasicMaterial({ color: COL.axis }),
+    axisMat,
   ));
 
-  // barrier: a 16×16 plate with a real hole punched through it (Shape + Path hole)
   const plate = new THREE.Shape();
   plate.moveTo(-8, -8); plate.lineTo(8, -8); plate.lineTo(8, 8); plate.lineTo(-8, 8); plate.lineTo(-8, -8);
   const hole = new THREE.Path();
@@ -173,12 +177,11 @@ function pinholeFactory(el: HTMLElement, initial: VizProps, api: VizApi): VizHan
   plate.holes.push(hole);
   root.add(new THREE.Mesh(
     new THREE.ShapeGeometry(plate),
-    new THREE.MeshStandardMaterial({ color: COL.barrier, side: THREE.DoubleSide, transparent: true, opacity: 0.92, roughness: 0.9 }),
+    new THREE.MeshStandardMaterial({ color: OBJECT_COL.barrier, side: THREE.DoubleSide, transparent: true, opacity: 0.92, roughness: 0.9 }),
   ));
-  const pin = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16), new THREE.MeshBasicMaterial({ color: COL.pin }));
+  const pin = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16), new THREE.MeshBasicMaterial({ color: OBJECT_COL.pin }));
   root.add(pin);
 
-  // object (tree) and its inverted projection
   const tree = makeTree();
   root.add(tree);
   const projTree = makeTree();
@@ -190,19 +193,13 @@ function pinholeFactory(el: HTMLElement, initial: VizProps, api: VizApi): VizHan
   });
   root.add(projTree);
 
-  // screen
   const screenGroup = new THREE.Group();
-  screenGroup.add(new THREE.Mesh(
-    new THREE.PlaneGeometry(16, 16),
-    new THREE.MeshStandardMaterial({ color: COL.screen, side: THREE.DoubleSide, transparent: true, opacity: 0.16 }),
-  ));
-  screenGroup.add(new THREE.LineSegments(
-    new THREE.EdgesGeometry(new THREE.PlaneGeometry(16, 16)),
-    new THREE.LineBasicMaterial({ color: 0x64708a }),
-  ));
+  const screenMat = new THREE.MeshStandardMaterial({ color: COL.screen, side: THREE.DoubleSide, transparent: true, opacity: 0.16 });
+  screenGroup.add(new THREE.Mesh(new THREE.PlaneGeometry(16, 16), screenMat));
+  const screenEdgeMat = new THREE.LineBasicMaterial({ color: COL.screenEdge });
+  screenGroup.add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(16, 16)), screenEdgeMat));
   root.add(screenGroup);
 
-  // three principal rays: from the top, middle and base of the object
   const rays = COL.ray.map((c) => {
     const line = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()]),
@@ -212,15 +209,12 @@ function pinholeFactory(el: HTMLElement, initial: VizProps, api: VizApi): VizHan
     return line;
   });
 
-  // Label hues come from the shared palette, so the amber `u` floating in the scene is the
-  // same amber as the `u` in the lesson's `h' = h·v/u` (see ./palette.ts).
   const labels = {
-    h: makeLabel("h", SYMBOL_COLOR.h), hp: makeLabel("h′", SYMBOL_COLOR.hp),
-    u: makeLabel("u", SYMBOL_COLOR.u), v: makeLabel("v", SYMBOL_COLOR.v),
+    h: makeLabel("h", symbols.h!), hp: makeLabel("h′", symbols.hp!),
+    u: makeLabel("u", symbols.u!), v: makeLabel("v", symbols.v!),
   };
   for (const s of Object.values(labels)) { s.material.opacity = 0; root.add(s); }
 
-  // ── eased state ──
   const p0 = resolve(initial);
   const S = {
     yaw: scalar(p0.yaw), pitch: scalar(p0.pitch), radius: scalar(p0.radius),
@@ -231,12 +225,11 @@ function pinholeFactory(el: HTMLElement, initial: VizProps, api: VizApi): VizHan
   let spinPhase = 0;
   let t0 = -1;
 
-  // ── learner interaction: orbit always; drag the tree/screen when `grab` ──
   const ray = new THREE.Raycaster();
   const ndc = new THREE.Vector2();
   let orbiting = false, lastX = 0, lastY = 0;
   let grabbed: "u" | "v" | null = null;
-  let manual = { u: null as number | null, v: null as number | null }; // learner overrides until the next authored change
+  let manual = { u: null as number | null, v: null as number | null };
 
   const toNdc = (e: PointerEvent): void => {
     const r = canvas.getBoundingClientRect();
@@ -264,7 +257,6 @@ function pinholeFactory(el: HTMLElement, initial: VizProps, api: VizApi): VizHan
 
   const onMove = (e: PointerEvent): void => {
     if (grabbed) {
-      // Drag along the optical axis: project the pointer onto the z-axis at the object's height.
       toNdc(e);
       ray.setFromCamera(ndc, camera);
       const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -273,14 +265,12 @@ function pinholeFactory(el: HTMLElement, initial: VizProps, api: VizApi): VizHan
       const dist = Math.max(2.5, Math.min(16, Math.abs(hit.z)));
       const rounded = Math.round(dist * 2) / 2;
       manual[grabbed] = rounded;
-      // OUTBOUND: the manipulation becomes recorded, replayable lesson state.
       api.send({ type: "demo.set", payload: { key: grabbed, value: rounded } });
       return;
     }
     if (!orbiting) return;
     const yaw = S.yaw.at(performance.now()) - (e.clientX - lastX) * 0.008;
     const pitch = Math.max(-0.5, Math.min(0.9, S.pitch.at(performance.now()) + (e.clientY - lastY) * 0.005));
-    // Camera is EPHEMERAL render state: retarget locally, never send it outward.
     S.yaw.set(yaw, -1);
     S.pitch.set(pitch, -1);
     want = { ...want, yaw, pitch };
@@ -300,11 +290,10 @@ function pinholeFactory(el: HTMLElement, initial: VizProps, api: VizApi): VizHan
   canvas.addEventListener("pointerup", onUp);
   canvas.addEventListener("pointercancel", onUp);
 
-  // ── per-frame recompute ──
   function layout(now: number): void {
     const u = manual.u ?? S.u.at(now);
     const v = manual.v ?? S.v.at(now);
-    const m = v / u; // magnification — the whole lesson in one ratio
+    const m = v / u;
     const showRays = S.rays.at(now);
     const showImage = S.image.at(now);
     const showLabels = S.labels.at(now);
@@ -312,7 +301,6 @@ function pinholeFactory(el: HTMLElement, initial: VizProps, api: VizApi): VizHan
     tree.position.z = -u;
     screenGroup.position.z = v;
 
-    // The image: scaled by m and MIRRORED in y (negative scale) — that is the inversion.
     projTree.position.set(0, 0, v - 0.05);
     projTree.scale.set(m, -m, 0.02);
     projTree.visible = showImage > 0.01;
@@ -326,7 +314,6 @@ function pinholeFactory(el: HTMLElement, initial: VizProps, api: VizApi): VizHan
       }
     });
 
-    // Rays: object point → hole at the origin → the mirrored point on the screen.
     const heights = [OBJH, OBJH / 2, 0];
     rays.forEach((line, i) => {
       const y = heights[i] ?? 0;
@@ -352,9 +339,6 @@ function pinholeFactory(el: HTMLElement, initial: VizProps, api: VizApi): VizHan
       s.visible = s.material.opacity > 0.01;
     }
 
-    // Camera. The authored `radius` is a FLOOR, not an absolute: pushing the screen out to
-    // v = 14 would otherwise walk the apparatus off the edge of the panel, and a beat should
-    // not have to predict how far the learner will drag a slider.
     if (want.spin) spinPhase += 0.0022;
     const yaw = S.yaw.at(now) + spinPhase;
     const pitch = S.pitch.at(now);
@@ -384,11 +368,27 @@ function pinholeFactory(el: HTMLElement, initial: VizProps, api: VizApi): VizHan
   raf = requestAnimationFrame(loop);
 
   return {
+    setTheme(theme: Theme): void {
+      COL = themeCol(theme);
+      symbols = symbolColors(theme.mode);
+      scene.background = new THREE.Color(COL.bg);
+      axisMat.color.setHex(COL.axis);
+      screenMat.color.setHex(COL.screen);
+      screenEdgeMat.color.setHex(COL.screenEdge);
+      rays.forEach((line, i) => {
+        const c = COL.ray[i];
+        if (c !== undefined) (line.material as THREE.LineBasicMaterial).color.setHex(c);
+      });
+      labels.h.recolour(symbols.h!);
+      labels.hp.recolour(symbols.hp!);
+      labels.u.recolour(symbols.u!);
+      labels.v.recolour(symbols.v!);
+      // No explicit repaint: the rAF loop below renders every frame, so the new colours land next tick.
+    },
+
     update(next: VizProps): void {
       const now = performance.now();
       const p = resolve(next);
-      // An authored u/v supersedes a learner's drag, but only when it actually CHANGES —
-      // otherwise re-rendering the same beat would keep snapping the apparatus back.
       if (p.u !== want.u) manual.u = null;
       if (p.v !== want.v) manual.v = null;
       S.yaw.set(p.yaw, now);
@@ -402,8 +402,6 @@ function pinholeFactory(el: HTMLElement, initial: VizProps, api: VizApi): VizHan
       want = p;
       canvas.style.cursor = "grab";
     },
-    // Closes the export hole for this beat: the live framebuffer as a PNG data URL.
-    // (`preserveDrawingBuffer: true` above is what makes this readable after a render.)
     poster(): string | null {
       try {
         return renderer.domElement.toDataURL("image/png");
@@ -426,3 +424,40 @@ function pinholeFactory(el: HTMLElement, initial: VizProps, api: VizApi): VizHan
 
 export const PINHOLE_VIZ = "pinhole-3d";
 registerViz(PINHOLE_VIZ, pinholeFactory);
+
+/**
+ * WHAT THE APPARATUS ACCEPTS, for a director.
+ *
+ * `Record<keyof Resolved, string>` rather than a hand-kept list: adding a prop to `PinholeProps`
+ * without documenting it here is a type error, so the description cannot fall behind the code.
+ * Every prop is optional (each one eases from wherever it is), which is why the doc says so once
+ * instead of marking ten names.
+ */
+const PINHOLE_PROP_DOCS: Record<keyof Resolved, string> = {
+  u: "object distance, barrier to tree (clamped to >= 1)",
+  v: "image distance, barrier to screen (clamped to >= 1)",
+  rays: "draw the three ray bundles through the hole",
+  image: "draw the inverted image on the screen",
+  labels: "draw the h, h', u, v dimension labels",
+  highlight: '"inversion" to emphasize the crossing at the hole, or null',
+  spin: "slowly orbit the camera",
+  grab: "let the learner drag to orbit",
+  yaw: "camera azimuth, radians",
+  pitch: "camera elevation, radians",
+  radius: "camera distance from the apparatus",
+};
+
+/**
+ * The `visuals` argument for `observe()` / `directorSystem()`. Exported from beside the viz so the
+ * schema and the code that reads the props are one file apart at most, and passed in by the host
+ * because `lesson/` may not import `web/`.
+ */
+export const PINHOLE_VIZ_SCHEMA = {
+  [PINHOLE_VIZ]: {
+    props: PINHOLE_PROP_DOCS as Record<string, string>,
+    doc:
+      "The 3-D apparatus: tree, barrier with one hole, screen. Geometry only — it has NO aperture " +
+      "size, brightness or blur, so a question about a wider hole needs a NEW figure (a `scene` " +
+      "beat, or an `explorable` with a `declarative` viz), not a prop on this one.",
+  },
+};

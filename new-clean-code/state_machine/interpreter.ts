@@ -1,10 +1,3 @@
-// The pure interpreter: (chart, step, event, reg) → step'. No I/O. Generic over
-// the context type `C`. Fully replayable by folding events through `transition`.
-//
-// v1 resolves events against the TOP-LEVEL active node only (the "flat subset"
-// of the spec). Hierarchical bubbling is the first post-reorg feature; flat
-// charts are a strict subset, so it lands without changing this API.
-
 import type { Action, ActionResult, Guard, Registry } from "./registry.js";
 import type { Effect } from "./effects.js";
 import type {
@@ -23,19 +16,16 @@ import type {
 export interface Step<C> {
   state: StateValue;
   context: C;
-  effects: Effect[];          // produced by the transition just taken
-  done: boolean;              // true once a terminal state is reached
-  lastRecord?: TransitionRecord; // the edge just traversed (for higher-layer history)
+  effects: Effect[];
+  done: boolean;
+  lastRecord?: TransitionRecord;
 }
 
-/** Does an event type match a Route/`on` pattern? Exact, or trailing "*" prefix. */
-export function matchPattern(pattern: EventPattern, type: string): boolean {
+function matchPattern(pattern: EventPattern, type: string): boolean {
   if (pattern === type) return true;
   if (pattern.endsWith("*")) return type.startsWith(pattern.slice(0, -1));
   return false;
 }
-
-// ── internal helpers ─────────────────────────────────────────────────────────
 
 function node<C>(chart: Statechart<C>, id: StateId): StateNode {
   const n = chart.states[id];
@@ -43,12 +33,15 @@ function node<C>(chart: Statechart<C>, id: StateId): StateNode {
   return n;
 }
 
-/** Current top-level state id from a (possibly nested) StateValue. */
-function topId(state: StateValue): StateId {
+/**
+ * Current top-level state id from a (possibly nested) StateValue. Exported because "which state
+ * am I in, ignoring nesting" is the question every layer above asks, and the nesting rule
+ * belongs to whoever owns `StateValue`.
+ */
+export function topId(state: StateValue): StateId {
   return typeof state === "string" ? state : Object.keys(state)[0]!;
 }
 
-/** Descend a compound state to its initial leaf, producing a concrete value. */
 function resolveInitial(n: StateNode): StateValue {
   if (n.children && n.initial) {
     const child = n.children[n.initial];
@@ -57,7 +50,6 @@ function resolveInitial(n: StateNode): StateValue {
   return n.id;
 }
 
-/** Shallow-merge an action's context patch. Actions build full sub-objects themselves. */
 function mergeContext<C>(ctx: C, patch: Partial<C> | undefined): C {
   return patch ? { ...ctx, ...patch } : ctx;
 }
@@ -80,14 +72,13 @@ function applyActions<C>(
 
 type Resolution =
   | { kind: "take"; target: StateId; actions?: ActionRef[] }
-  | { kind: "terminal" } // matched an explicitly-empty handler (`on.x: []`)
-  | { kind: "none" };    // unhandled, or all guards failed → no-op
+  | { kind: "terminal" }
+  | { kind: "none" };
 
 function passes<C>(guard: string | undefined, ctx: C, event: MachineEvent, reg: Registry<C>): boolean {
   return guard ? reg.getGuard(guard)(ctx, event) : true;
 }
 
-/** Resolve `match` sugar to a pre-authored target, or undefined if no case hit. */
 function matchTarget(route: Route, event: MachineEvent): StateId | undefined {
   if (!route.match) return route.target;
   const field = route.match.field;
@@ -96,14 +87,13 @@ function matchTarget(route: Route, event: MachineEvent): StateId | undefined {
   return route.match.cases[key] ?? route.match.default;
 }
 
-/** Resolve an event against ONE node: routes (pattern) first, then `on` (exact). */
 function resolve<C>(cur: StateNode, event: MachineEvent, ctx: C, reg: Registry<C>): Resolution {
   for (const r of cur.routes ?? []) {
     if (!matchPattern(r.on, event.type)) continue;
     if (!passes(r.guard, ctx, event, reg)) continue;
     if (r.match) {
       const target = matchTarget(r, event);
-      if (target === undefined) continue; // no case matched → fall through
+      if (target === undefined) continue;
       return { kind: "take", target, actions: r.actions };
     }
     return { kind: "take", target: r.target ?? cur.id, actions: r.actions };
@@ -120,8 +110,6 @@ function resolve<C>(cur: StateNode, event: MachineEvent, ctx: C, reg: Registry<C
   }
   return { kind: "none" };
 }
-
-// ── public API ───────────────────────────────────────────────────────────────
 
 /** Enter an arbitrary node by id, running its entry actions, descending to its
  *  initial leaf. Pure. Used to start a chart and to jump into a node spliced in at
@@ -154,7 +142,7 @@ export function transition<C>(
   const cur = node(chart, fromId);
   const res = resolve(cur, event, step.context, reg);
 
-  if (res.kind === "none") return step;                       // ignore event
+  if (res.kind === "none") return step;
   if (res.kind === "terminal") {
     return { state: step.state, context: step.context, effects: [], done: true };
   }
@@ -184,8 +172,6 @@ export function transition<C>(
   const record: TransitionRecord = { event, from: step.state, to: nextState };
   return { state: nextState, context: ctx, effects, done: false, lastRecord: record };
 }
-
-// ── snapshots: O(1) save/restore of a runtime position ───────────────────────
 
 export function snapshot<C>(chart: Statechart<C>, step: Step<C>): Snapshot<C> {
   return { chartId: chart.id, version: chart.version, state: step.state, context: step.context };

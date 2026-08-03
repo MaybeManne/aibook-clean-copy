@@ -1,0 +1,11 @@
+export * from "./components/index.js";
+export * from "./richtext.js";
+export * from "./htmlAudioSink.js";
+export * from "./viz.js";
+export * from "./conversation.js";
+export * from "./attention.js";
+export * from "./StudioView.js";
+export * from "./Composer.js";
+export * from "./useThemeMode.js";
+export * from "./ThemeToggle.js";
+export { registerFigure, registerSceneFigure, sceneFigure, getFigure, DECLARATIVE_FIGURE, type SvgFigure, type SceneFigureOpts } from "@lessonstudio/svg";

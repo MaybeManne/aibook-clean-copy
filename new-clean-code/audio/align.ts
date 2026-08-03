@@ -1,8 +1,3 @@
-// Character-level alignment → word-level timings. This is the alignment core
-// LessonKit shares with SocraticAI (generate_audio.py:alignment_to_cues): TTS
-// providers return per-character start/end times; we group runs of non-space
-// characters into words, carrying each word's [start,end]. Pure.
-
 import type { WordTiming } from "./tts.js";
 
 /** ElevenLabs-shaped character alignment (seconds). */

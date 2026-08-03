@@ -1,68 +1,62 @@
-// Host for the pinhole lesson: the clockless live studio with the 3-D apparatus in the
-// workspace panel (left) and the accumulating notebook on the right.
-//
-// Note what is NOT here: no debug "Next →" harness. Advancing is now a first-class
-// derived affordance in StudioView, and narration is voiced by the /api/tts dev endpoint
-// (vite.config.ts), so this host is just a mount point — plus the ONE line that makes the
-// Composer mean something: a runner that can serve `generate`.
-//
-// The seam, end to end: the learner types a question → Session enters an ephemeral thinking
-// leaf and raises a `generate` effect → `generatingRunner` hands it to the author → the
-// author asks Claude THROUGH `/api/author` (so the key stays in the dev process and never
-// enters this bundle) → the returned prose is assembled into a grounded `explain` beat →
-// that beat rides back as a `beat.generated` event, which is spliced in, entered, AND
-// recorded in history. So replay rebuilds the answer from the log with no model in the loop.
-//
-// `defaultRunner()` stays underneath so `timer`/`persist` effects still work — the generate
-// branch is an addition to the runner, not a replacement for it.
 import "katex/dist/katex.min.css";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { createSession, defaultRunner } from "@lessonstudio/lesson";
-import { generatingRunner, httpCompleter, pickAuthor } from "@lessonstudio/forge";
+import { directingRunner, httpToolCompleter, pickDirector } from "@lessonstudio/forge";
 import { attachTeachClient } from "@lessonstudio/teach";
+import { attachMachineMirror } from "@lessonstudio/machine";
 import { createLiveProgram } from "@lessonstudio/live";
-import { StudioView } from "@lessonstudio/render-web";
-import { md } from "@lessonstudio/render-contract";
-import { tex } from "./palette.js";
+import { StudioView, ThemeToggle, useThemeMode } from "@lessonstudio/web";
+import { resolvePreset } from "@lessonstudio/theme";
+import { md } from "@lessonstudio/intents";
+import { symbolColors, tex } from "./palette.js";
 import { lesson } from "./lesson.js";
-import { pinholePlan } from "./author.js";
+import { PINHOLE_VIZ_SCHEMA } from "./pinhole3d.js";
+import { nativeVoice, PINHOLE_BRIEF, pinholeSilence } from "./tutor.js";
 
-/**
- * A browser author. `complete` is injected, so `pickAuthor` never looks for an API key here
- * (`envApiKey()` would be undefined in a browser anyway) — the proxy owns provider auth. If
- * the proxy has no key, or the call fails, `claudeAuthor` catches it and assembles the plan's
- * deterministic `fallbackText` instead: a learner's question is answered either way.
- *
- * `"auto"`, not a provider name: WHICH model writes the prose is a property of the machine
- * the dev server runs on (Gemini key? Anthropic key? just a local `claude` CLI?), and the
- * page has no way to know — nor should it, since knowing means the credential leaked. The
- * proxy resolves it and reports the choice in the dev terminal. Pin it there with
- * `LS_AUTHOR_PROVIDER=gemini|claude-code|anthropic`.
- */
-const author = pickAuthor(pinholePlan, { complete: httpCompleter("/api/author", "auto") });
+const director = nativeVoice(
+  pickDirector({
+    complete: httpToolCompleter("/api/direct", { provider: "auto" }),
+    brief: PINHOLE_BRIEF,
+    onWarn: (message) => console.warn(`[tutor] ${message}`),
+  }),
+);
 
 function App(): React.ReactElement {
   const program = React.useMemo(
-    () => createLiveProgram(createSession(lesson, { runner: generatingRunner(author, defaultRunner()) })),
+    () =>
+      createLiveProgram(
+        createSession(lesson, {
+          runner: directingRunner(director, {
+            base: defaultRunner(),
+            onSilence: pinholeSilence,
+            visuals: PINHOLE_VIZ_SCHEMA,
+          }),
+        }),
+      ),
     [],
   );
   React.useEffect(() => () => program.dispose(), [program]);
 
-  // TIER 2 — open the page with `?teach` and a live teacher can watch this session from a
-  // terminal and intervene in it (`teach/cli/{tail,direct}.ts`). Opt-in by URL rather than
-  // always-on for one reason: a lesson that quietly polls a bus is a lesson whose behaviour
-  // depends on something off-page, and the deterministic walks must stay deterministic.
+  // Mirror the statechart to any `/machine.html` tab in this window. One-way and unconditional:
+  // publishing costs a JSON projection per step, and a page that has to be enabled is a page nobody
+  // remembers exists when a lesson starts behaving strangely.
+  React.useEffect(() => attachMachineMirror(program.session), [program]);
+
   React.useEffect(() => {
     if (!new URLSearchParams(window.location.search).has("teach")) return;
     const client = attachTeachClient(program.session);
     return () => client.detach();
   }, [program]);
 
+  const { mode, setMode } = useThemeMode();
+  const { theme } = resolvePreset("studio", mode);
+
   return (
     <StudioView
       program={program}
-      // The apparatus is the anchor of this lesson, so give it the larger share.
+      theme={theme}
+      // A wider stage than the studio default: this lesson's apparatus is the point.
       layout={{ split: true, stageBasis: "56%", stageSide: "left" }}
       eyebrow="lessonStudio · pinhole camera"
       title={md(
@@ -70,6 +64,9 @@ function App(): React.ReactElement {
           `$${tex("hp")} = ${tex("h")}\\,${tex("v")}/${tex("u")}$. Why?`,
       )}
       placeholder="Ask about the apparatus…"
+      // The lesson's symbol key, resolved for this mode — the coloured TeX above reads it as CSS.
+      symbolColors={symbolColors(mode)}
+      actions={<ThemeToggle theme={theme} mode={mode} onMode={setMode} />}
     />
   );
 }

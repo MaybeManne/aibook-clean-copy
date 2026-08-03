@@ -1,22 +1,3 @@
-// THE STUDENT PAGE'S HALF of the bus. Attach it to a running Session and a teacher on
-// another screen can watch and intervene; detach it and the lesson is exactly what it was.
-//
-// One method's worth of behaviour, in one round trip: push what happened, pull what the
-// teacher asked for, apply it, report the verdict on the next push. `POST /sync` is both
-// directions on purpose — a second endpoint would be a second thing to get out of order.
-//
-// Three properties worth stating, because they are what makes attaching this SAFE:
-//   • The page stays authoritative. Commands are applied through `session.direct`, so the
-//     engine adjudicates them here, atomically, exactly as it would a local call. The bus
-//     cannot mutate anything; it can only ask.
-//   • Nothing is added to history that would not replay. A directed turn lands as a recorded
-//     `direction.command` event, so `replay()` reproduces a teacher-taught session with no
-//     bus, no server and nobody in the loop.
-//   • Failure is inert. A dead server, a 500, a malformed body: the catch reports and the
-//     lesson plays on. A teaching aid must never be able to break the lesson it observes.
-//
-// Browser-safe: `fetch` and timers only. No node, no fs, no renderer.
-
 import { observe, type Session } from "@lessonstudio/lesson";
 import { TEACH_BASE, TEACH_PATHS, flattenRecord, teachUrl, type LoggedRecord, type SyncRequest, type SyncResponse, type TurnVerdict } from "./wire.js";
 
@@ -56,14 +37,12 @@ export function attachTeachClient(session: Session, opts: TeachClientOptions = {
   const warn =
     opts.onError ??
     ((e: unknown): void => {
-      // eslint-disable-next-line no-console
       console.warn("[teach] sync failed:", e instanceof Error ? e.message : e);
     });
 
   let ack = 0;
   let pending: TurnVerdict[] = [];
   let inFlight = false;
-  /** A sync was requested while one was in flight — run exactly one more when it lands. */
   let again = false;
   let syncs = 0;
   let applied = 0;
@@ -89,20 +68,16 @@ export function attachTeachClient(session: Session, opts: TeachClientOptions = {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const out = (await res.json()) as SyncResponse;
-      // Only drop the verdicts we actually delivered: `pending` may have grown while the
-      // request was in flight (a teacher can queue faster than a round trip).
       if (sent.length) pending = pending.filter((v) => !sent.includes(v));
       if (typeof out.ack === "number") ack = out.ack;
       syncs++;
 
       for (const batch of out.commands ?? []) {
-        // The engine's own door: adjudicated, atomic, attributed, recorded. A rejected turn
-        // throws nothing and changes nothing — it comes back as a verdict the teacher reads.
         const result = session.direct(batch.commands, batch.actor);
         pending.push({ turn: batch.turn, result });
         applied++;
       }
-      if (out.commands?.length) again = true; // report the verdicts without waiting for the timer
+      if (out.commands?.length) again = true;
     } catch (e) {
       warn(e);
     } finally {
@@ -124,7 +99,7 @@ export function attachTeachClient(session: Session, opts: TeachClientOptions = {
 
   const detachSession = session.subscribe(() => schedule());
   const timer = setInterval(() => void sync(), interval);
-  void sync(); // announce the page immediately, so a teacher's tail is live from the first frame
+  void sync();
 
   return {
     sync,

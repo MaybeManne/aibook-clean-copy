@@ -1,19 +1,3 @@
-// The public, dependency-free policy SPI — the agent's "brain" factored into the
-// game-AI sense → think → act loop, as three small, named, swappable interfaces.
-// Two of them are PURE (no I/O, no effects), so they replay deterministically, unit-
-// test trivially, and are safe to accept from a third party. Effects are quarantined
-// in the third (Act = LessonAuthor + AuthoringCommand, in the authoring layer).
-//
-//   Perceive — LearnerModel<S>   pure fold over events → ctx.learner (this file)
-//   Decide   — TeachingPolicy     pure decide(view) → AgentIntent | null (this file)
-//   Act      — LessonAuthor        effectful; engine adjudicates (authoring/*)
-//
-// This module intentionally imports ONLY types (Json, and the blackboard/record data
-// types), never the engine or the effect runner — so it stays the stable seam a
-// newcomer implements against without pulling in the whole system. Layering holds:
-// policies live in the `lesson` layer over EventRecord/LessonContext; render_web
-// never imports them (it only renders the frame it is handed).
-
 import type { Json, MachineEvent } from "@lessonstudio/state-machine";
 import type { EventRecord, LearnerSignals, LessonContext } from "../lesson_sm/context.js";
 
@@ -31,8 +15,6 @@ export interface PolicyView {
   /** The event whose transition produced this view (absent for the initial view). */
   lastEvent?: MachineEvent;
 }
-
-// ── Perceive ───────────────────────────────────────────────────────────────────
 
 /**
  * The "understanding / struggling" policy. A PURE fold over the recorded event
@@ -55,27 +37,21 @@ export interface LearnerModel<S extends Json = Json> {
   signals(state: S): LearnerSignals;
 }
 
-// ── Decide ───────────────────────────────────────────────────────────────────
-
 /**
- * A coarse, declarative statement of what the agent wants to do next — the output of
- * the Decide layer. It chooses WHAT, never HOW: turning an intent into concrete,
- * validated edits is the Act layer's job (and, for `author`, usually an LLM call). A
- * union keeps it small, JSON-ish, and easy for a third party to pattern-match.
+ * A coarse, declarative statement of what the agent wants to do next — the output of the Decide
+ * layer. It chooses WHAT, never HOW: turning an intent into concrete, validated edits is the Act
+ * layer's job.
  */
 export type AgentIntent =
   | { kind: "none" }
   | { kind: "say"; topic?: string }
-  /** Author a change to the environment. `goal` is a free label the Act layer maps to
-   *  a generation request — e.g. "answer" | "remediate" | "challenge". */
   | { kind: "author"; goal: string; note?: string }
   | { kind: "gesture"; note?: string };
 
 /**
- * The "what to do" policy. A PURE function from a read-only view to a coarse intent
- * (or null = defer). No LLM call here, no effects — that keeps it replay-safe and
- * safe to accept from strangers. Richer autonomous decisions ride the deferred
- * SignalSource loop, reusing this same contract.
+ * The "what to do" policy. A PURE function from a read-only view to a coarse intent (or null =
+ * defer). No LLM call here, no effects, which keeps it replay-safe and safe to accept from
+ * strangers.
  */
 export interface TeachingPolicy {
   readonly name: string;

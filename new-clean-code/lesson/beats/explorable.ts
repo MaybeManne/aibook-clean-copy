@@ -1,30 +1,12 @@
-// Explorable demo beat. The learner toggles parameters (sliders/toggles) and a
-// registered visualization recomputes live. UNTIMED (no storyboard): like an mcq
-// gate, the video waits here until the learner presses Continue (a "__next" button
-// control) — then it advances on the default spine.
-//
-// Control values live on the blackboard under beats[id], so play is part of session
-// state: replayable, snapshot-able, and (for figure-based viz) exportable. The
-// visualization is a registered figure/viz referenced by name — declarative controls
-// + a registered visual, per the chosen "declarative + JS escape hatch" model.
-
 import type { Action, Json, MachineEvent, StateId, StateNode, Transition } from "@lessonstudio/state-machine";
-import type { ControlSpec, ControlValue, RenderIntent, RichText } from "@lessonstudio/render-contract";
-import { article, md } from "@lessonstudio/render-contract";
-import { vizIntent } from "@lessonstudio/timeline";
+import type { ControlSpec, ControlValue, RenderIntent, RichText } from "@lessonstudio/intents";
+import { article, md } from "../../intents/index.js";
+import { vizIntent } from "../../timeline/index.js";
 import type { LessonContext } from "../lesson_sm/context.js";
 import { beatMeta, type BeatWireCtx, type BeatWiring, type RenderableBeat } from "./types.js";
 import { readWorkspace, workspaceWiring } from "./workspace.js";
 
-/**
- * The learner's conversational channel. `ask.submit {text}` is a non-graded free-text
- * question (contrast the graded `input.submit` of a freeResponse gate). The shared wire
- * handles it as a SELF-transition that fires a `generate` effect carrying the question
- * and `returnTo: id` — so the agent authors an answer beat that, on Continue, RESUMES
- * the beat the learner asked from. Staying on the beat means the in-flight generation is
- * only cancelled if the learner navigates away (the standard effect-abort contract).
- */
-export const ASK_SUBMIT_EVENT = "ask.submit";
+const ASK_SUBMIT_EVENT = "ask.submit";
 
 /** Build an `ask.submit` event carrying the learner's free-text question. */
 export function askSubmit(textValue: string): MachineEvent {
@@ -34,10 +16,10 @@ export function askSubmit(textValue: string): MachineEvent {
 /** A declarative success condition over a control value — turns a demo into a task. */
 export interface DemoGoal {
   key: string;
-  equals?: number; // met when |value - equals| <= tolerance
-  min?: number; // met when value >= min
-  max?: number; // met when value <= max
-  tolerance?: number; // default 0 (for `equals`)
+  equals?: number;
+  min?: number;
+  max?: number;
+  tolerance?: number;
 }
 
 export interface ExplorableParams {
@@ -56,8 +38,8 @@ export interface ExplorableParams {
    * `success` shows and Continue appears — learn-by-doing, not fiddle-then-skip.
    */
   goal?: DemoGoal;
-  task?: RichText; // instruction shown while the goal is unmet
-  success?: RichText; // shown once the goal is met
+  task?: RichText;
+  success?: RichText;
   /**
    * Optional prose shown in the "prose" slot — the tutor's words attached to this
    * demo (e.g. a generated explanation that annotates the viz via `defaults.__ws`).
@@ -72,17 +54,15 @@ export interface ExplorableParams {
    */
   ask?: boolean | { prompt?: string | RichText; placeholder?: string };
   /**
-   * Optional spoken narration. An offline `prepareNarration` pass synthesizes it
-   * to audio+captions; being untimed, the clip plays once when the learner reaches
-   * this beat (exploration stays learner-paced — it never auto-advances). Ignored
-   * at runtime by the renderer.
+   * Optional spoken narration — a plain string, synthesized on DEMAND (see
+   * `ExplainParams.narration`). Untimed, so exploration stays learner-paced: the clip
+   * plays once on entry and never auto-advances.
    */
   narration?: string;
 }
 
 type DemoLocal = Record<string, ControlValue>;
 
-/** Is the guided goal satisfied by the current values? No goal ⇒ always true. */
 function goalMet(goal: DemoGoal | undefined, values: DemoLocal): boolean {
   if (!goal) return true;
   const v = Number(values[goal.key]);
@@ -93,12 +73,6 @@ function goalMet(goal: DemoGoal | undefined, values: DemoLocal): boolean {
   return true;
 }
 
-/**
- * Read the beat's blackboard via the shared workspace channel, then seed any control the
- * author left unset (a slider's min, a matrix's first preset). `readWorkspace` owns the
- * two-writer split — learner values flat, the director's patch under `__ws` — so this
- * function is only the CONTROL-shaped part: what a slider or matrix means by "unset".
- */
 function readMerged(
   ctx: LessonContext,
   id: string,
@@ -107,8 +81,6 @@ function readMerged(
   const { values, ws } = readWorkspace(ctx, id, (params.defaults ?? {}) as Record<string, unknown>);
   for (const c of params.controls) {
     if (c.kind === "matrix") {
-      // Seed each cell + the divisor (from the first preset if any); the control's own
-      // `c.key` is not a value key, so it is never seeded (no phantom viz prop).
       const preset = c.presets?.[0];
       (c.cellKeys ?? []).forEach((k, i) => {
         if (values[k] === undefined) values[k] = preset?.values[i] ?? 0;
@@ -123,15 +95,10 @@ function readMerged(
   return { values, ws };
 }
 
-/** Action factory: turn a learner question into a `generate` effect that answers it
- *  and RESUMES this beat (`returnTo`). Declared as data only — the Session's runner
- *  performs the I/O, so the engine stays pure and replay never re-invokes the author. */
 function requestAsk(id: string): Action<LessonContext> {
   return (_ctx, event) => {
     const question = ((event.payload ?? {}) as { text?: string }).text ?? "";
     if (!question.trim()) return {};
-    // `Effect` is an open union, so we build the generate request inline — no dependency
-    // on the authoring layer (beats must not import upward into Session/authoring).
     return { effects: [{ kind: "generate", intent: "answer", question, returnTo: id }] };
   };
 }
@@ -139,6 +106,47 @@ function requestAsk(id: string): Action<LessonContext> {
 export const ExplorableBeat: RenderableBeat<ExplorableParams> = {
   type: "explorable",
   outcomes: ["next"],
+
+  paramsSchema: {
+    doc:
+      "An INTERACTIVE demo: controls the learner drags, wired to a visual. Two ways to name the " +
+      "visual — an existing registered one (see the VISUALS list for names and accepted props), or " +
+      "`{name:\"declarative\"}` with a storyboard whose numbers are BINDINGS to the control keys, " +
+      "which is how you build a brand-new interactive figure without registering code.",
+    params: {
+      controls: "[{key, label, kind: slider|toggle|button|choice, min?, max?, step?, unit?, options?}]",
+      viz: "{name, props?, persistent?} — control values are merged over `props`, so a control named `u` sets prop `u`",
+      "?defaults": "{key: number|boolean} — starting values (else sliders start at min, toggles false)",
+      "?note": "prose shown beside the demo",
+      "?goal": "{key, equals?|min?|max?, tolerance?} — hide Continue until the learner reaches it",
+      "?task": "what to do, shown while the goal is unmet",
+      "?success": "shown once the goal is met",
+      "?ask": "true to show a free-text question box on this demo",
+      "?narration": "spoken variant, synthesized on demand",
+    },
+    example: {
+      controls: [
+        { key: "hole", label: "Hole width", kind: "slider", min: 1, max: 40, step: 1, unit: "px" },
+        { key: "__next", label: "Continue", kind: "button" },
+      ],
+      defaults: { hole: 6 },
+      viz: {
+        name: "declarative",
+        props: {
+          storyboard: {
+            duration: 0,
+            stage: { w: 400, h: 220 },
+            initial: [
+              { id: "gap", kind: "rect", x: 200, y: { $sub: [110, { $div: [{ $ref: "hole" }, 2] }] }, w: 4, h: { $ref: "hole" }, fill: "#fbbf24" },
+              { id: "blur", kind: "circle", x: 330, y: 110, r: { $mul: [{ $ref: "hole" }, 0.9] }, fill: "#38bdf8", opacity: 0.5 },
+            ],
+            tweens: [],
+          },
+        },
+      },
+      task: "Widen the hole and watch the spot on the wall.",
+    },
+  },
 
   build(_params, id): StateNode {
     return { id, checkpoint: true, meta: beatMeta("explorable", _params as unknown as Json) };
@@ -149,11 +157,8 @@ export const ExplorableBeat: RenderableBeat<ExplorableParams> = {
     registry.action(askRef, requestAsk(id));
     const dn = defaultNext();
     const on: Record<string, Transition[]> = {
-      // The learner's two control channels + the director's workspace patch, shared with
-      // every other visual beat (see beats/workspace.ts) — an explorable adds nothing to
-      // them, it just happens to be the beat type that renders a controls UI over them.
       ...workspaceWiring(id, registry),
-      [ASK_SUBMIT_EVENT]: [{ target: id, actions: [askRef] }], // learner: ask → generate answer → resume here
+      [ASK_SUBMIT_EVENT]: [{ target: id, actions: [askRef] }],
       next: dn ? [{ target: dn }] : [],
     };
     return { on };
@@ -164,32 +169,24 @@ export const ExplorableBeat: RenderableBeat<ExplorableParams> = {
     const { values, ws } = readMerged(ctx, id, params);
     const slot = params.slot ?? "stage";
     const met = goalMet(params.goal, values);
-    // Viz sees learner controls AND the agent's workspace patch; controls UI sees only `values`.
     const intents: RenderIntent[] = [
       vizIntent(slot, params.viz.name, { ...(params.viz.props ?? {}), ...values, ...ws }, 0, {
         persistent: params.viz.persistent,
       }),
     ];
 
-    // Tutor prose attached to this demo (e.g. a generated, viz-annotating explanation).
-    // A string is parsed as prose (markdown + `$…$` KaTeX) via `article` — the SAME
-    // renderer the reference explainer uses — so a live tutor's inline math renders
-    // instead of showing raw `$q\cdot k$`. Pass a RichText to bypass parsing.
     if (params.note) {
       const content = typeof params.note === "string" ? article(params.note) : params.note;
       intents.push({ kind: "text", slot: "prose", content } as unknown as RenderIntent);
     }
 
-    // Guided task / success prompt (prose slot), if this is a guided demo.
     const msg = met ? params.success : params.task;
     if (msg) intents.push({ kind: "text", slot: "prose", content: msg, emphasis: met ? "normal" : "muted" } as unknown as RenderIntent);
 
-    // Hide the Continue button until the goal is met (agency: do the task to advance).
     const showContinue = !params.goal || met;
     const controls = showContinue ? params.controls : params.controls.filter((c) => c.key !== "__next");
     intents.push({ kind: "controls", slot: "prompt", controls, values } as unknown as RenderIntent);
 
-    // Conversational channel: a free-text question box (opt-in). Emits ask.submit.
     if (params.ask) {
       const opt = params.ask === true ? {} : params.ask;
       const promptSrc = opt.prompt;

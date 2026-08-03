@@ -1,28 +1,7 @@
-// THE TOOL TABLE — the direction protocol, expressed as tools a model may call.
-//
-// Tier 3 replaces the human teacher at the same seam, so the model's action space must be
-// EXACTLY the human's: the fourteen ops in `lesson/direction/protocol.ts`, no more and no
-// fewer. The way to make that true rather than aspirational is to key the table by
-// `DirectorOp` — `Record<DirectorOp, ToolSpec>` — so the day someone adds an op to the
-// union and forgets this file, `tsc` fails. Adding an op is one edit here and nowhere else;
-// forgetting it is a compile error rather than a capability the AI teacher silently lacks.
-//
-// A tool call maps to a command by NAME: the tool is called `say` because the op is called
-// `say`, and its input IS the command minus `op`. So there is no translation layer to drift
-// — `build()` is a spread — and a log of tool calls reads as a log of director commands.
-//
-// One tool is not an op: `done`. A director must be able to say "nothing from me" as a
-// deliberate choice, because in autonomous mode it is offered every step and the right
-// answer is usually silence. Inferring that from an empty reply would confuse "I decline"
-// with "I failed to produce output", and only one of those is worth retrying.
-//
-// The VALUE imports here are relative, not `@lessonstudio/lesson` — the same load-order
-// rule as `teach/bus.ts`: this file is reachable from `vite.config.ts` (through
-// `dev_director.ts`), and a vite config is bundled by esbuild before `resolve.alias`
-// exists. `protocol.ts` and `capabilities.ts` are both value-leaves, so this stays cheap.
-
 import { DIRECTOR_OPS, type DirectorCommand, type DirectorOp } from "../lesson/direction/protocol.js";
 import { needsReview, permits, type Capabilities } from "../lesson/direction/capabilities.js";
+import { beatSchemas, type BeatSchemas } from "../lesson/direction/schemas.js";
+import { defaultBeatRegistry, type BeatRegistry } from "../lesson/beats/index.js";
 
 /** The wire shape of one tool, as the Messages API takes it. Provider-shaped on purpose:
  *  this object is passed straight through, so there is no schema dialect of our own. */
@@ -38,10 +17,6 @@ export interface ToolSpec {
 
 /** The pseudo-tool for "no commands this turn". Never becomes a `DirectorCommand`. */
 export const DONE_TOOL = "done";
-
-// ── shared schema fragments ─────────────────────────────────────────────────────
-// Spelled once because the model's accuracy depends on these being described identically
-// everywhere they appear: a point is always [x,y] in 0..1 from the top-left, never pixels.
 
 const POINT = {
   type: "array",
@@ -83,49 +58,63 @@ const ANNOTATION = {
   required: ["kind"],
 } as const;
 
-/** A beat spec is the IR, and it is wide. Described rather than fully schematized: the model
- *  is far better at "the same shape the lesson was authored in" than at a 200-line schema,
- *  and `adjudicate` validates it properly anyway — an invalid spec comes back as a verdict
- *  the model can read, which is a better teacher than a rejected tool call. */
-const BEAT_SPEC = {
-  type: "object",
-  description:
-    "A beat in the lesson IR: {id, type, params, next?}. `type` is a registered beat type " +
-    "(explain, mcq, explorable, checkpoint, …). `params` are that type's params. `next` is the " +
-    "beat id Continue goes to, or null to end. PURE JSON — no functions; guards/actions by name only.",
-  properties: {
-    id: { type: "string" },
-    type: { type: "string" },
-    params: { type: "object" },
-    next: { type: ["string", "null"] },
-  },
-  required: ["id", "type"],
-} as const;
+/**
+ * The `addBeat` payload schema, built from the beat registry rather than written out.
+ *
+ * The old version said `params: {type: "object"}` and named three types in prose, which is a schema
+ * that technically permits every beat and teaches none of them. Now `type` carries a real enum and
+ * `params` carries a per-type description with a worked example, both projected from
+ * `BeatDef.paramsSchema` — so registering a beat type is all it takes to make it authorable.
+ */
+function beatSpecSchema(schemas?: BeatSchemas): Record<string, unknown> {
+  const base =
+    "A beat in the lesson IR: {id, type, params, next?}. `next` is the beat id Continue goes to, " +
+    "or null to end. PURE JSON — no functions; guards/actions by name only.";
+  if (!schemas || !schemas.types.some((t) => t.schema)) {
+    return {
+      type: "object",
+      description: `${base} \`type\` is a registered beat type (explain, mcq, explorable, scene, …).`,
+      properties: { id: { type: "string" }, type: { type: "string" }, params: { type: "object" }, next: { type: ["string", "null"] } },
+      required: ["id", "type"],
+    };
+  }
+  const documented = schemas.types.filter((t) => t.schema);
+  const lines = documented.map((t) => {
+    const req: string[] = [];
+    const opt: string[] = [];
+    for (const [name, doc] of Object.entries(t.schema!.params)) {
+      (name.startsWith("?") ? opt : req).push(`${name.replace(/^\?/, "")} (${doc})`);
+    }
+    const optPart = opt.length ? `; optional: ${opt.join("; ")}` : "";
+    return `${t.type}: ${t.schema!.doc} REQUIRED: ${req.join("; ")}${optPart}. Example params: ${JSON.stringify(t.schema!.example)}`;
+  });
+  return {
+    type: "object",
+    description: base,
+    properties: {
+      id: { type: "string", description: "A new, unique beat id. Kebab-case; do not reuse an existing one." },
+      type: { type: "string", enum: documented.map((t) => t.type), description: "Which kind of beat to author." },
+      params: {
+        type: "object",
+        description: `The params for the chosen \`type\`.\n\n${lines.join("\n\n")}`,
+      },
+      next: { type: ["string", "null"] },
+    },
+    required: ["id", "type", "params"],
+  };
+}
 
-/** No `type` key = any JSON value, which is what a control value actually is. */
 const ANY_JSON = { description: "Any JSON value (number, string, boolean, array, object)." } as const;
 
 function obj(properties: Record<string, unknown>, required: string[] = []): ToolSpec["input_schema"] {
   return required.length ? { type: "object", properties, required } : { type: "object", properties };
 }
 
-// ── the table ───────────────────────────────────────────────────────────────────
-
-/** One op's model-facing half. There is no `build` step: a call becomes a command by
- *  `{op: name, ...input}` (see `commandsFromCalls`), because the tool surface is not a
- *  second vocabulary — it is the protocol with the discriminant moved into the tool name. */
 interface ToolEntry {
   description: string;
   input_schema: ToolSpec["input_schema"];
 }
 
-/**
- * One entry per op, keyed by the union so the table cannot fall behind the protocol.
- *
- * The descriptions are written for a teacher, not for a schema reader: they say WHEN to
- * reach for the op, because choosing between `say`, `revisit` and `goto` is the actual skill
- * and the model has to make that call from these sentences alone.
- */
 const TABLE: Record<DirectorOp, ToolEntry> = {
   say: {
     description:
@@ -137,6 +126,18 @@ const TABLE: Record<DirectorOp, ToolEntry> = {
         text: { type: "string", description: "Markdown + $math$. 1–3 sentences; you are speaking, not writing a chapter." },
         narrate: { type: "string", description: "Spoken variant. Omit for silence — TeX read aloud is worse than nothing." },
         resume: { type: ["string", "null"], description: "Beat id Continue returns to; null ends the lesson." },
+        exits: {
+          description:
+            'How the answer ends. "both" offers two buttons — back to where they were, or on to ' +
+            "what follows it — so the detour is a fork, not a rewind. A list gives exact buttons.",
+          oneOf: [
+            { type: "string", enum: ["both"] },
+            {
+              type: "array",
+              items: obj({ label: { type: "string" }, to: { type: ["string", "null"] } }, ["label", "to"]),
+            },
+          ],
+        },
         show: {
           type: "object",
           description: "Reuse a visual: {like:<beatId>} borrows that beat's stage, or {name, props} names one.",
@@ -171,7 +172,7 @@ const TABLE: Record<DirectorOp, ToolEntry> = {
       "Add a beat to the live lesson. `enter` (default true) jumps into it; pass false to add it for " +
       "later and wire it with `setNext`. Use this when you want a real interaction — an mcq, an " +
       "explorable — rather than prose (that is `say`).",
-    input_schema: obj({ spec: BEAT_SPEC, enter: { type: "boolean" } }, ["spec"]),
+    input_schema: obj({ spec: beatSpecSchema(), enter: { type: "boolean" } }, ["spec"]),
   },
   patchBeat: {
     description:
@@ -240,7 +241,6 @@ const TABLE: Record<DirectorOp, ToolEntry> = {
   },
 };
 
-/** The `done` entry, apart from the table because it maps to no command. */
 const DONE_ENTRY: ToolEntry = {
   description:
     "Say nothing and change nothing this turn. The right answer whenever the learner is working " +
@@ -248,28 +248,29 @@ const DONE_ENTRY: ToolEntry = {
   input_schema: obj({ why: { type: "string", description: "One line, for the log. Optional." } }),
 };
 
-// A runtime mirror of the compile-time guarantee, for the one thing types cannot catch: an
-// op added to DIRECTOR_OPS *and* to TABLE under a typo'd key would satisfy neither, but a
-// key present in TABLE that is not in DIRECTOR_OPS would go unnoticed.
 const EXTRA = Object.keys(TABLE).filter((k) => !(DIRECTOR_OPS as readonly string[]).includes(k));
 if (EXTRA.length) throw new Error(`forge/tools.ts: tool(s) with no matching op: ${EXTRA.join(" ")}`);
 
-// ── selection + parsing ─────────────────────────────────────────────────────────
-
 /**
- * The tools a director may call under `caps`.
- *
- * Capabilities are applied HERE as well as in `adjudicate`, and the redundancy is
- * deliberate: adjudication is the enforcement (a model cannot route around it), but a
- * withheld tool is the explanation. An `OBSERVE_ONLY` director offered fourteen tools would
- * spend its turns discovering refusals one at a time; offered only `done`, it understands
- * its regime immediately. Enforcement stays in one place; the tool list is a courtesy.
+ * The tools a director may call under `caps`. Capabilities are applied here as well as in
+ * `adjudicate`: adjudication is the enforcement, a withheld tool is the explanation — an
+ * `OBSERVE_ONLY` director offered only `done` understands its regime immediately.
  */
-export function directorTools(caps: Capabilities, opts: { done?: boolean } = {}): ToolSpec[] {
+export function directorTools(caps: Capabilities, opts: { done?: boolean; beats?: BeatRegistry } = {}): ToolSpec[] {
+  const schemas = beatSchemas(opts.beats ?? defaultBeatRegistry());
   const tools: ToolSpec[] = [];
   for (const op of DIRECTOR_OPS) {
     if (!permits(caps, op) || needsReview(caps, op)) continue;
     const e = TABLE[op];
+    if (op === "addBeat") {
+      const authorable = schemas.types.filter((t) => t.schema).map((t) => t.type);
+      tools.push({
+        name: op,
+        description: `${e.description} Types you may author: ${authorable.join(", ")}.`,
+        input_schema: obj({ spec: beatSpecSchema(schemas), enter: { type: "boolean" } }, ["spec"]),
+      });
+      continue;
+    }
     tools.push({ name: op, description: e.description, input_schema: e.input_schema });
   }
   if (opts.done !== false) tools.push({ name: DONE_TOOL, description: DONE_ENTRY.description, input_schema: DONE_ENTRY.input_schema });
@@ -277,8 +278,8 @@ export function directorTools(caps: Capabilities, opts: { done?: boolean } = {})
 }
 
 /** Every tool, unrestricted — tier 3 as specified. Identical to `directorTools(FULL)`. */
-export function allDirectorTools(): ToolSpec[] {
-  return directorTools({ name: "full", allow: "*" });
+export function allDirectorTools(beats?: BeatRegistry): ToolSpec[] {
+  return directorTools({ name: "full", allow: "*" }, beats ? { beats } : {});
 }
 
 /** Is this tool name an op (as opposed to `done`, or something the model invented)? */
@@ -304,10 +305,8 @@ export interface ParsedTurn {
 }
 
 /**
- * Turn tool calls into a director turn. The mapping is `{op: name, ...input}` — the tool
- * surface and the protocol are the same vocabulary, so this function is small on purpose.
- * It does NOT validate: `adjudicate` does that, and its verdict is what the model reads
- * next. Two judges would be two truths.
+ * Turn tool calls into a director turn. The mapping is `{op: name, ...input}`. Does NOT
+ * validate — `adjudicate` does that, and its verdict is what the model reads next.
  */
 export function commandsFromCalls(calls: ToolCall[]): ParsedTurn {
   const commands: DirectorCommand[] = [];
@@ -323,7 +322,7 @@ export function commandsFromCalls(calls: ToolCall[]): ParsedTurn {
       continue;
     }
     const { ...input } = c.input ?? {};
-    delete (input as Record<string, unknown>).op; // a model that helpfully includes `op` is not wrong
+    delete (input as Record<string, unknown>).op;
     commands.push({ op: c.name, ...input } as unknown as DirectorCommand);
   }
   return { commands, done, unknown };

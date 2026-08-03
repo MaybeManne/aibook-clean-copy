@@ -1,11 +1,24 @@
 {
   "name": "lessonstudio",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.1.0",
   "type": "module",
-  "description": "A high-level language for interactive lessons \u2014 Manim, in the browser, interactive. The deterministic engine half of lessonStudio (lessonForge is the AI-authoring half).",
+  "description": "A high-level language for interactive lessons \u2014 Manim, in the browser, interactive. One replayable IR, three ways to drive it: authored, taught live, or taught by a model.",
+  "license": "MIT",
+  "keywords": [
+    "interactive-lessons",
+    "explorable-explanations",
+    "animation",
+    "statechart",
+    "education",
+    "manim",
+    "svg",
+    "react",
+    "llm",
+    "tutor"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "check": "tsx checks/run.ts",
     "dev": "vite"
   },
   "devDependencies": {

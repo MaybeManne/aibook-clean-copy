@@ -15,8 +15,7 @@ export * from "./animate.js";
 export * from "./freeresponse.js";
 export * from "./explorable.js";
 
-/** All built-in renderable beats, keyed by type. */
-export const builtinBeats: BeatRegistry = {
+const builtinBeats: BeatRegistry = {
   [ExplainBeat.type]: ExplainBeat,
   [McqBeat.type]: McqBeat,
   [BranchBeat.type]: BranchBeat,

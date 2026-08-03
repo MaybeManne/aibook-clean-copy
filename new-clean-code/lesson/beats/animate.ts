@@ -1,19 +1,17 @@
-// Animate beat: a TIMED beat. Its params ARE a Storyboard (pure JSON), so it is
-// serializable and AI-authorable. Advances on "next" (the Player emits it at the
-// end of the storyboard; the compiler's default-next routing carries it on).
-
 import type { Json, StateNode } from "@lessonstudio/state-machine";
-import type { RenderIntent } from "@lessonstudio/render-contract";
-import { sampleAt, sceneIntent, type Storyboard } from "@lessonstudio/timeline";
+import type { RenderIntent } from "@lessonstudio/intents";
+import { sampleAt, sceneIntent, type Storyboard } from "../../timeline/index.js";
 import { beatMeta, type RenderableBeat } from "./types.js";
 
 export interface AnimateParams {
   storyboard: Storyboard;
-  slot?: string; // default "stage"
+  slot?: string;
   /**
-   * Optional narration script. An offline `prepareNarration` pass synthesizes it,
-   * sets the storyboard duration to the audio length, and merges caption cues.
-   * Purely advisory to the beat itself — the baked storyboard is what plays.
+   * Optional narration script — a plain string, synthesized on DEMAND (see
+   * `ExplainParams.narration`).
+   *
+   * NOT synchronized with the storyboard: `duration` below governs the animation and the clip
+   * plays alongside it, so a script much longer or shorter than the motion will drift.
    */
   narration?: string;
 }
@@ -21,6 +19,28 @@ export interface AnimateParams {
 export const AnimateBeat: RenderableBeat<AnimateParams> = {
   type: "scene",
   outcomes: ["next"],
+
+  paramsSchema: {
+    doc:
+      "A NEW declarative figure, drawn and animated from primitives. Pure JSON, so you can author " +
+      "one for a question the lesson never anticipated — see the DRAWING vocabulary for node kinds, " +
+      "animatable properties and easings.",
+    params: {
+      storyboard: "{duration, initial: SceneNode[], tweens: Tween[], stage?: {w,h}, camera?: CameraKey[]}",
+      "?narration": "spoken script; plays alongside the motion, not synchronized to it",
+    },
+    example: {
+      storyboard: {
+        duration: 1200,
+        stage: { w: 400, h: 200 },
+        initial: [
+          { id: "ray", kind: "line", x: 20, y: 40, x2: 380, y2: 160, stroke: "#f59e0b", opacity: 0 },
+          { id: "cap", kind: "label", x: 20, y: 175, text: "one ray, one direction", size: 18 },
+        ],
+        tweens: [{ target: "ray", property: "opacity", to: 1, start: 0, duration: 600, easing: "smooth" }],
+      },
+    },
+  },
 
   build(params, id): StateNode {
     return { id, meta: beatMeta("scene", params as unknown as Json) };

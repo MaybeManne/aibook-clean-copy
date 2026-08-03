@@ -1,19 +1,12 @@
-// M2 demo lesson — "But what is a convolution?" (interactive).
-// The flow the vision calls for: (1) show the two distributions + guiding text, then
-// (2) hand the student a REAL slider that flips-and-slides g across f so they watch the
-// overlap interleave and the output (f∗g) generate itself, then (3) a check.
-// The interactive figure is a registered SVG figure driven live by the slider value.
-
 import { defineLesson, explorable, mcq } from "@lessonstudio/authoring";
-import { math } from "@lessonstudio/render-contract";
-import "./convolution.js"; // side-effect: registers the "convolution" + "conv-intro" figures
+import { math } from "@lessonstudio/intents";
+import "./convolution.js";
 
 export const lessonSpec = {
   id: "convolution-intro",
   version: 1,
   title: "But what is a convolution?",
   flow: [
-    // 1 — the two distributions + guiding text (a real "Start →" button advances)
     explorable({
       id: "intro",
       viz: { name: "conv-intro" },
@@ -22,10 +15,15 @@ export const lessonSpec = {
         "Here are two discrete distributions, $f$ and $g$. **Convolution** combines them into a " +
         "third, $f * g$. The value of $(f*g)[n]$ collects *every* way $f$ and $g$ can combine to " +
         "land at $n$: $\\;(f*g)[n] = \\sum_{k} f[k]\\, g[n-k]$.",
+      // Narration is prose, not the note read aloud: plain words, no notation, nothing to look at
+      // while listening. It also gives every template a spoken track to pause — the control in the
+      // composer bar appears exactly when the active beat has one.
+      narration:
+        "Here are two distributions. Convolution combines them into a third one, and each value of " +
+        "that third one collects every way the two can combine to land in the same place.",
       next: "explore",
     }),
 
-    // 2 — the interactive slider: flip g, slide it, watch the output build up
     explorable({
       id: "explore",
       viz: { name: "convolution" },
@@ -38,10 +36,12 @@ export const lessonSpec = {
         "**Drag the slider.** For each shift $n$, $g$ is *flipped* and slid under $f$. Where they " +
         "overlap, the columns multiply — those are the gold products $f[k]\\,g[n-k]$ — and their " +
         "sum is the green bar $(f*g)[n]$. Slide right and watch the whole output curve generate itself.",
+      narration:
+        "Drag the slider. At each shift the second distribution is flipped and slid underneath the " +
+        "first. Where they overlap the columns multiply, and the sum of those products is the green bar.",
       next: "check",
     }),
 
-    // 3 — check understanding
     mcq({
       id: "check",
       prompt: math("(f * g)[n] = \\sum_k f[k]\\,g[n-k]", true),
@@ -50,6 +50,7 @@ export const lessonSpec = {
         { text: "For each n, it sums every product f[k]·g[n−k] — the flipped, shifted overlap.", correct: true },
         { text: "It keeps the larger of f and g at each point.", misconception: "conv-is-max" },
       ],
+      narration: "One question, then you are done. What does that sum actually do?",
       skill: "convolution-definition",
       correctFeedback: "Exactly — flip, slide, multiply the overlap, sum. That inner sum is the whole idea.",
       wrongFeedback: "Look at the slider again: at shift n the gold products are summed into the green bar.",

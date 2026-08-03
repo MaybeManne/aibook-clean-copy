@@ -1,17 +1,3 @@
-// THE TEACHER'S SIDE of the wire, behind one interface with two implementations.
-//
-// `DirectionTransport` is what a director talks to — and the only thing it talks to. A human
-// at a terminal (`cli/direct.ts`, `cli/tail.ts`) and, in tier 3, a model (`forge/`) both hold
-// one of these and neither knows which implementation it got:
-//   • `httpTransport` — polls the dev server; the real student-in-a-browser case.
-//   • `busTransport`  — the same bus in-process; headless tests and the AI director loop run
-//                       with no server, no port and no network, which is what keeps them
-//                       deterministic and runnable offline.
-//
-// Three methods, because a director does exactly three things: look, act, and read back what
-// happened. Swapping polling for a WebSocket later is a third implementation of this file's
-// interface and touches nothing else.
-
 import { formatObservation, formatResult, type DirectionResult, type DirectorActor, type DirectorCommand, type Observation } from "@lessonstudio/lesson";
 import { waitFor, type SessionBus } from "./bus.js";
 import {
@@ -52,12 +38,9 @@ export interface DirectionTransport {
   log(from?: number): Promise<LogResponse>;
 }
 
-// ── in-process ──────────────────────────────────────────────────────────────────
-
 /**
- * Talk to a bus directly. Used by tests and by the AI director; identical semantics to the
- * HTTP transport because both are thin wrappers over the same bus methods — the point of
- * having the bus be pure.
+ * Talk to a bus directly. Used by tests and by the AI director; identical semantics to the HTTP
+ * transport, since both are thin wrappers over the same bus methods.
  */
 export function busTransport(bus: SessionBus, defaults: DirectOptions = {}): DirectionTransport {
   return {
@@ -78,8 +61,6 @@ export function busTransport(bus: SessionBus, defaults: DirectOptions = {}): Dir
   };
 }
 
-// ── over the dev server ─────────────────────────────────────────────────────────
-
 export interface HttpTransportOptions extends DirectOptions {
   /** Origin of the dev server, e.g. `http://localhost:5188`. */
   origin?: string;
@@ -89,9 +70,8 @@ export interface HttpTransportOptions extends DirectOptions {
 }
 
 /**
- * Talk to the dev bus over the four endpoints. The teacher's terminal, a `curl`, and a model
- * driving the same paths are indistinguishable to the server — that symmetry is what makes
- * tier 3 "run the other client" rather than a second integration.
+ * Talk to the dev bus over the four endpoints. The teacher's terminal, a `curl` and a model
+ * driving the same paths are indistinguishable to the server.
  */
 export function httpTransport(opts: HttpTransportOptions = {}): DirectionTransport {
   const origin = (opts.origin ?? "").replace(/\/+$/, "");
@@ -127,8 +107,6 @@ export function httpTransport(opts: HttpTransportOptions = {}): DirectionTranspo
     },
   };
 }
-
-// ── shared ──────────────────────────────────────────────────────────────────────
 
 /** Build the one response shape both transports return, rendering the verdict through the
  *  single formatter so a terminal and a prompt read the same bytes. */

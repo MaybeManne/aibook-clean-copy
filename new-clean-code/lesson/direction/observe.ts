@@ -1,29 +1,11 @@
-// THE OBSERVATION — everything a director needs to know to decide its next move, as one
-// pure JSON value.
-//
-// This is the load-bearing piece of the whole design, and the reason is a constraint from
-// the outset: the live teacher is a programmer who wants LOGS, and that ability has to
-// transfer to an LLM afterwards. Both of those are satisfied by exactly one thing — a
-// serializable snapshot of the situation — and only if there is ONE of it. So the human's
-// terminal and the model's prompt read the same observation through the same formatter
-// (`format.ts`), and swapping the human for the model is running a different client, not
-// writing a second integration.
-//
-// Two properties it has to keep to earn that:
-//   • PURE. It reads a settled session and allocates a value; it never sends, never waits.
-//     So it is safe to call on every frame, and a test can assert on it headlessly.
-//   • SELF-SUFFICIENT. It carries the ids a director must name (via `catalog`), the state
-//     it must not clobber, the learner's outstanding question, AND the verdict on its own
-//     previous turn. That last one is what closes the loop: a model that gets
-//     "DANGLING_TARGET [flip]" back can fix its command without anyone parsing a stack trace.
-
 import type { Json } from "@lessonstudio/state-machine";
 import type { CompiledLesson } from "../lesson_sm/compile.js";
 import type { LearnerSignals, LessonContext } from "../lesson_sm/context.js";
 import { WORKSPACE_KEY } from "../beats/workspace.js";
 import { projectTranscript, type TurnRole } from "../transcript.js";
-import { toSource } from "@lessonstudio/render-contract";
+import { toSource } from "../../intents/index.js";
 import { beatCard, beatProseOf, catalog, type BeatCard, type LessonCatalog } from "./catalog.js";
+import type { VisualSchema } from "./schemas.js";
 import type { DirectionResult } from "./adjudicate.js";
 import {
   ACTIVE_BEAT_VAR,
@@ -31,7 +13,6 @@ import {
   AUTHORING_COMMAND_EVENT,
   DIRECTION_COMMAND_EVENT,
   FOCUS_VAR,
-  GENERATED_BEAT_EVENT,
   HOLD_VAR,
   MESSAGE_SUBMIT_EVENT,
   type Annotation,
@@ -40,10 +21,9 @@ import {
 } from "./protocol.js";
 
 /**
- * What `observe` needs from a running lesson — STRUCTURAL, not nominal. `Session` satisfies
- * it as-is, and stating it this way is what keeps `direction/` from importing `runtime/`
- * (which imports `direction/`): the seam stays acyclic, and a test can observe a hand-built
- * stub with no Session at all.
+ * What `observe` needs from a running lesson — STRUCTURAL, not nominal. `Session` satisfies it
+ * as-is, which keeps `direction/` from importing `runtime/` (which imports `direction/`) and
+ * lets a test observe a hand-built stub with no Session at all.
  */
 export interface DirectionSubject {
   readonly lesson: CompiledLesson;
@@ -85,14 +65,11 @@ export interface Observation {
   anchor: string;
   /** THE WORDS ON THE LEARNER'S SCREEN — the `anchor` beat's prose in full, math included.
    *
-   *  Everything else here describes the learner's STATE; this describes what they are looking
-   *  at, which is what makes a question like "what's this integral?" answerable at all. It is
-   *  the anchor's prose rather than the active leaf's precisely so that an interruption does
-   *  not erase the subject: the learner asks FROM a beat, and that beat's content is what the
-   *  question is about, even while an ephemeral "thinking" card is the thing on screen.
+   *  The anchor's prose rather than the active leaf's, so an interruption does not erase the
+   *  subject: the learner asks FROM a beat, and that beat's content is what the question is
+   *  about, even while an ephemeral "thinking" card is the thing on screen.
    *
-   *  Truncated only past `showingMax` (and then visibly), because a teacher silently shown
-   *  half a formula is worse off than one told the formula was clipped. */
+   *  Truncated only past `showingMax`, and then visibly. */
   showing: string;
   /** What the stage is actually showing: the visual plus BOTH writers' values on it. */
   stage: {
@@ -133,6 +110,17 @@ export interface ObserveOptions {
   /** Include the full catalog. Default true on the first observation of a session and
    *  whenever the caller asks; a polling client can drop it to keep frames small. */
   catalog?: boolean;
+  /**
+   * What each registered visual ACCEPTS, keyed by name. Supplied by the host because a visual is
+   * code and `lesson/` may not import `web/`; pinhole exports `PINHOLE_VIZ_SCHEMA` beside its
+   * apparatus and passes it here.
+   *
+   * Without this, a director only ever sees the props the lesson already passes, and reasonably
+   * concludes those are the only ones — which is how "make the hole wider" becomes unanswerable
+   * even when the visual does have an aperture prop. With it, the catalog reports the real
+   * surface, and its absence is the honest signal that a new figure is needed.
+   */
+  visuals?: Record<string, VisualSchema>;
 }
 
 /**
@@ -142,7 +130,7 @@ export function observe(subject: DirectionSubject, opts: ObserveOptions = {}): O
   const { lesson, context } = subject;
   const activeId = subject.activeBeatId();
   const anchor = resumeAnchor(lesson, activeId);
-  const at = beatCard(lesson, activeId);
+  const at = beatCard(lesson, activeId, opts.visuals);
   const local = (context.beats[anchor] as Record<string, Json> | undefined) ?? {};
   const values: Record<string, Json> = {};
   for (const [k, v] of Object.entries(local)) if (k !== WORKSPACE_KEY) values[k] = v;
@@ -168,11 +156,10 @@ export function observe(subject: DirectionSubject, opts: ObserveOptions = {}): O
     last: subject.lastResult ?? null,
   };
   if (context.learner) obs.learner = { model: context.learner.model, signals: context.learner.signals };
-  if (opts.catalog !== false) obs.catalog = catalog(lesson);
+  if (opts.catalog !== false) obs.catalog = catalog(lesson, opts.visuals);
   return obs;
 }
 
-/** The anchor beat's words, clipped only when absurdly long — and then it says so. */
 function showing(lesson: CompiledLesson, anchor: string, max: number): string {
   const prose = beatProseOf(lesson, anchor);
   if (prose.length <= max) return prose;
@@ -180,24 +167,24 @@ function showing(lesson: CompiledLesson, anchor: string, max: number): string {
 }
 
 /**
- * A `DirectionSubject` from a bare (lesson, context) pair — no Session required.
+ * A `DirectionSubject` from a bare (lesson, context) pair — no Session required. The active beat
+ * comes from `ctx.vars.__activeBeat`, which Session mirrors on every committed step, so a caller
+ * holding only a CONTEXT (an effect runner, a snapshot, a replay) can reconstruct the situation.
  *
- * The active beat comes from `ctx.vars.__activeBeat`, which Session mirrors on every
- * committed step precisely so a holder of a CONTEXT can reconstruct the situation. The case
- * that needs it is the AI teacher answering a learner's question: that runs inside an EFFECT,
- * and an `EffectContext` carries `ctx` but deliberately not the Session that owns it (an
- * effect must not be able to re-enter the engine except through `send`). So the director gets
- * a real, complete observation without anyone widening that boundary.
+ * `activeBeat` overrides that mirror, and the question path needs it: the learner is standing on
+ * an ephemeral `__ask-*` leaf that Session spliced into ITS OWN chart, so the compiled lesson a
+ * runner holds does not contain that state and `resumeAnchor` cannot resolve it. The `generate`
+ * effect carries `returnTo` — the real beat behind the leaf — to pass in here.
  *
  * `done` is a parameter rather than derived: a context cannot know whether its state is
- * terminal, and every current caller is mid-lesson by construction (an effect is running).
+ * terminal.
  */
 export function subjectFromContext(
   lesson: CompiledLesson,
   context: LessonContext,
-  opts: { lastResult?: DirectionResult | null; done?: boolean } = {},
+  opts: { lastResult?: DirectionResult | null; done?: boolean; activeBeat?: string } = {},
 ): DirectionSubject {
-  const active = context.vars[ACTIVE_BEAT_VAR];
+  const active = opts.activeBeat ?? context.vars[ACTIVE_BEAT_VAR];
   const id = typeof active === "string" ? active : lesson.chart.initial;
   return {
     lesson,
@@ -208,12 +195,7 @@ export function subjectFromContext(
   };
 }
 
-/**
- * The real beat behind an ephemeral "thinking" leaf (its `resumeTo`), else the id itself.
- * Duplicated in spirit from Session's private `resumeTargetOf` because a director must be
- * able to compute it from a chart alone — this is the id its commands will default to.
- */
-export function resumeAnchor(lesson: CompiledLesson, id: string): string {
+function resumeAnchor(lesson: CompiledLesson, id: string): string {
   const beat = (lesson.chart.states[id]?.meta as { beat?: { params?: Record<string, unknown> } } | undefined)?.beat;
   const resumeTo = beat?.params?.resumeTo;
   return typeof resumeTo === "string" ? resumeTo : id;
@@ -227,21 +209,13 @@ function recentTurns(subject: DirectionSubject, activeId: string, n: number): Ob
     role: t.role,
     beatId: t.beatId,
     kind: t.kind,
-    // `toSource`, not `toPlain`: a transcript line is read by a teacher or a model, and a beat
-    // whose prose is mostly TeX would otherwise arrive as a wall of `\textcolor{#f87171}{…}`.
     text: t.content ? toSource(t.content).replace(/\s+/g, " ").trim() : "",
   }));
 }
 
-/**
- * The learner's outstanding question: the most recent `message.submit` / `ask.submit` with
- * no director turn after it. "Nothing after it" is the right test rather than tracking an
- * answered flag, because ANY director turn since is the answer (or a decision not to give
- * one) — and it stays a pure function of history, so replay agrees.
- */
 function pendingQuestion(context: LessonContext): PendingQuestion | null {
   const asks = new Set([MESSAGE_SUBMIT_EVENT, "ask.submit"]);
-  const answers = new Set([DIRECTION_COMMAND_EVENT, AUTHORING_COMMAND_EVENT, GENERATED_BEAT_EVENT]);
+  const answers = new Set([DIRECTION_COMMAND_EVENT, AUTHORING_COMMAND_EVENT]);
   for (let i = context.history.length - 1; i >= 0; i--) {
     const rec = context.history[i]!;
     const type = rec.event.type;

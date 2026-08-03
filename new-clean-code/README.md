@@ -1,298 +1,627 @@
 # lessonStudio
 
-A **high-level language for interactive lessons** — Manim, but rendered in the browser so
-lessons are interactive. The **engine** half (`lesson/`, `authoring/`, `live/`) is deterministic,
-replayable and browser-rendered; the **AI** half is quarantined in `forge/` — the future
-`lessonForge` repo, already separated by an import boundary rather than by a checkout, so the engine
-plays a lesson identically with it deleted.
+**Manim, in the browser, interactive.**
 
-**New here?** Start with [`docs/OVERVIEW.md`](docs/OVERVIEW.md) — the vision, objective, features and
-applications, written for a senior engineer or a PM, with no implementation detail. Then
-[`docs/ROADMAP.md`](docs/ROADMAP.md) for the architecture and milestones, and
-[`docs/COMPARISON.md`](docs/COMPARISON.md) for how this was distilled from three prior attempts
-(lessonkit, SocraticAI, activeReader).
+lessonStudio is a TypeScript engine for lessons a learner *does* rather than watches. A lesson is
+written as data — a spine of beats, each one prose plus a figure plus, optionally, something the
+learner can touch. The engine compiles that to a statechart, records every event, and can rebuild
+any session by replaying the log.
+
+What makes it more than a slide runner is that a lesson stays **open at play time**. A teacher — or
+a language model standing in exactly the same place — can watch a learner work and then speak, point
+at the figure, move the learner's own slider, or write a new beat and splice it into the graph. Every
+one of those moves is the same adjudicated command, recorded as JSON, and replayed later without
+calling anybody back.
+
+```bash
+git clone <this repo> && cd lessonStudio
+npm install
+npm run check      # 7 headless checks — no browser, no API key
+npm run dev        # then open the URL Vite prints
+```
+
+---
+
+## A lesson is data
+
+```ts
+import { defineLesson, explain, explorable, mcq } from "@lessonstudio/authoring";
+import { article, md } from "@lessonstudio/intents";
+
+export const lesson = defineLesson({
+  id: "pinhole-camera",
+  version: 1,
+  title: "The Pinhole Camera",
+  flow: [
+    explain({
+      id: "wall",
+      text: article(
+        "# The Pinhole Camera\n" +
+          "How does one small hole turn light into a picture?\n\n" +
+          "*Drag the figure to look around the apparatus.*",
+      ),
+      narration: "Look at a blank wall. Why don't you see a picture of the room on it?",
+      viz: { name: "pinhole3d", props: { u: 7, v: 7 }, persistent: true },
+      next: "move-screen",
+    }),
+
+    explorable({
+      id: "move-screen",
+      viz: { name: "pinhole3d", props: { u: 7, rays: true, image: true }, persistent: true },
+      controls: [
+        { key: "v", label: "screen distance  v", kind: "slider", min: 4, max: 14, step: 1 },
+        { key: "__next", label: "I've got it — continue →", kind: "button" },
+      ],
+      defaults: { v: 7 },
+      goal: { key: "v", min: 12 },
+      task: md("**Push the screen out to $v \\ge 12$.** Watch $h'$ grow while the image stays sharp."),
+      success: md("The image height grows in proportion: $h' = h\\,v/u$."),
+      ask: true,
+      next: "gate",
+    }),
+
+    mcq({
+      id: "gate",
+      prompt: md("Doubling the screen distance $v$ does what to the image?"),
+      choices: [
+        { text: "Halves its height", misconception: "inverse-magnification" },
+        { text: "Doubles its height", correct: true },
+        { text: "Leaves it unchanged", misconception: "no-magnification" },
+      ],
+      wrongFeedback: "Not quite — follow one ray from the top of the object and see where it lands.",
+      onWrong: "move-screen",
+      next: null,
+    }),
+  ],
+});
+```
+
+Six beat kinds ship in the authoring DSL: `explain`, `animate`, `explorable`, `mcq`, `freeResponse`,
+`branch`. A beat is a *type name plus JSON params* — which is why a model can write one, and why a
+recorded lesson survives a reload. `goal` turns an explorable into a gate: while the goal is unmet
+the `task` shows and Continue is hidden, so the learner advances by *doing* rather than by skipping.
+
+## Three ways to drive it
+
+All three go through one door — `Session.direct(commands, actor, capabilities)`. There is no
+AI-specific path into the engine.
+
+| | who drives | how |
+| --- | --- | --- |
+| **Authored** | you, ahead of time | `authoring/` — `defineLesson()`, deterministic, no network |
+| **Taught live** | a human, mid-session | `teach/` — a second terminal over four HTTP endpoints |
+| **Taught by a model** | a `Director`, mid-session | `forge/` — a tool-calling loop over the same commands |
+
+A `Director` is a one-method interface:
+
+```ts
+interface Director {
+  direct(req: DirectorRequest): Promise<DirectorCommand[]>;
+}
+```
+
+`req` carries **one observation**: where the learner is, what is on their screen, what values they
+set, what they asked, and the engine's verdict on the last turn. `formatObservation()` renders that
+same observation for a human teacher's terminal and for a model's prompt, so the two cannot drift
+apart. An empty command array is a legitimate answer — "they're fine, leave them alone".
+
+### The command vocabulary
+
+Fourteen ops, one union, one adjudicator:
+
+```
+say  revisit  goto                          — speak, re-show an earlier beat, jump
+setControl  setControls  workspace          — move the learner's controls, pose the figure
+focus  annotate  release  hold              — zoom the stage, draw on it, pace the learner
+addBeat  patchBeat  rerouteBeat  setNext    — write and rewire the lesson graph
+```
+
+`say` and `revisit` are sugar the adjudicator expands into `addBeat` plus a return edge to wherever
+the learner was — so answering a question with a beat and re-showing an old figure before coming
+back are the same primitive. `focus` and `annotate` take normalized 0..1 stage coordinates, so one
+implementation zooms an SVG figure, a Canvas2D viz and a WebGL apparatus alike.
+
+`adjudicate()` plans a whole turn against a *shadow* chart and installs it in one assignment, so a
+turn is atomic: one bad command means nothing applied and nothing recorded. A refused turn comes back
+as a result the caller can act on, not as a crash. Structural edits are held to an invariant rather
+than to trust — `reachesTerminal()` refuses any reroute that would leave the learner unable to
+finish.
+
+### Capabilities
+
+```ts
+session.direct(commands, "ai", SUPERVISED);
+```
+
+`FULL` (everything, uncapped), `SUPERVISED` (structural ops need a human), `OBSERVE_ONLY` (watch
+only), or your own `{ name, allow, review, protect, maxPerTurn }`. Enforcement lives at the
+adjudicator — one gate for all three tiers. `directorTools()` additionally withholds the
+corresponding tools, so a model reads its regime off its own tool list instead of discovering it one
+refusal at a time. A `review` refusal is distinguishable from a `denied` one, so a director can tell
+"ask someone" from "never".
+
+## Generate, freeze, replay
+
+Every director turn is recorded as one `direction.command` event carrying the commands themselves.
+`replay(lesson, history)` folds the log back through the pure interpreter and re-applies those edits
+**as data** — added beats, rewired edges, moved controls and all. No model is called, no generator
+runs, nothing is re-decided. A lesson a model improvised for one learner is a fixed artifact from the
+moment it lands.
+
+The headless checks pin this down: they replay AI-taught sessions against a stubbed completer that
+counts its calls, and assert the count.
+
+## Figures and animation
+
+`figures/` is a declarative vocabulary in the shape of Manim's — `axes`, `numberLine`, `plot`,
+`area`, `areaBetween`, `riemannRectangles`, `brace`, `grid`, `numberBox`, `polygon`, `star`, `arc`,
+`dot`, `line`, `label` — with animation verbs `fadeIn`, `fadeOut`, `growFrom`, `drawOn`, `slideTo`,
+`spin`, `indicate`, `colorTo`, `stagger`, `moveAlongPoints` over Manim's rate functions (`smooth`,
+`smootherstep`, `rushInto`, `rushFrom`, `slowInto`, `thereAndBack`).
+
+A storyboard is a pure function of beat time: `sampleAt(storyboard, t)` returns a `SceneSnapshot` —
+a `SceneNode` list plus a viewBox — and `svg/` turns that into an SVG string. Because scenes are pure and sampled, the same figure
+renders in the browser, in a headless check, and in a static snapshot
+(`examples/rasterize.mjs` shells one out to a PNG).
+
+Anything the declarative layer can't express drops to a registered `viz` — an arbitrary
+Canvas2D/WebGL component (the pinhole example uses three.js) that reports the learner's *semantic*
+gestures back on the same recorded channel as a slider. A drag becomes `demo.set { u, v }`, so it is
+replayable state a director can observe, not a mouse event lost to the DOM.
+
+## The template is data
+
+Presentation is a separate object from the lesson. A **preset** pairs the geometry with a theme in
+each mode, and swapping it re-lays-out and re-paints a *running* lesson with zero lesson edits:
+
+```tsx
+import { StudioView, TemplatePicker, ThemeToggle, useThemeMode } from "@lessonstudio/web";
+import { resolvePreset } from "@lessonstudio/theme";
+
+const { mode, setMode } = useThemeMode();          // OS default, then the learner's remembered choice
+const [presetId, setPresetId] = React.useState("studio");
+const { theme, layout } = resolvePreset(presetId, mode);
+
+<StudioView
+  program={program}
+  theme={theme}
+  layout={layout}
+  actions={
+    <>
+      <TemplatePicker theme={theme} value={presetId} onChange={setPresetId} />
+      <ThemeToggle theme={theme} mode={mode} onMode={setMode} />
+    </>
+  }
+/>;
+```
+
+Two presets ship, each in dark and light — four presentations of the same beats:
+
+| preset | geometry | reads like |
+| --- | --- | --- |
+| **`studio`** | split screen, figure always in view | an app: sans, glassy bars, chat bubbles, the log dimming behind you |
+| **`paper`** | one column, figures inline in the flow | a textbook: serif, warm ground, numbered sections, flat prose, no bubbles |
+
+`LS_ROOT=examples/split-demo npm run dev` is the demonstration — pick a preset, flip the mode, and
+the lesson underneath never changes. `checks/theme.ts` asserts that mechanically: it walks the lesson
+under all four themes and requires the render intents to come out **identical**.
+
+### What a theme owns
+
+`color` and `font` are the usual tokens. Three things are less usual:
+
+- **`chrome`** — three switches that decide *kind* rather than shade: `turns` (`bubbles` | `flat`),
+  `eyebrow` (`uppercase` | `numbered`), `stageFrame`. This is what makes `paper` an essay instead of
+  the same chat log in beige. It is deliberately not a component-override system; a template that
+  needs different *components* still goes through `defaultComponents`.
+- **`figure`** — semantic roles a figure reads instead of naming a hex: `ink`, `muted`, `axis`,
+  `highlight`, `onMark`, and a `series` array for categorical marks. `registerFigure` hands every
+  figure the active theme, so one figure draws correctly on any ground.
+- **`figure.palette`** — a per-theme re-map of the **named** palette. A `SceneNode`'s fill is baked in
+  at authoring time (`palette.yellow` is already `#ffff00` before a theme exists), so `svg/` resolves
+  each fill through this map on the way out: pure white titles become near-black ink on paper stock
+  with no figure re-authored. The escape hatch is the absence of a name — an off-palette literal is
+  never re-mapped, so an author who means exactly `#ff0055` gets it in every theme.
+
+### Legibility is asserted, not eyeballed
+
+`auditTheme(theme)` measures every token pair against WCAG, compositing translucent tokens over what
+actually sits behind them, with thresholds **by role**: body ink at AAA, secondary ink at AA, data
+marks at the 3:1 non-text bar, and two lower floors for structure — because a hairline axis is
+*supposed* to recede, and holding it to 3:1 would make axes as loud as the data they frame. All four
+shipped themes pass 66 rules each. A theme that puts white text on a light accent fails the check
+rather than shipping.
+
+### Colour that belongs to the lesson
+
+A lesson may colour-key its symbols, so `v` is the same blue in the diagram and in the equation. That
+is authored *meaning*, so the theme may not reassign it — but it still has to be legible in both
+modes, and the TeX strings are built at module load, before any theme exists. So the lesson emits
+`\htmlClass{ls-sym-v}{v}` and the host supplies the hues for the current mode via
+`StudioView`'s `symbolColors` (KaTeX rejects `\textcolor{var(--x)}`, so a class is the only route).
+`web/richtext.tsx` opens KaTeX's `trust` gate for exactly that one command and one class shape —
+narrow on purpose, because `forge/` lets a *model* author beat text that reaches the same renderer.
+
+## Using it in an app
+
+```tsx
+import { createSession, defaultRunner } from "@lessonstudio/lesson";
+import { createLiveProgram } from "@lessonstudio/live";
+import { StudioView } from "@lessonstudio/web";
+import { directingRunner, httpToolCompleter, pickDirector } from "@lessonstudio/forge";
+import { attachTeachClient } from "@lessonstudio/teach";
+import { lesson } from "./lesson.js";
+
+const director = pickDirector({ complete: httpToolCompleter("/api/direct") });
+
+const program = createLiveProgram(
+  createSession(lesson, { runner: directingRunner(lesson, director, { base: defaultRunner() }) }),
+);
+
+// Opt in to live teaching for this page (the pinhole example gates it behind `?teach`).
+attachTeachClient(program.session);
+
+<StudioView program={program} layout={{ split: true, stageBasis: "56%", stageSide: "left" }} />;
+```
+
+`createSession` is the whole engine; `createLiveProgram` is a clockless host that turns a session
+into a frame; `StudioView` is one React view driven by that frame. Drop `forge` and `teach` from
+those imports and the lesson still plays, deterministically — the engine knows the `Director`
+interface, never who implements it.
+
+## Teaching a live session
+
+The teach CLIs default to `http://localhost:5188`, so start the dev server on that port (or set
+`LS_TEACH_ORIGIN`), and open the page with `?teach`:
+
+```bash
+LS_ROOT=examples/pinhole npm run dev -- --port 5188     # then open http://localhost:5188/?teach
+```
+
+In a second terminal — logs out, commands in, no GUI:
+
+```bash
+tsx teach/cli/tail.ts                        # follow the session log; it is also `tail -f`-able on disk
+tsx teach/cli/direct.ts obs                  # print the observation; sends nothing
+tsx teach/cli/direct.ts say "Watch the ratio v/u as you drag."
+tsx teach/cli/direct.ts set v=13             # re-pose the learner's own apparatus
+tsx teach/cli/direct.ts focus --at .4,.55 --scale 3 --label "the two similar triangles"
+tsx teach/cli/direct.ts mark arrow .3,.3 .5,.45 --label "this ray"
+tsx teach/cli/direct.ts revisit flip --note "remember this"
+```
+
+Or hand the same interface to a model:
+
+```bash
+export ANTHROPIC_API_KEY=...
+tsx forge/cli/ai_teach.ts                    # reactive: one turn per learner question
+tsx forge/cli/ai_teach.ts --supervised --log
+tsx forge/cli/ai_teach.ts --once --dry-run   # decide and print, send nothing
+tsx forge/cli/ai_teach.ts --autonomous       # offer the director every learner action
+```
+
+`ai_teach.ts` is an ordinary client of the human teacher's four endpoints. That is the whole
+third-tier claim, and it is a negative one: the model is a different client of the same interface,
+not a second integration.
+
+## Packages
+
+Path aliases (see `tsconfig.json`), all in this repo, dependencies running one direction only.
+
+One exception, and it is not stylistic: **a file the dev-server config can reach imports another
+package by relative barrel path when it imports values** (`../../timeline/index.js`), because
+`vite.config.ts` is loaded by plain Node — esbuild-bundled into `node_modules/.vite-temp/`, with
+bare specifiers left external and Vite's own aliases not applied. `type` imports keep the alias;
+they are erased before Node sees them. `checks/dev_config.ts` enforces this by loading the config
+the way Vite loads it, because nothing else in the toolchain can: `tsc`, `tsx` and Vite itself all
+resolve the alias, so the only symptom is `npm run dev` dying with `ERR_MODULE_NOT_FOUND` in a
+generated file.
+
+| package | lines | what it holds |
+| --- | --- | --- |
+| `@lessonstudio/state-machine` | 353 | the interpreter: pure hierarchical statechart, guards, actions, effects |
+| `@lessonstudio/intents` | 297 | `RenderIntent`, `RichText`, the markdown + `$math$` parser |
+| `@lessonstudio/timeline` | 822 | scene graph, storyboards, tweens, pure `sampleAt` |
+| `@lessonstudio/figures` | 567 | the figure and animation vocabulary |
+| `@lessonstudio/svg` | 254 | `SceneNode` → SVG string; the figure registry; the per-theme palette re-map |
+| `@lessonstudio/audio` | 284 | TTS adapters, subtitles, content-hash cache |
+| `@lessonstudio/lesson` | 3,982 | beats, compiler, `Session`, the direction protocol, replay |
+| `@lessonstudio/authoring` | 87 | the authoring DSL |
+| `@lessonstudio/teach` | 961 | the live-teacher bus, transports, `tail`/`direct` CLIs |
+| `@lessonstudio/forge` | 1,452 | the AI director: generated tools, providers, drive loop |
+| `@lessonstudio/live` | 152 | the clockless host: session → frame |
+| `@lessonstudio/theme` | 750 | design tokens, template presets, the named palette, a contrast audit |
+| `@lessonstudio/machine` | 898 | the statechart, drawn: layout, the live view, the cross-tab mirror |
+| `@lessonstudio/web` | 1,900 | the React renderer (`StudioView`) |
+
+The load-bearing edge is that **`lesson/` may not import `forge/`**. The engine knows the
+`DirectorCommand` union it can safely execute and the `Director` interface — never who produces
+them.
+
+## Repository map
+
+Every package is a directory with an `index.ts` barrel, and that barrel is the only thing another
+package imports. Files below are listed in the order they build on each other.
+
+### The pure core — no DOM, no clock, no network
+
+**`state_machine/`** — a hierarchical statechart interpreter that knows nothing about lessons.
+
+- `types.ts` — `Statechart`, `StateNode`, `Transition`, `StateValue`, `MachineEvent`, `Json`
+- `registry.ts` — the named guards, actions and effect handlers a chart resolves against
+- `interpreter.ts` — `start`, `transition`, `enter`, `snapshot`, `restore`; effects are returned, not run
+- `effects.ts` — the `Effect` union: `persist`, `timer`, and whatever kinds the host adds
+- `index.ts` — barrel
+
+**`intents/`** — *what* to render, never how.
+
+- `richtext.ts` — the `RichText` tree and the markdown + `$math$` parser (`text`, `md`, `article`, `math`)
+- `intents.ts` — `RenderIntent`, `RenderModel`, `ControlSpec`, `Choice`, `VisualRef`: the slots a beat fills
+- `index.ts` — barrel
+
+**`timeline/`** — scenes as pure functions of time.
+
+- `scene.ts` — `SceneNode`, `SceneSnapshot`, gradients, the animatable prop set
+- `storyboard.ts` — `Storyboard`, `Tween`, `Easing`, camera keys
+- `sample.ts` — `sampleAt(storyboard, t, values?)` and Manim's rate functions
+- `bind.ts` — the closed expression AST (`$ref`, `$add`, … `$if`): a scene prop as arithmetic over control values, as JSON
+- `vocabulary.ts` — `SCENE_VOCABULARY`: every node kind, animatable prop and easing, as data a director can be shown
+- `intent.ts` — `sceneIntent` / `vizIntent` / `captionIntent` and their narrowing readers
+- `index.ts` — barrel
+
+**`figures/`** — the Manim-shaped drawing vocabulary, built on `timeline`.
+
+- `coords.ts` — `makeFrame`: a box on the stage with its own units, so figures compose without pixel math
+- `palette.ts` — re-exports the named colours from `theme/` (the theme owns colour, and may re-map it)
+- `nodes.ts` — `axes`, `numberLine`, `plot`, `area`, `riemannRectangles`, `brace`, `grid`, `polygon`, `dot`, `label`, …
+- `anim.ts` — the animation verbs (`fadeIn`, `growFrom`, `drawOn`, `slideTo`, `indicate`, `stagger`, …) as tween factories
+- `index.ts` — barrel
+
+**`svg/`**
+
+- `svg.ts` — `snapshotToSvg`, plus the figure registry (`registerFigure`, `registerSceneFigure`, `getFigure`)
+- `declarative.ts` — the one figure whose behaviour is entirely its props, so a *new interactive* demo is authorable as JSON
+- `index.ts` — barrel
+
+**`theme/`**
+
+- `theme.ts` — design tokens (colour, type scale, spacing, `chrome`, `figure` roles) and the four shipped themes
+- `palette.ts` — the named figure colours, their reverse index, and the role classes the audit uses
+- `layout.ts` — `StudioLayout`: the split ratio and which side the stage sits on, as data
+- `presets.ts` — `TemplatePreset`: a layout paired with a dark and a light theme; `PRESETS`, `resolvePreset`
+- `contrast.ts` — pure WCAG contrast, alpha composited, plus `auditTheme` and its per-role thresholds
+- `index.ts` — barrel
+
+**`audio/`** — narration, adapter-shaped so the engine never names a vendor.
+
+- `tts.ts` — `TtsAdapter`, `NarrationAudio`, `WordTiming`
+- `align.ts` — character alignment → word timings
+- `cache.ts` — content-hash keys (`narrationKey`) and a file cache
+- `elevenlabs.ts` — the one real adapter
+- `fake.ts` — a deterministic adapter for checks: silent bytes, plausible timings
+- `sink.ts` — `AudioSink`, the play/pause surface a host implements
+- `dev_tts.ts` — the Vite plugin behind `/api/tts`; the key lives here and never in the bundle
+- `index.ts` — barrel
+
+### The lesson layer
+
+**`lesson/`** — beats, the compiler, the session, the direction protocol. It may not import `forge/`.
+
+- `transcript.ts` — `projectTranscript`: the event log → the attributed turns the UI shows
+- `graph.ts` — `chartGraph` / `lessonGraph`: every candidate on every edge, the projection a drawing can trust
+- `lesson_sm/context.ts` — `LessonContext` (the blackboard) and `EventRecord`
+- `lesson_sm/compile.ts` — `compileLesson`: beat specs → statechart + registry
+- `beats/types.ts` — the `RenderableBeat` contract every beat kind implements
+- `beats/explain.ts` — prose plus a figure; Continue advances
+- `beats/animate.ts` — a storyboard played on the beat clock
+- `beats/explorable.ts` — controls, a goal gate, `demo.set`, and the ask-anytime affordance
+- `beats/mcq.ts` — choices, per-choice misconceptions, remediation edges
+- `beats/freeresponse.ts` — a typed answer graded by a guard
+- `beats/graded.ts` — the grading and wiring `mcq` and `freeResponse` share
+- `beats/branch.ts` — a pure fork on the blackboard; renders nothing
+- `beats/workspace.ts` — control state on the blackboard: `demoSet`, `readWorkspace`
+- `beats/index.ts` — the beat-kind registry
+- `runtime/session.ts` — `Session`, `createSession`, `defaultRunner`, `replay`
+- `direction/protocol.ts` — the 14-op `DirectorCommand` union and the events it rides on
+- `direction/capabilities.ts` — `Capabilities`, the three presets, `permits`, `needsReview`
+- `direction/observe.ts` — `observe(session)`: the one observation all three tiers read
+- `direction/catalog.ts` — the lesson's own map (`catalog`, `beatCard`), so a director can see what exists
+- `direction/adjudicate.ts` — `adjudicate`: plan on a shadow chart, install in one assignment, or refuse
+- `direction/schemas.ts` — `beatSchemas`: the params of every registered beat type, projected off the registry so the disclosure cannot drift
+- `direction/format.ts` — `formatObservation` / `formatResult`: one renderer for terminal *and* prompt
+- `policy/contracts.ts` — `LearnerModel`, `PolicyView`: pure folds over history, so replay rebuilds them free
+- `policy/default_learner_model.ts` — the shipped heuristic: understanding / struggling
+- `index.ts` (and one per subdirectory) — barrels
+
+**`authoring/`** — tier 1.
+
+- `dsl.ts` — `defineLesson`, `explain`, `animate`, `explorable`, `mcq`, `freeResponse`, `branch`
+- `index.ts` — barrel
+
+### Driving a live session
+
+**`teach/`** — tier 2: a human teacher, over HTTP, with no GUI.
+
+- `wire.ts` — the endpoint paths and the request/response shapes
+- `bus.ts` — the in-process queue: commands in, verdicts and log lines out
+- `transport.ts` — `DirectionTransport`, over the bus in-process or over HTTP
+- `client.ts` — `attachTeachClient`: the page end of the wire
+- `dev_bus.ts` — the Vite plugin that mounts `/api/session/*` and tees the log to disk
+- `cli/tail.ts` — follow the session log in a terminal
+- `cli/direct.ts` — `obs`, `say`, `set`, `focus`, `mark`, `revisit` from a terminal
+- `index.ts` — barrel
+
+**`forge/`** — tier 3: a model, through that same door.
+
+- `tools.ts` — the 14 ops as provider-shaped tool specs, filtered by capability; `commandsFromCalls`
+- `tool_call.ts` — the model transport: `ToolCompleter`, `anthropicToolCompleter`, `httpToolCompleter`
+- `director.ts` — `pickDirector`, `claudeDirector`, `offlineDirector`, `directingRunner`, the system prompt
+- `watch.ts` — the drive loop: wake on an observation, take one turn, report
+- `dev_director.ts` — the Vite plugin behind `/api/direct`; resolves `auto` across Anthropic, Gemini and a local `claude` CLI
+- `cli/ai_teach.ts` — the model as an ordinary client of tier 2's endpoints
+- `index.ts` — barrel
+
+**`live/`** — the clockless host.
+
+- `frame.ts` — `LiveFrame`: everything a view needs for one paint
+- `program.ts` — `createLiveProgram`: session events → frames, subscriptions out
+- `index.ts` — barrel
+
+**`web/`** — the React renderer: one view, driven by frames.
+
+- `StudioView.tsx` — the studio shell: stage, prose, controls, transcript, narration
+- `components/index.tsx` — the default beat components: prompt, choices, controls, answer box
+- `components/SceneView.tsx` — samples a storyboard and paints it as inline SVG
+- `components/VizView.tsx` — mounts a registered `viz` and keeps it alive across beats
+- `components/CaptionView.tsx` — narration captions
+- `conversation.tsx` — the attributed turn log (You / Tutor ✨ / Teacher)
+- `Composer.tsx` — the always-on ask box
+- `attention.tsx` — `focus` and `annotate`, painted over the stage in normalized coordinates
+- `richtext.tsx` — `RichText` → React, with KaTeX for `$math$` and a one-command `trust` predicate
+- `useThemeMode.ts` — dark/light as a learner preference: OS default, then a remembered choice
+- `ThemeToggle.tsx` — `ThemeToggle` and `TemplatePicker`, for the `actions` slot
+- `viz.ts` — the `viz` registry and the `VizApi` a custom visual implements
+- `htmlAudioSink.ts` — `AudioSink` over an `<audio>` element
+- `index.ts` — barrel
+
+**`machine/`** — the statechart, drawn. Imports `lesson`, `timeline` and `theme`, never `web/`, so
+the layout and the mirror are checkable headlessly.
+
+- `layout.ts` — `layoutGraph`: three lanes (the spine, its detours, what the tutor added live), deterministic, no measurement
+- `MachineView.tsx` — the SVG: the lit node, the travelled path, guards dashed and named, new beats badged
+- `MachinePage.tsx` — the page around it: the event log, the last adjudication verdict, "waiting for a learner page"
+- `mirror.ts` — `attachMachineMirror` / `subscribeMachine`: a `MachineSnapshot` over `BroadcastChannel`, one-way, with a `hello` for a tab that opens late
+- `index.ts` — barrel
+
+**`dev/`**
+
+- `http.ts` — the request helpers the three Vite plugins share
+
+### Checks, examples, and the rest
+
+**`checks/`** — headless; no browser, no key.
+
+- `run.ts` — the runner behind `npm run check`
+- `smoke.ts` — compile, route on an answer, record history
+- `convolution.ts` — storyboards sample to the figures they claim, and the 2-D kernels are correct
+- `showcase.ts` — every animation verb actually animates
+- `ask.ts` — ask → direct → adjudicate → resume, then replayed against a counting stub
+- `direction.ts` — every op adjudicated, bad turns atomic, capabilities enforced at one gate
+- `ai_teach.ts` — the AI path is the same path, with no credential near the page
+- `theme.ts` — every theme complete and measurably legible; one lesson, identical intents under all four
+- `graph.ts` — every candidate on every edge; a deterministic non-overlapping layout; a snapshot that is pure JSON and replay-stable
+- `authoring_power.ts` — a director authors a new figure, and a new *interactive* figure, as pure JSON; malformed is refused atomically
+- `dev_config.ts` — `vite.config.ts` loads under plain Node, and the two alias tables agree
+
+**`examples/`** — each lesson directory is a Vite root: `index.html` + `App.tsx` + `lesson.ts`.
+
+- `pinhole/lesson.ts` — 15 beats: a 3-D apparatus, narration, two gates, ask-anytime
+- `pinhole/pinhole3d.ts` — the three.js `viz`; reports drags back as `demo.set`, not mouse events
+- `pinhole/tutor.ts` — the tutor's brief, the offline answer, and `nativeVoice`: colour-keyed math and the apparatus posed at the learner's own numbers
+- `pinhole/machine.tsx` — the `/machine.html` page: the statechart, live, in a second tab
+- `pinhole/palette.ts` — one colour per symbol, shared by figure and prose
+- `pinhole/App.tsx` — the embedding: session, director, and `?teach`
+- `convolution/lesson.ts` — 15 beats: flip-and-slide, then real image filters
+- `convolution/figures.ts`, `storyboards.ts` — the declarative figures and their animations
+- `convolution/kernels.ts`, `convolve2d.ts` — the 2-D kernels and the interactive image `viz`
+- `convolution/img/` — three sample photographs; see `CREDITS.md`, they are **not** MIT
+- `split-demo/lesson.ts`, `convolution.ts` — the default example: the template as data, in three beats
+- `split-demo/App.tsx` — the preset × mode showcase: two templates, dark and light, one lesson
+- `shot-pinhole.mjs`, `shot-convolution.mjs`, `shot-teach.mjs`, `shot-split.mjs`, `shot-anim.mjs`, `shot-conv.mjs` — Puppeteer walks that drive a *running* dev server and assert on what rendered
+- `_shot.mjs` — the shared screenshot harness
+- `rasterize.mjs` — a standalone `.svg` → `.png`, for eyeballing a pure render
+
+**Root**
+
+- `package.json` — three scripts (`typecheck`, `check`, `dev`) and the dependency set
+- `vite.config.ts` — the dev server: `LS_ROOT` picks the example, three plugins mount `/api/*`, aliases map `@lessonstudio/*` onto these directories
+- `tsconfig.json` — strict, `noUncheckedIndexedAccess`, the same aliases
+- [`docs/OVERVIEW.md`](docs/OVERVIEW.md) — the long-form design document: why the engine is shaped this way
+- [`LICENSE`](LICENSE) — MIT
+
+## Examples
+
+```bash
+LS_ROOT=examples/pinhole     npm run dev   # a 3-D apparatus, narration, an AI tutor, ask-anytime
+LS_ROOT=examples/convolution npm run dev   # 15 beats: flip-and-slide, then real image filters
+LS_ROOT=examples/split-demo  npm run dev   # the default: two templates × dark/light, one lesson
+```
+
+`examples/*.mjs` are Puppeteer walkthroughs that drive a *running* dev server and assert on what
+actually rendered — figures, KaTeX, goal gates, narration requests, the teacher's wire. Each takes
+the page URL as its first argument. WebGL under headless Chrome needs
+`--enable-unsafe-swiftshader --use-gl=angle --use-angle=swiftshader`.
+
+## Development
+
+```bash
+npm run typecheck    # tsc --noEmit, strict + noUncheckedIndexedAccess
+npm run check        # all 7 checks
+npm run check ask    # just one
+```
+
+The checks are headless, need no browser and no API key, and each prints what a pass proves:
+
+| check | proves |
+| --- | --- |
+| `smoke` | the engine compiles, routes on answers and records history |
+| `convolution` | storyboards sample to the figures they claim, and the 2-D kernels are correct |
+| `showcase` | every animation verb in the vocabulary actually animates |
+| `ask` | ask → direct → adjudicate → resume, replayed with the model called once per question |
+| `direction` | every director op adjudicated, bad turns atomic, capabilities enforced at one gate |
+| `ai_teach` | the AI path is the same path, with no credential near the page |
+| `theme` | every shipped theme is complete and measurably legible, and one lesson renders identical intents under all four |
+
+Requires Node 20+ (developed on 24).
+
+### Environment
+
+Everything runs with no keys at all: the deterministic director still answers questions and
+narration falls back to silence, which is how the checks run. Keys only ever live in the dev server
+process — the browser talks to `/api/direct` and `/api/tts` and never holds a credential.
+`checks/ai_teach.ts` asserts exactly that.
+
+| variable | effect |
+| --- | --- |
+| `LS_ROOT` | which example the dev server serves (default `examples/split-demo`) |
+| `ANTHROPIC_API_KEY` | enables the live AI director |
+| `GEMINI_API_KEY` | alternative provider for the same endpoint |
+| `ELEVEN_LABS_API_KEY` | enables spoken narration (cached to `.audio-cache/` by content hash) |
+| `LS_AI_PROVIDER` | pin `anthropic` \| `gemini` \| `claude-code` instead of `auto` |
+| `GEMINI_MODEL`, `LS_CLAUDE_CODE_MODEL` | per-provider model override |
+| `LS_TEACH_ORIGIN` | dev server origin for the teach CLIs (default `http://localhost:5188`) |
+
+With no key the provider resolver picks in order: `anthropic`, `gemini`, then a local `claude` CLI if
+one is on `PATH`.
 
 ## Status
 
-- **M0 — scaffold + plan.** ✅ Done.
-- **M1 — headless engine lifted.** ✅ Done & verified. `state_machine + render_contract + timeline +
-  audio + lesson + live` transferred from lessonkit's spine (namespace `@lessonstudio/*`), pruned to
-  one authoring surface. `tsc --noEmit` clean; `examples/smoke/headless.ts` passes (compile → route
-  on answers → remediation branch → replay).
-- **M2 — data-driven split-screen template.** ✅ Done & verified in-browser. Lifted the render
-  layer (`template + scene_svg + render_web`, minus the video-clock views), made the split-screen
-  geometry a swappable `StudioLayout` in the template DATA (no more hardcoded flex — the point-4
-  fix), and drove it via the clockless `live` runtime. `examples/split-demo` is now an **interactive
-  "But what is a convolution?" explorable**: two distributions + guiding text → a student-driven
-  **slider** that flips-and-slides `g` across `f`, highlights the overlap products, and builds up the
-  `(f∗g)` output bar-by-bar (a live `registerFigure` figure) → an MCQ check. Puppeteer confirms the
-  split, live layout swap (left 50% / right 60% / single column) with zero lesson changes, KaTeX,
-  the slider updating the figure live (math verified: `(f∗g)[2]=1.34`), and the event-sourced
-  transcript. Run: `LS_ROOT=examples/split-demo vite`. Screenshots: `examples/shot-conv.mjs`.
-  - *Scenes self-animate:* a `scene` intent carries its `Storyboard`, and `SceneView` runs a
-    **local rAF clock** that plays it 0→duration on entry (past steps hold the final frame). So the
-    clockless runtime shows real Manim-style motion without the heavy video transport. Verified: the
-    demo's kernel dot slides left→right with easing (`examples/shot-anim.mjs`).
-  - *Known live-path gap — CLOSED in M4.5:* a plain `explain` beat had no "Continue" affordance in the
-    clockless model (the video model relied on the clock), so the demos used a debug Next button.
-    `StudioView` now derives one for any beat that renders nothing into the `prompt` slot.
-- **M3 — the visual vocabulary, reconciled against ManimCE.** ✅ Done & verified. `visuals/` maps
-  math space onto the declarative scene graph as pure, export-safe `SceneNode`s: `coords`
-  (Axes.coords_to_point, y-flipped for SVG), `nodes` (axes/numberLine/plot/area/areaBetween/
-  **riemannRectangles**/polygon/star/arc/brace+braceTip), `anim` verbs (fadeIn/drawOn/slideTo/spin/
-  indicate/stagger/moveAlongPoints), and a Manim-canonical rate-function set (`smooth` default +
-  `smootherstep`/`rushInto`/`rushFrom`/`slowInto`/`thereAndBack`). Cross-checked against the real
-  ManimCE docs (not the second-hand SocraticAI port). **Two correctness fixes fell out of it:**
-  (1) `plot` now breaks at discontinuities into subpaths (Manim ParametricFunction) instead of
-  drawing a line across an asymptote; (2) the sampler's `progress()` now applies easing at/after a
-  tween's end, so non-monotonic rate functions like `thereAndBack` resolve (a one-tween `indicate`
-  pulse returns to base instead of sticking at its peak). Shape factories build around a local
-  origin so `scale`/`rotation` happen about the center, like Manim mobjects. `examples/showcase`
-  asserts 9 geometry invariants through the same pure SVG path the exporter uses; verified visually
-  (`examples/rasterize.mjs`). **ValueTracker/always_redraw → no new node kind** (a changing scalar
-  is a control/param; per-frame recompute IS `sampleAt` + `registerFigure`; keeps export-safety).
-  Run: `./node_modules/.bin/tsx examples/showcase/showcase.ts`.
-- **M4 — the 3b1b reproduction slice** (fluency proof). ✅ Done & verified in-browser — reproduces the
-  **narrative spine** of 3Blue1Brown's **"But what is a convolution?"**, not just the mechanical recipe.
-  A **12-beat flow** walks the video's arc: **combine** (hook — three ways to combine `a=(1,2,3,4)`,
-  `b=(5,6,7,8)`: add and multiply stay the same length, `∗` is the odd one out that mixes every pair and
-  runs longer) → **dice** (goal-gated 6×6 sum grid — drag to the likeliest total; the highlighted
-  diagonal is a convolution of the uniform die with itself, `P(sum=7)=6/36`) → **dice-formula** (that
-  diagonal sum → the definition `(a∗b)[n]=Σₖ a[k]b[n−k]`) → **intro** (small worked example) → **flip**
-  scene (b's ends arc-swap so it reads 6,5,4) → **slide** scene (the flipped strip slides under a; each
-  output box pops in) → **explore gate** (a slider flips-and-slides b, floats `a[i]·b[j]`, fills the
-  output row; goal-gated on shift 4) → **product-grid** (goal-gated 3×3 grid of `a_r·b_c` — its
-  anti-diagonals ARE `a∗b=[4,13,28,27,18]`) → **polynomial** (the hidden identity: `∗` = multiplying
-  `1+2x+3x²` by `4+5x+6x²`) → **MCQ** (wrong → step-by-step reteach) → **the 2-D image payoff** (three
-  more beats, below) → **summary** (one operation, *many* faces). Colors match the video (a=blue, b=red,
-  products=green, result=yellow).
-  - *Refactor that made the two new grids cheap (done first):* a **`sceneFigure()`/`registerSceneFigure()`
-    bridge** (`scene_svg`) lets a slider-driven figure be authored as declarative `SceneNode`s and drawn
-    by the same pure snapshot renderer as the scripted scenes (no renderer changes), plus a **`grid()`
-    primitive** (`visuals/`) with per-cell fill/value/highlight. `dice-grid` and `prod-grid` are built on
-    this; `conv-setup`/`conv-boxes` stay raw `registerFigure`. `examples/convolution/verify.ts` asserts
-    the math (incl. an independent `polyMul` identity), the flip/slide geometry, and both grids'
-    highlight-counts + readouts through the same pure paths the browser uses (plus the 2-D kernel math
-    below); Puppeteer walks all **16** beats end-to-end — figures, KaTeX, goal-gates, the image
-    playgrounds (canvas drag+wheel→zoom round-trip, the kernel matrix editor + presets + "Custom"
-    flip), and 14/14 narration clips (`examples/shot-m4.mjs`, **48/48**). Run:
-    `LS_ROOT=examples/convolution vite`.
-  - *Sampler contract surfaced by this slice:* `sampleAt` applies **every** tween and each overwrites
-    its property, so the **last tween on a given (node, property) wins at all times** — even before
-    its start (it writes its `from`). Sequential per-segment tweens (`moveAlongPoints`, or N stepwise
-    slides on one node) therefore collapse to the last segment. The fix is **one tween per property
-    per node**: the flip arc = x (smooth) + y (`thereAndBack` bump); the slide = one continuous
-    x-tween with reveal times derived from the strip's linear position.
-  - *The 2-D image payoff — the video's "hard visuals" (latest round):* a real 3×3 kernel sliding over a
-    raster image, a **plug-and-try filter bank** (identity / box blur / Gaussian / sharpen / **Sobel
-    edges**), and zoom — first on a code-built pixel-art sprite (the "an image is a grid of numbers"
-    close-up, with the `1/9` weights and the one output pixel drawn), then on three real photos the learner
-    switches between. Built as a Canvas2D **`registerViz("conv2d")`** (browser-only, `poster()` for export;
-    pure edge-clamped kernel math in a DOM-free `kernels.ts` that `verify.ts` tests headless). Three beats —
-    `image-2d` (closeup) → `image-blur` (a sweep wipe develops the blur) → `image-filters` (real photos).
-    Added a reusable **`choice`** control (labelled picker buttons; value flows through the same `demo.set`
-    channel as sliders, so 2 touch-points), and **fixed the sometimes-empty viz panel** — the four `explain`
-    beats now drive a figure via `ExplainParams.viz` so the stage is never a black void while narration plays.
-  - *Making the two image beats real PLAYGROUNDS (latest round):* the viz went from *showing* to
-    *hands-on*, still fully declarative — every gesture leaves as a replayable `demo.set`. **`image-2d`**
-    captures pointer + wheel on the canvas: **drag to place** the 3×3 window (`demo.set{kx,ky}`), **scroll
-    to zoom** (coexisting with a zoom slider), with an eased follow-camera that tracks the placed window
-    (frozen mid-drag, recentred on release). **`image-filters`** became a live kernel **EDITOR** via a new
-    reusable **`matrix` control kind** (a grid of number-input cells + divisor + preset load buttons):
-    per-cell edits are single-key `demo.set`, a preset load is one atomic **`demo.setMany`**, and the viz
-    runs a **live custom linear convolution** from the nine weights ÷ divisor. One shared
-    `EDITOR_PRESETS`/`matchPreset` in `kernels.ts` labels both the control and the canvas, so loading
-    Gaussian never reads "Custom" on the picture; the editor seeds the **directional Sobel-X** (linear,
-    div 1) while `summary` keeps the `|∇|` magnitude Sobel. The free editor/placement beats have no
-    single-key goal, so they advance via a `__next` button.
-- **M4.5 — the pinhole slice: audible narration + a live 3-D apparatus.** ✅ Done & verified
-  in-browser (**41/41** checks then; the same walk now runs **62/62** with M5a's authoring loop
-  folded in, `examples/shot-pinhole.mjs`). Rebuilds a 7.7K-line / 1.5 MB
-  single-file reference explainer as `examples/pinhole/`: 13 beats across 5 parts, two gates with
-  remediation detours that rejoin the main line, **real ElevenLabs narration** (13 clips, 143 s), and
-  one persistent WebGL apparatus — object → barrier with a pinhole → screen, rays crossing at the
-  hole to paint an inverted image of height `h' = h·v/u`. The learner can drag the tree or the screen
-  along the optical axis, and that drag flows back into the session as `demo.set {u|v}`, so a
-  manipulation is recorded, replayable state a policy can observe.
-  - *Four engine gaps this slice closed:* **narration is now audible** (`StudioView` had always POSTed
-    `/api/tts`, but nothing served it — `audio/dev_tts.ts` + a vite plugin answer it, key server-side,
-    every line content-hash cached to `.audio-cache/`); a **first-class Continue affordance**, derived
-    rather than authored, which retires the M2 gap below and both debug harnesses; **`VizIntent.persistent`**
-    so one apparatus is shared instead of copied per turn (N turns of WebGL would exhaust the browser's
-    ~16-context limit) and survives the gates, which contribute no stage content; and
-    **`VizHandle.poster()`** so a canvas beat is not a hole in export.
-  - *3-D decision (mirrors M3's ValueTracker one):* **no 3-D scene-graph node kind.** 3-D lives behind
-    `registerViz`, and beats drive it with DECLARED STATE (`u`, `v`, camera, what's visible), never
-    imperative verbs — the reference fired 11 GSAP verbs at a global timeline, which has no meaning in
-    a clockless host where a beat may be entered by advancing, by a detour, or by replay. The viz eases
-    between states using `easings` from `@lessonstudio/timeline`, so 3-D motion speaks the same Manim
-    rate functions as every 2-D storyboard. Run: `LS_ROOT=examples/pinhole vite`.
-- **M4.6 — colour-keyed symbols + a learner-facing narration control.** ✅ Done & verified in the same
-  walk. The reference colour-codes every variable and keeps figure and prose in one hue;
-  `examples/pinhole/palette.ts` is now the single source of that mapping — the WebGL sprite labels and
-  the KaTeX `\textcolor{…}` read the same table, so a figure/prose divergence is no longer expressible.
-  Colour lives with the lesson because it is authored CONTENT (*which symbol is this*), not `Theme`,
-  which owns reusable roles.
-  - **Pause the narration** — a control left of the Composer (or `P`). `AudioSink` grew
-    `status()`/`subscribe()`, and the label is derived from the audio element itself, so it can never
-    advertise "Pause" over silence an autoplay policy blocked. A pause is a STANDING preference, not a
-    one-clip pause: later beats stay quiet (their clips still preload, so resuming is instant) until the
-    learner resumes — one control, one meaning: narration on / off.
-  - *Four markup leaks this exposed, all one bug:* authored strings reaching the DOM unparsed.
-    `projectTranscript` wrapped a past turn's prose in `text()`, `explain` did the same for a string
-    body, `explorable`'s ask-prompt too, and the gates printed feedback/hints literally — so an
-    authored `$h' = h\,v/u$` showed its dollar signs. Each now uses the parser its own live renderer
-    uses (`article` / `md`); learner-typed and engine-derived strings deliberately still do not parse.
-    Separately, `parseRich` extracted math first and ran emphasis on each fragment, so a `**bold**`
-    *wrapping* a `$math$` span never paired — it now masks math spans, runs emphasis over the whole
-    line, and re-expands. The walk asserts both invariants: no literal `$…$` and no literal `**…**`
-    anywhere in the accumulated transcript.
-- **M5a — the live authoring loop: the learner asks, the agent AUTHORS a beat.** ✅ Done & verified
-  headlessly (**58/58**, `examples/pinhole/authoring.ts`) and in the browser (the pinhole walk is now
-  **62/62**). The always-on Composer used to be a dead end — it raised a `generate` effect nothing
-  served. Now `message.submit` parks the learner on an **ephemeral "thinking" leaf** that clones the
-  interrupted beat's viz (the workspace never blanks), `generatingRunner(author, defaultRunner())`
-  hands the effect to a `LessonAuthor`, and the assembled beat rides back as a **`beat.generated`
-  event** — so it is spliced in, entered, *and* recorded. **generate → freeze → replay:** a replayed
-  session rebuilds the same answer from the log with the model never called again (a counting stub
-  asserts the call count, so that claim is a test rather than a comment).
-  - *The division of labour is the design* (`examples/pinhole/author.ts`): the **engine owns facts and
-    structure** — the physics, the beat's id and type, where Continue returns to, and the learner's
-    CURRENT apparatus state; the **model owns only voice**, one short paragraph. It cannot emit an
-    invalid beat, reroute the lesson, or contradict a number, because it never produces any of those.
-    So a bad generation degrades to flat prose, not a broken lesson. The numbers are appended by the
-    engine as a colour-keyed footer through the same `palette.ts` the figure labels use — which is
-    what makes a generated turn look native to the lesson instead of like a chat reply pasted in.
-  - *Grounding is the whole point.* The walk asks its question one slider-drag into the explorable, so
-    the answer must be about `v = 13` and `m = 13/7 = 1.86` — numbers that appear nowhere in the lesson
-    source (the authored default is `v = 7`, `m = 1`). That state is exactly what a chat window beside
-    the lesson structurally cannot see, and the engine structurally can.
-  - *Interrupt for free.* Entering a new leaf makes in-flight generation stale, so a second question
-    **drops** the first answer instead of yanking the learner back — while both questions stay in the
-    log, because an interrupt is a discourse move, not an erasure. The two entry points differ on
-    purpose: the Composer is an interruption (thinking leaf, then resume); an explorable's own ask box
-    is a self-transition, so the learner keeps fiddling with the controls while the answer is authored.
-  - *Keys stay server-side.* `/api/author` mirrors `/api/tts` — structurally-typed vite plugin, key in
-    the dev process only, content-hash disk cache (`.author-cache/`). The browser talks only to the
-    proxy, and the walk asserts that **no request to a provider host ever leaves the page**. With no
-    `ANTHROPIC_API_KEY` the endpoint answers `{error}` and `claudeAuthor` assembles the plan's
-    deterministic `fallbackText`, so the entire loop plays keyless — which is how it is verified here,
-    and why every browser assertion is about what the engine owns rather than about the prose.
-- **M5b — the module split, and a LIVE HUMAN TEACHER on a second screen (tier 2).** ✅ Done & verified
-  headlessly (**126/126**, `examples/pinhole/direction.ts`) and in the browser (**71/71**,
-  `examples/shot-teach.mjs`). `lesson/authoring/` had been four unrelated things wearing one name —
-  the engine's stateful host, the human DSL, the live mutation protocol, and the LLM half — and
-  `@lessonstudio/lesson` was handing out an Anthropic client. That is now the module cut in *Layout*
-  below, landed as a behaviour-neutral move and re-verified before any feature work.
-  - *The teacher is a programmer, so the interface is logs out, commands in* — not a GUI. One pure
-    formatter renders the situation (active beat, live control values, the pending question, the
-    verdict on the last batch) and the teacher answers with `DirectorCommand[]`:
-    `direct say "look at the screen distance"`, `direct revisit flip`, `direct focus --scale 3
-    --at .4,.55`, `direct set v=13`. Four polling endpoints, no WebSocket, no new dependency; the
-    student's page stays authoritative and the log on disk is literally `tail -f`-able.
-  - *Maximum flexibility, no new engine concepts.* `say` and `revisit` are **sugar the adjudicator
-    expands** into `addBeat` + `next: <where the learner was>` — so answering with a beat and
-    re-showing an earlier figure before coming back are the same primitive, and `revisit`'s clone of an
-    existing beat is the reuse-a-visual affordance. `focus`/`annotate` take normalized 0..1 stage
-    coordinates, so one implementation zooms an SVG figure, a Canvas2D viz and the WebGL apparatus.
-  - *Atomic by shadow-charting.* A batch is adjudicated against a copy and committed only if every op
-    survives, so a bad turn never reaches history — and a teacher-taught session replays from its log
-    with no bus and no transport at all.
-- **M5c — an AI TEACHER standing exactly where the human stood (tier 3), unrestricted.** ✅ Done &
-  verified headlessly (**110/110**, `examples/pinhole/ai_teach.ts`). The claim is a *negative* one:
-  there is no AI-specific path into a lesson. `tsx forge/cli/ai_teach.ts` is the same program as
-  `tsx teach/cli/direct.ts` with the human replaced — same four endpoints, same observation text,
-  same verdicts. Tier 3 needed a loop, not an integration, which is what tier 2 being
-  logs-in/commands-out bought.
-  - *The tool surface IS the command union.* One `Record<DirectorOp, ToolEntry>` generates the model's
-    tools, so the compiler refuses an op that has no tool: the vocabulary cannot drift, and adding an
-    op stays one edit. Reactive by default (a question is a request for a teacher, one model call per
-    question); autonomous — offer the director *every* learner action — is opt-in, because it spends a
-    call per gesture and would make the browser walks nondeterministic.
-  - *Unrestricted now, limitable later, and that is a config value.* `capabilities: FULL` sets no cap;
-    `SUPERVISED`/`OBSERVE_ONLY` already work, refused at the engine's single gate. A withheld tool is
-    an explanation to the model; the refusal is still the adjudicator's.
-  - *Freeze still holds.* A director's turn rides in one recorded event carrying its actor, so
-    `replay()` rebuilds an AI-taught session with the provider unreachable, attributed to the agent.
-- **M5 — productionize the AI seam + export the IR JSON Schema** (the contract lessonForge targets).
-  Also open: single-file/offline export, a `barChart` visuals factory, and rewind-by-transcript-prefix.
+Pre-1.0, and specific about it:
 
-## Dev setup
+- A lesson compiles to a **flat** chart — one top-level state per beat. The interpreter supports
+  nested compound states; the lesson compiler does not emit them.
+- `rerouteBeat` rewrites an edge as a single *unguarded* transition. Rewiring a guarded or branching
+  edge is not supported.
+- `review` capabilities are a refusal carrying a reason, not an approval queue — nothing is held
+  pending, because pending state that isn't in the history isn't replayable.
+- There is no video export. Scenes are pure and rasterizable, but the timed export path was dropped
+  in favour of a live, learner-paced runtime.
+- The per-theme palette re-map keys on the **named** palette, so a figure that hardcodes an
+  off-palette hex is not re-mapped. That is the documented escape hatch, not an oversight — but it
+  does mean a figure author who wants theme-following colour has to name a role.
+- `theme.chrome` is three switches, not a component-override system. A template that needs different
+  *components* (a slide deck with no scrollback, say) still goes through `defaultComponents`.
+- A registered `viz` gets `setTheme` and is asked to repaint in place rather than remount, so a viz
+  that ignores it keeps its original colours through a mode switch. The engine cannot force the issue:
+  a WebGL scene owns state (a camera pose) that a remount would destroy.
+- Not published to npm. The `@lessonstudio/*` names are repo-local path aliases; clone the repo.
 
-No system Node on this machine — reuse the conda Node 22 from the sibling `lessonkit` checkout.
-Dependencies are this repo's own (`node_modules` was originally symlinked to lessonkit's; the first
-`npm install` here replaced it with a real tree, which is the correct end state):
+Contributions welcome. The bar for a change is the same as for the engine: if it makes a claim, add
+the check that would fail without it.
 
-```bash
-export PATH="/proj/long-multi/shaden/lessonkit/.conda-node/bin:$PATH"
-npm install                                          # react, katex, three, puppeteer, vite
-./node_modules/.bin/tsc --noEmit                     # typecheck the engine
-./node_modules/.bin/tsx examples/smoke/headless.ts   # headless smoke test
-```
+## License
 
-Audible narration needs `ELEVEN_LABS_API_KEY` in the environment; clips are cached under
-`.audio-cache/`, so a line is synthesized once and later runs are offline. Without the key the
-narration pipeline still runs, silently. Browser checks need swiftshader for WebGL:
-`--enable-unsafe-swiftshader --use-gl=angle --use-angle=swiftshader`.
+MIT — see [LICENSE](LICENSE).
 
-To teach a running lesson — one dev server, then a second terminal. Every key stays in the dev
-process, and with no `ANTHROPIC_API_KEY` all three tiers still play (the model's judgement is the
-only thing stubbed):
-
-```bash
-LS_ROOT=examples/pinhole ./node_modules/.bin/vite --port 5188   # the student's page
-
-./node_modules/.bin/tsx teach/cli/tail.ts                      # tier 2: watch the session
-./node_modules/.bin/tsx teach/cli/direct.ts say "look at the screen distance"
-./node_modules/.bin/tsx forge/cli/ai_teach.ts                  # tier 3: a model does both
-./node_modules/.bin/tsx forge/cli/ai_teach.ts --dry-run        #   …decide and print, send nothing
-```
-
-Two dev servers at once is fine: each `LS_ROOT` gets its own dep-optimizer cache under
-`node_modules/.vite/<root>/`, since Vite's default is one cache per package and the roots do not
-share a dependency set.
-
-## Layout
-
-```
-state_machine/    pure hierarchical statechart (imports nothing)
-render_contract/  RenderIntent / RichText / slots (imports nothing)
-timeline/         scene graph + Storyboard + pure sampleAt
-visuals/          mobject + animation library, on the declarative scene graph
-scene_svg/        declarative SceneNode figures, drawn by the pure snapshot renderer
-audio/            TTS + word-alignment + subtitles + cache
-lesson/           THE ENGINE — deterministic, replayable, no LLM
-  lesson_sm/        beat IR + compile→statechart
-  beats/            beat definitions + shared workspace wiring
-  runtime/          Session — the stateful host (event-sourced, replayable)
-  direction/        the DirectorCommand union · adjudicate · capabilities · catalog ·
-                      observe · format   (what a teacher may do, and what they see)
-  policy/           Perceive/Decide contracts
-authoring/        TIER 1 — defineLesson + beat sugar + narrate precompile. PURE, offline.
-teach/            TIER 2 — the live human teacher: dev bus (log + command queue),
-                    browser client, `tail`/`direct` CLIs
-forge/            TIER 3 — the AI half: LLM seam, prompt plans, Claude author, the AI
-                    TEACHER (tools generated from the command union) + dev proxies
-live/             the one runtime — clockless co-play (learner + agent both emit events)
-template/         data-driven Template<R> — the split-screen default
-rendering/        render_web — one React view driven by the template
-examples/         smoke test, the 3b1b convolution slice, the pinhole slice
-```
-
-Everything is a strict one-directional dependency DAG (the invariant carried over from lessonkit,
-verified). One authoring surface: `defineLesson({ flow: [...] })` — the same JSON IR an LLM emits.
-
-The load-bearing edge is that **`lesson/` may not import `forge/`**. The engine knows the
-`DirectorCommand` union it can safely execute and the `Director`/`LessonAuthor` interfaces — never
-who produces them. So a lesson plays identically with `forge/` deleted, and the three teaching
-tiers are one seam with three clients:
-
-| tier | who teaches | how it reaches the lesson |
-|---|---|---|
-| 1 | a human author, offline | `authoring/` → frozen IR, deterministic (Manim-style) |
-| 2 | a live human teacher, watching | logs out, `DirectorCommand[]` in, over `teach/`'s four endpoints |
-| 3 | a model | the same four endpoints — `forge/`'s tools ARE that command union |
-
-Tier 3 is "run the other client", not a second integration: `tsx forge/cli/ai_teach.ts` stands
-exactly where `tsx teach/cli/direct.ts` stood. And because a director's turn rides in one recorded
-event, `replay()` rebuilds an AI-taught session with the model never called again.
+The sample photographs in `examples/convolution/img/` are **not** covered by that license; see
+[their credits file](examples/convolution/img/CREDITS.md).

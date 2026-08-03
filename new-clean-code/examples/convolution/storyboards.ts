@@ -1,34 +1,19 @@
-// The scripted (non-interactive) scene beats for the convolution reproduction (M4).
-// All pure `Storyboard` data resolved by `sampleAt` — no clock, no eval, frame-identical
-// in preview and export:
-//   • buildCombine() — the section-A HOOK: a=(1,2,3,4), b=(5,6,7,8) appear, then three ways to
-//                      combine them reveal in turn — a+b and a·b (both length 4, term-by-term) and
-//                      a∗b (length 7, the odd one out that mixes every pair). Motivates "what IS
-//                      this third operation?" Uses HOOK_A/HOOK_B (not the (1,2,3)∗(4,5,6) core).
-//   • buildFlip()  — the two sequences appear, then b is FLIPPED (its ends arc-swap so it
-//                    reads 6,5,4). This is the "flip" of flip-slide-multiply-sum.
-//   • buildSlide() — the flipped b-strip slides under a; as it passes each shift the aligned
-//                    output pops into the result row: [4,13,28,27,18].
-// Same A/B/convolve() as the interactive figure and the headless check.
-//
-// SAMPLER CONTRACT (important): `sampleAt` applies EVERY tween and each overwrites its
-// property, so the LAST tween on a given (node, property) wins at all times — even before
-// its start (it writes its `from`). So we use exactly ONE tween per property per node:
-// the arc is x (smooth) + y (thereAndBack bump); the slide is a single continuous x-tween
-// with reveal times derived from the strip's linear position.
-
-import { fadeIn, group, indicate, label, numberBox, palette } from "@lessonstudio/visuals";
+import { fadeIn, group, indicate, label, numberBox, palette } from "@lessonstudio/figures";
 import type { SceneNode, Storyboard, Tween } from "@lessonstudio/timeline";
 import { A, B, convolve } from "./figures.js";
 
 const STAGE = { w: 1280, h: 720 };
 const STEP = 170;
 const CX = 640;
-const AX = (i: number): number => CX + (i - 1) * STEP; // 470, 640, 810
-const conv = convolve(A, B); // [4,13,28,27,18]
-const INK = "#0b0e1a"; // dark text on yellow result boxes
+const AX = (i: number): number => CX + (i - 1) * STEP;
+const conv = convolve(A, B);
+/**
+ * Text drawn inside a filled box. A storyboard is built once at module load, so it cannot read a
+ * theme — naming the palette role instead of a hex is what lets `svg/` invert it per theme, so these
+ * numbers stay legible when the boxes go from bright-on-dark to dark-on-paper.
+ */
+const INK = palette.onMark;
 
-// ── FLIP ─────────────────────────────────────────────────────────────────────
 export function buildFlip(): Storyboard {
   const Y_A = 250;
   const Y_B = 450;
@@ -46,9 +31,6 @@ export function buildFlip(): Storyboard {
     label("flipcap", CX, 600, "flip b — now it reads 6, 5, 4", { size: 22, weight: 700, anchor: "middle", fill: palette.yellow }),
   ];
 
-  // The flip: the two END boxes swap sides. Each is ONE x-tween (linear left/right) plus ONE
-  // y-tween eased with `thereAndBack` (0→peak→0) — together an up-and-over (b0) / down-and-under
-  // (b2) arc. b0 arcs above, b2 below, so they never collide at center.
   const arcX = (target: string, from: number, to: number): Tween => ({ target, property: "x", from, to, start: FLIP_START, duration: FLIP_DUR, easing: "smooth" });
   const arcY = (target: string, dy: number): Tween => ({ target, property: "y", from: Y_B, to: Y_B + dy, start: FLIP_START, duration: FLIP_DUR, easing: "thereAndBack" });
 
@@ -70,21 +52,18 @@ export function buildFlip(): Storyboard {
   return { duration: 4800, stage: STAGE, initial, tweens };
 }
 
-// ── SLIDE ────────────────────────────────────────────────────────────────────
 export function buildSlide(): Storyboard {
   const Y_A = 210;
   const Y_B = 390;
   const Y_C = 560;
-  const A0 = AX(0); // 470
-  const Gx = (n: number): number => A0 + (n - 2) * STEP; // strip group x for shift n: 130..810
-  const OX = (m: number): number => CX + (m - 2) * 150; // result columns: 340..940
+  const A0 = AX(0);
+  const Gx = (n: number): number => A0 + (n - 2) * STEP;
+  const OX = (m: number): number => CX + (m - 2) * 150;
   const SLIDE_START = 700;
   const SLIDE_DUR = 6000;
-  // strip is at shift n when its linear slide reaches Gx(n): t = SLIDE_START + SLIDE_DUR·(n/nMax)
-  const nMax = conv.length - 1; // 4
+  const nMax = conv.length - 1;
   const revealAt = (n: number): number => SLIDE_START + SLIDE_DUR * (n / nMax);
 
-  // flipped strip (reads 6,5,4 left→right): children local x = (2−j)·STEP, group placed at Gx(n).
   const stripKids: SceneNode[] = B.map((v, j) => numberBox(`sb${j}`, (2 - j) * STEP, 0, v, { fill: palette.red }));
 
   const initial: SceneNode[] = [
@@ -99,10 +78,8 @@ export function buildSlide(): Storyboard {
   const tweens: Tween[] = [
     ...["a0", "a1", "a2"].flatMap((t, i) => fadeIn(t, { start: i * 120, duration: 350 })),
     ...fadeIn("strip", { start: 200, duration: 400 }),
-    // one continuous slide across all shifts (single x-tween — sampler-safe)
     { target: "strip", property: "x", from: Gx(0), to: Gx(nMax), start: SLIDE_START, duration: SLIDE_DUR, easing: "linear" },
   ];
-  // each output box pops in as the strip passes its shift (fadeIn = opacity, indicate = scale: distinct props)
   for (let n = 0; n <= nMax; n++) {
     const r = revealAt(n);
     tweens.push(...fadeIn(`res${n}`, { start: r, duration: 300 }));
@@ -112,24 +89,20 @@ export function buildSlide(): Storyboard {
   return { duration: SLIDE_START + SLIDE_DUR + 900, stage: STAGE, initial, tweens };
 }
 
-// ── COMBINE (section A: the hook) ──────────────────────────────────────────────
-// a=(1,2,3,4), b=(5,6,7,8). Three ways to combine two equal-length lists: add and multiply
-// stay length 4 and act term-by-term; convolution is length 7 and mixes every pair — the odd
-// one out we spend the rest of the lesson understanding. One tween per (node, property).
 const HOOK_A = [1, 2, 3, 4];
 const HOOK_B = [5, 6, 7, 8];
 export function buildCombine(): Storyboard {
-  const add = HOOK_A.map((v, i) => v + HOOK_B[i]!); // (6,8,10,12)
-  const mul = HOOK_A.map((v, i) => v * HOOK_B[i]!); // (5,12,21,32)
-  const cnv = convolve(HOOK_A, HOOK_B); // (5,16,34,60,61,52,32)
+  const add = HOOK_A.map((v, i) => v + HOOK_B[i]!);
+  const mul = HOOK_A.map((v, i) => v * HOOK_B[i]!);
+  const cnv = convolve(HOOK_A, HOOK_B);
 
   const W4 = 78;
   const STEP4 = 150;
-  const X4 = (i: number): number => CX + (i - 1.5) * STEP4; // 415, 565, 715, 865
-  const LBL4 = X4(0) - W4 / 2 - 22; // right-anchored row label x for the 4-wide rows
+  const X4 = (i: number): number => CX + (i - 1.5) * STEP4;
+  const LBL4 = X4(0) - W4 / 2 - 22;
   const W7 = 72;
   const STEP7 = 118;
-  const X7 = (m: number): number => CX + (m - 3) * STEP7; // 286 .. 994
+  const X7 = (m: number): number => CX + (m - 3) * STEP7;
   const LBL7 = X7(0) - W7 / 2 - 22;
 
   const Y_A = 165;
@@ -162,13 +135,10 @@ export function buildCombine(): Storyboard {
     ...HOOK_A.map((_, i) => fadeIn(`ha${i}`, { start: 350 + i * 130, duration: 300 })).flat(),
     ...fadeIn("lb", { start: 900 }),
     ...HOOK_B.map((_, i) => fadeIn(`hb${i}`, { start: 950 + i * 130, duration: 300 })).flat(),
-    // a + b
     ...fadeIn("ladd", { start: 1700 }),
     ...add.map((_, i) => fadeIn(`add${i}`, { start: 1750 + i * 110, duration: 280 })).flat(),
-    // a · b
     ...fadeIn("lmul", { start: 2500 }),
     ...mul.map((_, i) => fadeIn(`mul${i}`, { start: 2550 + i * 110, duration: 280 })).flat(),
-    // a ∗ b — the odd one out
     ...fadeIn("lcnv", { start: 3400 }),
     ...cnv.map((_, i) => fadeIn(`cnv${i}`, { start: 3450 + i * 130, duration: 280 })).flat(),
     ...indicate("lcnv", { start: 4500, duration: 800, scaleTo: 1.15 }),

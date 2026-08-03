@@ -1,20 +1,5 @@
-// LiveProgram: the live layer's host. It COMPOSES a lesson Session (the SM host) and
-// owns nothing "video" — no clock, no transport, no gates, no caption, no audio, no
-// spine/back-forward trail. Learner and agent are both players emitting events; the
-// agent may author the environment (add/reroute beats) at play time. A "frame" is the
-// current render model + the unified conversation + two flags (done, thinking).
-//
-// The single sync point is `sess.subscribe`: EVERY committed step — a learner send, an
-// agent authoring command, or an effect-driven re-entry (a resolved `generate` splicing
-// the answer beat, a timer, a SignalSource) — flows through the Session's own notify,
-// so one observer drives every frame. `send()` therefore does NOT emit itself (that
-// would double-fire); it just forwards to the Session and lets the observer react.
-//
-// Layering: live → { lesson (Session host), render_contract, state_machine }. Nothing
-// here depends on a renderer, the clock, or the timeline.
-
 import type { MachineEvent } from "@lessonstudio/state-machine";
-import type { RenderModel } from "@lessonstudio/render-contract";
+import type { RenderModel } from "@lessonstudio/intents";
 import {
   ANNOTATIONS_VAR,
   FOCUS_VAR,
@@ -28,7 +13,6 @@ import {
 } from "@lessonstudio/lesson";
 import type { LiveFrame } from "./frame.js";
 
-/** Active-leaf prefix marking the synthesized "thinking" beat (see Session.applyMessage). */
 const THINKING_PREFIX = "__ask-";
 
 export class LiveProgram {
@@ -38,13 +22,8 @@ export class LiveProgram {
   private trCache: { len: number; active: string; turns: Turn[] } | null = null;
 
   constructor(private readonly sess: Session) {
-    // One observer for the whole live loop: caller sends AND effect-driven re-entries
-    // (the agent's answer resolving, a timer) both re-enter through the Session's notify,
-    // so subscribing once here is the only sync a clockless host needs.
     this.detachSession = this.sess.subscribe(() => this.emit());
   }
-
-  // ── public API ─────────────────────────────────────────────────────────────
 
   get session(): Session {
     return this.sess;
@@ -112,11 +91,9 @@ export class LiveProgram {
   }
 
   /** A player's move. Learner text (`message.submit`), an answer, a control fiddle, or the
-   *  agent's `workspace.set` / `authoring.command` — all go through the one Session dispatch. */
+   *  agent's `direction.command` — all go through the one Session dispatch. */
   send = (e: MachineEvent): void => {
     this.sess.send(e);
-    // No emit here: the Session's notify (via `subscribe`) fires the frame, covering both
-    // this call and any effect-driven re-entry it triggers. Emitting here would double-fire.
   };
 
   subscribe(fn: (f: LiveFrame) => void): () => void {
@@ -130,8 +107,6 @@ export class LiveProgram {
     this.detachSession = undefined;
     this.subscribers.clear();
   }
-
-  // ── internals ────────────────────────────────────────────────────────────────
 
   private emit(): void {
     if (!this.subscribers.size) return;

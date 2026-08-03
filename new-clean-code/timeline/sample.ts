@@ -1,23 +1,16 @@
-// The pure sampler — the linchpin. sampleAt(storyboard, t) resolves the scene at
-// time t with NO clock, NO randomness, NO Date. Interactive playback, seek, and
-// frame export all call this, which is what keeps them frame-identical.
-
+import { containsBinding, resolveStoryboard, type BindingValues } from "./bind.js";
 import type { NodeBase, SceneNode, SceneSnapshot } from "./scene.js";
-import type { CameraKey, Cue, Easing, Storyboard, Tween } from "./storyboard.js";
+import type { CameraKey, Easing, Storyboard, Tween } from "./storyboard.js";
 
-// Manim's smoothstep — the reference `smooth`. Zero velocity at both ends. rushInto/rushFrom/
-// thereAndBack are built from it exactly as Manim builds rush_into/rush_from/there_and_back.
 const smooth = (p: number): number => p * p * (3 - 2 * p);
 
 export const easings: Record<Easing, (p: number) => number> = {
-  // ── Manim canonical rate functions ──
   smooth,
-  smootherstep: (p) => p * p * p * (p * (p * 6 - 15) + 10), // 6p⁵−15p⁴+10p³
-  rushInto: (p) => 2 * smooth(p / 2), // accelerate: first half of the S-curve
-  rushFrom: (p) => 2 * smooth(p / 2 + 0.5) - 1, // decelerate: second half
-  slowInto: (p) => Math.sqrt(1 - (1 - p) * (1 - p)), // ease into the end
-  thereAndBack: (p) => (p < 0.5 ? smooth(2 * p) : smooth(2 * (1 - p))), // 0→1→0
-  // ── easings.net aliases ──
+  smootherstep: (p) => p * p * p * (p * (p * 6 - 15) + 10),
+  rushInto: (p) => 2 * smooth(p / 2),
+  rushFrom: (p) => 2 * smooth(p / 2 + 0.5) - 1,
+  slowInto: (p) => Math.sqrt(1 - (1 - p) * (1 - p)),
+  thereAndBack: (p) => (p < 0.5 ? smooth(2 * p) : smooth(2 * (1 - p))),
   linear: (p) => p,
   easeIn: (p) => p * p,
   easeOut: (p) => 1 - (1 - p) * (1 - p),
@@ -45,16 +38,10 @@ export const easings: Record<Easing, (p: number) => number> = {
 };
 
 function clamp01(x: number): number {
-  // `!(x >= 0)` also catches NaN → 0, so malformed tween numbers never propagate.
   if (!(x >= 0)) return 0;
   return x > 1 ? 1 : x;
 }
 
-/** Eased progress of a tween at time t. Before start → 0. Otherwise apply the easing to the
- * clamped linear fraction — INCLUDING at/after the end (fraction clamps to 1), so easing(1) is
- * honored. Monotonic easings have easing(1)==1 (holds the final value); non-monotonic ones like
- * `thereAndBack` have easing(1)==0, returning the node to its base — that's how a one-tween pulse
- * (indicate) resolves instead of getting stuck at its peak. */
 function progress(tw: Tween, t: number): number {
   if (t <= tw.start) return 0;
   if (tw.duration <= 0) return 1;
@@ -66,7 +53,6 @@ function lerpNumber(a: number, b: number, p: number): number {
   return a + (b - a) * p;
 }
 
-/** Interpolate #rrggbb colors; falls back to `to` for non-hex inputs. */
 function lerpColor(a: string, b: string, p: number): string {
   const pa = parseHex(a);
   const pb = parseHex(b);
@@ -84,28 +70,22 @@ function parseHex(s: string): [number, number, number] | null {
 function baseValue(node: NodeBase, prop: Tween["property"]): number | string {
   if (prop === "fill") return node.fill ?? "#000000";
   const v = (node as unknown as Record<string, unknown>)[prop];
-  // opacity/scale/draw default to 1 (fully visible/natural/drawn); others to 0.
   return typeof v === "number" ? v : prop === "opacity" || prop === "scale" || prop === "draw" ? 1 : 0;
 }
 
-/** Apply one tween's resolved value at time t onto a (mutable) node copy. */
 function applyTween(node: NodeBase, tw: Tween, t: number): void {
   const p = progress(tw, t);
   if (tw.property === "fill") {
-    // Coerce to string even if an author/LLM passed a number — parseHex().trim()
-    // would otherwise throw, violating the "malformed data never crashes" invariant.
     const from = typeof tw.from === "string" ? tw.from : node.fill ?? "#000000";
     node.fill = lerpColor(from, String(tw.to), p);
   } else {
     const from = typeof tw.from === "number" ? tw.from : (baseValue(node, tw.property) as number);
     const to = Number(tw.to);
     const v = lerpNumber(from, Number.isFinite(to) ? to : from, p);
-    // Never write NaN onto a node — a bad tween holds the base value instead.
     (node as unknown as Record<string, number>)[tw.property] = Number.isFinite(v) ? v : from;
   }
 }
 
-/** Deep clone a scene node (structuredClone-free for portability). */
 function cloneNode(n: SceneNode): SceneNode {
   if (n.kind === "group") return { ...n, children: n.children.map(cloneNode) };
   return { ...n };
@@ -122,7 +102,6 @@ function findById(nodes: SceneNode[], id: string): NodeBase | undefined {
   return undefined;
 }
 
-/** Resolve the camera window (viewBox) at time `t`: interpolate keyframes, else full stage. Pure. */
 function sampleCamera(keys: CameraKey[] | undefined, stage: { w: number; h: number }, t: number): SceneSnapshot["viewBox"] {
   if (!keys || keys.length === 0) return { x: 0, y: 0, w: stage.w, h: stage.h };
   const box = (k: CameraKey) => ({ x: k.x, y: k.y, w: k.w, h: k.h });
@@ -141,29 +120,43 @@ function sampleCamera(keys: CameraKey[] | undefined, stage: { w: number; h: numb
   return box(last);
 }
 
-/** Resolve the scene at time `t` (ms). Pure. */
-export function sampleAt(sb: Storyboard, t: number): SceneSnapshot {
-  // Guard the required arrays: an agent-authored storyboard may omit them, and an
-  // opaque `Cannot read 'map' of undefined` is a poor author-facing failure.
-  const nodes = (sb.initial ?? []).map(cloneNode);
-  for (const tw of sb.tweens ?? []) {
+function laneOf(tw: Tween): string {
+  return `${tw.target} ${tw.property}`;
+}
+
+function writesAt(tweens: Tween[], t: number): Tween[] {
+  if (tweens.length < 2) return tweens;
+  const lanes = new Map<string, Tween[]>();
+  for (const tw of tweens) {
+    const lane = lanes.get(laneOf(tw));
+    if (lane) lane.push(tw);
+    else lanes.set(laneOf(tw), [tw]);
+  }
+  const out: Tween[] = [];
+  for (const lane of lanes.values()) {
+    if (lane.length > 1) lane.sort((a, b) => a.start - b.start);
+    let n = 0;
+    while (n < lane.length && lane[n]!.start <= t) n++;
+    if (n === 0) out.push(lane[0]!);
+    else for (let i = 0; i < n; i++) out.push(lane[i]!);
+  }
+  return out;
+}
+
+/**
+ * Resolve the scene at time `t` (ms). Pure.
+ *
+ * `values` are a bound storyboard's control values (see `bind.ts`). Bindings are resolved BEFORE
+ * tweening, so a bound node and a tween over it compose exactly as an authored number would — the
+ * slider decides where a thing starts, the tween still moves it from there.
+ */
+export function sampleAt(sb: Storyboard, t: number, values?: BindingValues): SceneSnapshot {
+  const board = values && containsBinding(sb) ? resolveStoryboard(sb, values) : sb;
+  const nodes = (board.initial ?? []).map(cloneNode);
+  for (const tw of writesAt(board.tweens ?? [], t)) {
     const node = findById(nodes, tw.target);
     if (node) applyTween(node, tw, t);
   }
-  const stage = sb.stage ?? { w: 1920, h: 1080 };
-  return { nodes, viewBox: sampleCamera(sb.camera, stage, t) };
-}
-
-/** Cues whose `at <= t`, in time order. Pure. */
-export function cuesUpTo(sb: Storyboard, t: number): Cue[] {
-  return (sb.cues ?? []).filter((c) => c.at <= t).sort((a, b) => a.at - b.at);
-}
-
-/** The latest gate cue at or before `t`, if the clock should pause there. Pure. */
-export function activeGate(sb: Storyboard, t: number): Extract<Cue, { kind: "gate" }> | null {
-  let found: Extract<Cue, { kind: "gate" }> | null = null;
-  for (const c of sb.cues ?? []) {
-    if (c.kind === "gate" && c.at <= t) found = c;
-  }
-  return found;
+  const stage = board.stage ?? { w: 1920, h: 1080 };
+  return { nodes, viewBox: sampleCamera(board.camera, stage, t) };
 }

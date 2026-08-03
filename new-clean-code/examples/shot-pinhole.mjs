@@ -1,5 +1,5 @@
 // Drive the pinhole lesson end-to-end in a real browser and assert the things that
-// actually matter for this slice:
+// actually matter:
 //   1. the 3-D apparatus mounts and RENDERS (a non-blank WebGL framebuffer);
 //   2. narration is audible — /api/tts answers with real mp3 bytes + word timings, per beat;
 //   3. exactly ONE canvas exists no matter how many turns accumulate (VizIntent.persistent),
@@ -12,21 +12,21 @@
 //   8. variables are COLOUR-CODED in the math, in the same hues the figure labels use, and no
 //      authored markup (`$math$`, `**bold**`) leaks through as literal text;
 //   9. the learner can pause the narration — and it STAYS paused into the next beat;
-//  10. M5a — the learner interrupts through the always-on Composer and the agent AUTHORS a
-//      beat that splices into the running lesson: a thinking affordance appears without the
+//  10. the learner interrupts through the always-on Composer and the director WRITES a beat
+//      that splices into the running lesson: a thinking affordance appears without the
 //      workspace blanking, the answer is grounded in the apparatus THIS learner manipulated
 //      (v = 13 → m = 13/7 = 1.86, not the authored default v = 7 → m = 1), it lands as a
 //      role-attributed turn in the same colour key as the rest of the lesson, and Continue
 //      resumes the interrupted explorable with the slider value intact;
-//  11. no provider request ever leaves the browser — narration and authoring both go through
+//  11. no provider request ever leaves the browser — narration and direction both go through
 //      the dev endpoints, so every provider credential stays in the vite process.
 // The generated PROSE is never asserted, because WHICH model wrote it is a property of the
-// machine: /api/author resolves `auto` to Gemini, the local `claude` CLI, or the Anthropic API,
-// and answers `{error}` when it can reach none of them (then the plan's deterministic fallback
-// text is used). So this walk checks only what the ENGINE owns — which is exactly the claim
-// worth checking, since it must hold on every one of those paths. The other half of M5a — that
-// the exchange replays from the event log with the model never called again — is proved in
-// examples/pinhole/authoring.ts, where a counting stub can assert the call count itself.
+// machine: /api/direct resolves `auto` to Gemini, the local `claude` CLI, or the Anthropic API,
+// and answers `{error}` when it can reach none of them (then the runner's `onSilence` supplies
+// the lesson's deterministic paragraph). So this walk checks only what the ENGINE owns — which
+// is exactly the claim worth checking, since it must hold on every one of those paths. The
+// other half of it — that the exchange replays from the event log with the model never called
+// again — is proved in checks/ask.ts, where a counting stub can assert the call count itself.
 // Needs swiftshader for WebGL under headless Chrome.
 import puppeteer from "puppeteer";
 import { createHash } from "node:crypto";
@@ -44,10 +44,10 @@ await p.setViewport({ width: 1400, height: 900, deviceScaleFactor: 1 });
 
 const errors = [];
 const ttsCalls = [];
-const authorCalls = [];
+const directCalls = [];
 // Both provider keys live in the vite process, never in the bundle (audio/dev_tts.ts,
-// lesson/authoring/dev_author.ts). The proof is negative and belongs in the walk: if a key
-// ever reached the browser, the request to the provider would show up HERE.
+// forge/dev_director.ts). The proof is negative and belongs in the walk: if a key ever
+// reached the browser, the request to the provider would show up HERE.
 const providerHits = [];
 p.on("request", (r) => { if (/api\.anthropic\.com|generativelanguage\.googleapis\.com|elevenlabs\.io|openai\.com/i.test(r.url())) providerHits.push(r.url()); });
 p.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
@@ -61,19 +61,21 @@ p.on("response", async (r) => {
     ttsCalls.push({ ok: !!j.audio, bytes: j.audio ? Math.round((j.audio.length * 3) / 4) : 0, ms: j.durationMs ?? 0, words: (j.words || []).length });
   } catch { ttsCalls.push({ ok: false, bytes: 0, ms: 0, words: 0 }); }
 });
-// The authoring proxy. `mode` records which path the run took — "live" when the dev process
-// reached a model (the response names which one), "fallback" when it reached none and
-// claudeAuthor assembled the plan's own prose. Either way the loop must complete, so the walk
-// asserts the seam was reached and prints the mode rather than requiring one of them.
+// The director proxy. `mode` records which path the run took — "live" when the dev process
+// reached a model (the response names which one and carries its tool calls), "fallback" when it
+// reached none and `onSilence` supplied the lesson's own paragraph. Either way the turn must
+// complete, so the walk asserts the seam was reached and prints the mode rather than requiring
+// one of them.
 p.on("response", async (r) => {
-  if (!r.url().includes("/api/author")) return;
+  if (!r.url().includes("/api/direct")) return;
   try {
     const j = await r.json();
-    authorCalls.push({
-      mode: j.text ? "live" : "fallback",
-      detail: j.error ? String(j.error).slice(0, 60) : `${j.provider ?? "?"}/${j.model ?? "?"}, ${(j.text || "").length} chars`,
+    const ops = (j.calls || []).map((c) => c.name).join(",");
+    directCalls.push({
+      mode: j.error ? "fallback" : "live",
+      detail: j.error ? String(j.error).slice(0, 60) : `${j.provider ?? "?"}/${j.model ?? "?"}, ${ops || "no call"}`,
     });
-  } catch { authorCalls.push({ mode: "unreadable", detail: `HTTP ${r.status()}` }); }
+  } catch { directCalls.push({ mode: "unreadable", detail: `HTTP ${r.status()}` }); }
 });
 
 const results = [];
@@ -180,7 +182,7 @@ async function advanceUntil(pred, max = 14) {
 // The send call reads the page back before it returns, across MICROTASKS only. That is the
 // whole trick: React 18 flushes a discrete event's update in a microtask, and every queued
 // microtask drains before the event loop can deliver a network reply — so this read is
-// guaranteed to happen after the thinking leaf is painted and before /api/author can answer.
+// guaranteed to happen after the thinking leaf is painted and before /api/direct can answer.
 // It has to be: with no API key the proxy rejects in single-digit milliseconds, so a poll
 // started after the round trip would race the answer and see an empty page.
 const typeQuestion = (q) =>
@@ -341,11 +343,11 @@ check("goal met revealed success prose", /infinite depth of field/i.test(await b
 check("goal met released Continue", await p.evaluate(() => [...document.querySelectorAll("button")].some((b) => /got it/i.test(b.textContent || ""))));
 await p.screenshot({ path: `${out}-05-move-screen.png` });
 
-// ══ M5a — say anytime: the learner interrupts, the agent authors a beat ═════════════
+// ══ say anytime: the learner interrupts, the director writes a beat ════════════════
 // Placed HERE, one slider drag into the explorable, on purpose: the learner has just pushed
 // the screen out to v = 13, so a grounded answer must talk about THEIR apparatus (v = 13,
 // m = 13/7 = 1.86) and not the beat's authored default (v = 7, m = 1). That difference is the
-// entire argument for authoring INSIDE the lesson rather than beside it in a chat window —
+// entire argument for answering INSIDE the lesson rather than beside it in a chat window —
 // the engine can see the manipulated state, a chat window structurally cannot.
 const QUESTION = "Wait — with the screen out this far, is the image going blurry?";
 const labelsBefore = await turnLabels();
@@ -370,14 +372,14 @@ check("the question parks the learner on a thinking affordance", thinkingSeen, t
 check("the workspace does not blank while the tutor thinks", sent.canvases === 1, `canvases=${sent.canvases}`);
 
 const landed = await waitFor(async () => /the magnification is/i.test(await bodyText()), 15000, 200);
-check("the agent authored a beat and it spliced into the running lesson", landed);
-check("/api/author was reached (the client → proxy seam is wired)", authorCalls.length >= 1, authorCalls.map((c) => `${c.mode}: ${c.detail}`).join(" | "));
+check("the director wrote a beat and it spliced into the running lesson", landed);
+check("/api/direct was reached (the client → proxy seam is wired)", directCalls.length >= 1, directCalls.map((c) => `${c.mode}: ${c.detail}`).join(" | "));
 check("the thinking placeholder is gone once the answer lands", !THINKING.test(await bodyText()));
-// No `narration` on a generated beat is a decision, not an omission (examples/pinhole/author.ts):
+// No `narration` on a generated beat is a decision, not an omission (examples/pinhole/tutor.ts):
 // the prose is full of TeX and reading TeX aloud is worse than silence.
 check("a generated beat is silent by design (no new narration clip)", ttsCalls.length === ttsBefore, `${ttsBefore} → ${ttsCalls.length} clips`);
 
-// The engine owns the numbers. This is the check the milestone exists for.
+// The engine owns the numbers: the model contributes voice, the footer contributes fact.
 const footer = await footerText();
 check("the answer carries the engine-owned grounded footer", /the magnification is/i.test(footer), footer.slice(0, 90));
 // v = 13 and m = 1.86 exist nowhere in the lesson source: the authored default is v = 7,
@@ -407,13 +409,13 @@ check(
 );
 check("the learner's question is echoed verbatim in the log", (await bodyText()).includes(QUESTION));
 check("still exactly ONE canvas after the detour", (await canvasCount()) === 1, `count=${await canvasCount()}`);
-check("the apparatus is still drawing on the authored beat", (await inkFraction()) > 0.01);
-await p.screenshot({ path: `${out}-05b-authored-answer.png` });
+check("the apparatus is still drawing on the generated beat", (await inkFraction()) > 0.01);
+await p.screenshot({ path: `${out}-05b-generated-answer.png` });
 
 // An `explain` beat renders into `prose` and nothing into `prompt`, so StudioView's DERIVED
 // Continue appears on the generated beat for free — and `next: <the interrupted beat>` is
 // what makes the interruption a detour instead of a place to get stuck.
-check("the authored beat offers Continue for free", await hasContinue());
+check("the generated beat offers Continue for free", await hasContinue());
 await clickText(/continue|got it/);
 await sleep(1400);
 check("Continue on the answer RESUMED the interrupted explorable", await hasRange());
@@ -474,7 +476,7 @@ check("clips carry word timings", audible.length > 0 && audible.every((c) => c.w
 console.log(
   `\naudio: ${audible.length} clips, ${(audible.reduce((a, c) => a + c.bytes, 0) / 1024).toFixed(0)} KB, ${(audible.reduce((a, c) => a + c.ms, 0) / 1000).toFixed(1)}s narration`,
 );
-console.log(`authoring: ${authorCalls.length} /api/author call(s) — ${authorCalls.map((c) => `${c.mode} (${c.detail})`).join(", ") || "none"}`);
+console.log(`director: ${directCalls.length} /api/direct call(s) — ${directCalls.map((c) => `${c.mode} (${c.detail})`).join(", ") || "none"}`);
 
 const realErrors = errors.filter(
   (e) => !/favicon|autoplay|play\(\)|NotAllowedError|Failed to load resource/i.test(e),

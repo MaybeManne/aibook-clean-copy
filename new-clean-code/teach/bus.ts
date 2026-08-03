@@ -1,33 +1,7 @@
-// THE BUS — a mailbox between one student page and one teacher, and nothing more.
-//
-// It holds no lesson, no Session, no chart. That is the design, not an omission: the page is
-// authoritative, so this side can only queue what the teacher proposes, remember the last
-// observation the page pushed, and file the verdicts that come back. Everything a teacher
-// reads is derived from what the page sent; everything a teacher sends is adjudicated over
-// there, by the engine, or not at all.
-//
-// PURE and time-free — no fs, no http, no `Date.now()`. So it runs identically in three
-// places, which is what makes the tiers one implementation instead of three:
-//   • behind the dev-server plugin (`dev_bus.ts`), for a real browser session;
-//   • in-process, for headless tests and for the AI director (`busTransport`);
-//   • in a future WebSocket server, if polling ever stops being enough.
-//
-// The log is the teacher's primary view ("just give me logs"), so it interleaves both
-// streams: what the lesson did, and what the teacher did to it.
-
-// The ONE value import reaches `direction/format.ts` DIRECTLY and relatively, rather than
-// `@lessonstudio/lesson`. Not style — a load-order fact: this file is on `vite.config.ts`'s
-// import path (through `dev_bus.ts`), and a vite config is bundled by esbuild before vite's
-// own `resolve.alias` exists, so an aliased value import there cannot resolve. Going through
-// the barrel would also drag the whole engine (session, beats, compile) into that bundle to
-// obtain two pure string functions. `format.ts` has no value dependencies of its own, so this
-// stays a leaf. The TYPES below keep using the alias: `import type` is erased, so it never
-// needs resolving at all.
 import { formatObservation, formatResult } from "../lesson/direction/format.js";
 import type { DirectionResult, DirectorActor, DirectorCommand, Observation } from "@lessonstudio/lesson";
 import type { LogLine, QueuedBatch, SyncRequest, SyncResponse, TurnVerdict } from "./wire.js";
 
-/** A log line minus the index the bus assigns — distributed over the union member by member. */
 type Unlined<T> = T extends { line: number } ? Omit<T, "line"> : never;
 
 /** Where one proposed turn has got to. Reported by `/direct` so "not applied" is never
@@ -63,10 +37,6 @@ export function createSessionBus(): SessionBus {
   const dispatched = new Set<number>();
   const verdicts = new Map<number, DirectionResult>();
   const waiters = new Map<number, ((r: DirectionResult) => void)[]>();
-  // A conversation turn is logged once. Keyed WITHOUT its text, because the transcript may
-  // later coalesce a director gesture into an existing turn — re-logging the same turn every
-  // time it grew would spam the tail, and the teacher already sees their own gesture as a
-  // `direct` line. The current wording is always one `/observe` away.
   const seenTurns = new Set<string>();
 
   let obs: Observation | null = null;
@@ -74,15 +44,12 @@ export function createSessionBus(): SessionBus {
   let nextTurn = 1;
   let connected = false;
 
-  // `Omit` over a union keeps only the shared keys, so it is spelled distributively here —
-  // otherwise every `push` would have to launder its own payload through a cast.
   function push(l: Unlined<LogLine>): void {
     const line = { line: lines.length, ...l } as LogLine;
     lines.push(line);
     for (const fn of listeners) fn(line);
   }
 
-  /** File one verdict: remember it, log it, wake whoever is waiting on that turn. */
   function report(v: TurnVerdict): void {
     verdicts.set(v.turn, v.result);
     dispatched.delete(v.turn);
@@ -107,16 +74,12 @@ export function createSessionBus(): SessionBus {
         push({ kind: "note", text: `student page connected at step ${req.step}` });
       }
 
-      // 1. new history records → the event stream. `ack` is the page's cursor: it sends
-      //    `history.slice(ack)`, so a record is logged exactly once even across reloads.
       for (const rec of req.records ?? []) {
         if (rec.seq < ack) continue;
         push({ kind: "event", step: rec.seq, type: rec.type, from: rec.from, to: rec.to });
         ack = Math.max(ack, rec.seq + 1);
       }
 
-      // 2. the observation, plus any conversation turns it revealed. This is what makes the
-      //    tail readable as a lesson rather than as a machine trace.
       obs = req.observation;
       for (const t of req.observation?.recent ?? []) {
         const key = `${t.seq}|${t.role}|${t.beatId}`;
@@ -125,13 +88,8 @@ export function createSessionBus(): SessionBus {
         push({ kind: "turn", seq: t.seq, role: t.role, beatId: t.beatId, text: t.text });
       }
 
-      // 3. verdicts for turns this page applied. `formatResult` verbatim — the log shows the
-      //    same bytes the director is answered with, so a tail is a usable session record.
       for (const v of req.verdicts ?? []) report(v);
 
-      // 4. hand over the queue. A batch handed to a page that then dies is lost rather than
-      //    re-delivered: silently re-running a teacher's turn against a session that has
-      //    moved on is worse than making them resend it (and `/direct` says which happened).
       const out = queue.splice(0, queue.length);
       for (const b of out) dispatched.add(b.turn);
       return { ack, commands: out };

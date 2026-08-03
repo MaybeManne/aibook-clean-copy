@@ -1,40 +1,15 @@
-// M4 lesson — the "But what is a convolution?" NARRATIVE SPINE, reproduced as an interactive
-// lessonStudio flow. Not just the mechanical (1,2,3)∗(4,5,6) recipe: it walks the video's arc —
-// what convolution IS, why it matters, how to compute it, and its hidden identity.
-//
-//   combine       — three ways to combine two lists; ∗ is the odd one out   (scene / storyboard)
-//   dice          — GUIDED: the 6×6 dice grid; drag to the likeliest sum     (explorable, live grid)
-//   dice-formula  — the diagonal-sum pattern → the convolution definition    (explain)
-//   intro         — the small worked example a,b + the formula               (explorable, static figure)
-//   flip          — b is flipped so it reads 6,5,4                           (scene / storyboard)
-//   slide         — the flipped strip slides under a; output builds          (scene / storyboard)
-//   explore       — GUIDED: the learner drags the shift to n=4               (explorable, live figure + goal)
-//   product-grid  — GUIDED: the grid of products; its diagonals ARE a∗b      (explorable, live grid + goal)
-//   polynomial    — convolution = polynomial multiplication                  (explain, KaTeX)
-//   check         — one MCQ on what the inner sum is                         (mcq; wrong → reteach)
-//   reteach       — restate the rule with the worked example                 (explain)
-//   image-2d      — PLAYGROUND: drag a 3×3 kernel over the pixel grid, scroll to zoom (explorable, gestures)
-//   image-blur    — GUIDED: slide a box blur across the sprite; watch it soften (explorable, conv2d)
-//   image-filters — EDITOR: 3 real photos × a live editable 3×3 kernel + presets (explorable, matrix)
-//   summary       — recap the four views + the image face                    (explain)
-//
-// The explain beats also carry a `viz` so the left panel is never empty while the tutor speaks
-// (dice-formula→dice-grid, polynomial→prod-grid, reteach→conv-boxes, summary→conv2d). The 2-D
-// image section is the "hard visual" 3b1b does; both `check.next` and `reteach.next` route into it.
-
 import { animate, defineLesson, explain, explorable, mcq } from "@lessonstudio/authoring";
-import { article, md } from "@lessonstudio/render-contract";
+import { article, md } from "@lessonstudio/intents";
 import { buildCombine, buildFlip, buildSlide } from "./storyboards.js";
-import { EDITOR_PRESETS } from "./kernels.js"; // shared with the viz so labels can't diverge
-import "./figures.js"; // side-effect: registers conv-setup, conv-boxes, dice-grid, prod-grid
-import "./convolve2d.js"; // side-effect: registers the browser-only "conv2d" raster viz
+import { EDITOR_PRESETS } from "./kernels.js";
+import "./figures.js";
+import "./convolve2d.js";
 
 export const lessonSpec = {
   id: "convolution-discrete",
   version: 1,
   title: "But what is a convolution?",
   flow: [
-    // 1 — the hook: three ways to combine two lists
     animate({
       id: "combine",
       storyboard: buildCombine(),
@@ -46,7 +21,6 @@ export const lessonSpec = {
       next: "dice",
     }),
 
-    // 2 — where it shows up first: probability (dice)
     explorable({
       id: "dice",
       viz: { name: "dice-grid" },
@@ -69,10 +43,9 @@ export const lessonSpec = {
       next: "dice-formula",
     }),
 
-    // 3 — the pattern behind the diagonals → the definition
     explain({
       id: "dice-formula",
-      viz: { name: "dice-grid", props: { sum: 7 } }, // keep the diagonal up while the formula is spoken
+      viz: { name: "dice-grid", props: { sum: 7 } },
       text: article(
         "**The pattern behind the dice.** To find how likely a total $n$ is, you add up the chance of every " +
         "pair that lands on it:\n\n" +
@@ -87,7 +60,6 @@ export const lessonSpec = {
       next: "intro",
     }),
 
-    // 4 — the small worked example: a, b + the definition
     explorable({
       id: "intro",
       viz: { name: "conv-setup" },
@@ -103,7 +75,6 @@ export const lessonSpec = {
       next: "flip",
     }),
 
-    // 5 — flip b (it ends up reading 6,5,4)
     animate({
       id: "flip",
       storyboard: buildFlip(),
@@ -111,7 +82,6 @@ export const lessonSpec = {
       next: "slide",
     }),
 
-    // 6 — slide the flipped strip; the output row fills in
     animate({
       id: "slide",
       storyboard: buildSlide(),
@@ -121,7 +91,6 @@ export const lessonSpec = {
       next: "explore",
     }),
 
-    // 7 — the learner does it: drag shift to the end and watch the output complete
     explorable({
       id: "explore",
       viz: { name: "conv-boxes" },
@@ -142,7 +111,6 @@ export const lessonSpec = {
       next: "product-grid",
     }),
 
-    // 8 — the grid of products: its diagonals ARE the output
     explorable({
       id: "product-grid",
       viz: { name: "prod-grid" },
@@ -164,10 +132,9 @@ export const lessonSpec = {
       next: "polynomial",
     }),
 
-    // 9 — convolution's hidden identity: polynomial multiplication
     explain({
       id: "polynomial",
-      viz: { name: "prod-grid", props: { diag: 4 } }, // keep the product grid up alongside the identity
+      viz: { name: "prod-grid", props: { diag: 4 } },
       text: article(
         "**Convolution's hidden identity: polynomial multiplication.** Treat each list as a polynomial's " +
         "coefficients:\n\n" +
@@ -186,7 +153,6 @@ export const lessonSpec = {
       next: "check",
     }),
 
-    // 10 — check: what IS the inner sum?
     mcq({
       id: "check",
       prompt: md("For $(a * b)[2]$, which computation gives the value **28**?"),
@@ -203,10 +169,9 @@ export const lessonSpec = {
       next: "image-2d",
     }),
 
-    // 11 — remediation (only reached on a wrong answer)
     explain({
       id: "reteach",
-      viz: { name: "conv-boxes", props: { shift: 2 } }, // show the shift-2 alignment being explained
+      viz: { name: "conv-boxes", props: { shift: 2 } },
       text: article(
         "**One shift, step by step.** At shift $n=2$, the flipped $b = (6,5,4)$ lines up fully under " +
         "$a = (1,2,3)$:\n\n" +
@@ -219,22 +184,17 @@ export const lessonSpec = {
       next: "image-2d",
     }),
 
-    // 12 — the payoff, now a PLAYGROUND: the learner drags the 3×3 kernel over the pixel grid
-    //      and scrolls to zoom (canvas gestures round-trip out as replayable demo.set kx/ky/zoom).
     explorable({
       id: "image-2d",
       viz: {
         name: "conv2d",
-        // closeup on the pixel-art sprite: a box-blur kernel the learner places over the grid, its
-        // 1/9 weights drawn, zoomed in so the individual pixels read as "a grid of numbers".
         props: { image: 0, filter: 1, mode: "closeup" },
-        persistent: true, // ONE shared canvas across all image beats + the summary
+        persistent: true,
       },
       controls: [
         { key: "zoom", label: "zoom", kind: "slider", min: 1, max: 8, step: 0.5, unit: "×" },
         { key: "__next", label: "continue →", kind: "button" },
       ],
-      // A nice starting window + magnification; the learner overrides these by dragging/scrolling.
       defaults: { zoom: 2.6, kx: 5, ky: 6 },
       note:
         "**The same idea, now on an image.** A grayscale image is just a grid of numbers — one " +
@@ -254,7 +214,6 @@ export const lessonSpec = {
       next: "image-blur",
     }),
 
-    // 13 — GUIDED: slide a box blur across the whole sprite and watch it soften
     explorable({
       id: "image-blur",
       viz: { name: "conv2d", props: { image: 0, filter: 1, mode: "compare" }, persistent: true },
@@ -275,10 +234,6 @@ export const lessonSpec = {
       next: "image-filters",
     }),
 
-    // 14 — the kernel EDITOR: real photos × a live, editable 3×3 kernel. Preset buttons load a
-    //      weight set; editing any cell flips the label to "Custom" and reconvolves live. The
-    //      matrix seeds the DIRECTIONAL Sobel-X (a linear 3×3+div), not the magnitude path — so the
-    //      editor stays uniformly linear (the summary keeps the full |∇| Sobel).
     explorable({
       id: "image-filters",
       viz: { name: "conv2d", props: { image: 1, mode: "compare" }, persistent: true },
@@ -291,12 +246,11 @@ export const lessonSpec = {
         {
           key: "kernel", label: "kernel", kind: "matrix", rows: 3, cols: 3,
           cellKeys: ["k0", "k1", "k2", "k3", "k4", "k5", "k6", "k7", "k8"], divisorKey: "kdiv",
-          presets: EDITOR_PRESETS, // same list convolve2d.ts labels against → no drift
+          presets: EDITOR_PRESETS,
         },
         { key: "zoom", label: "zoom", kind: "slider", min: 1, max: 6, step: 0.5, unit: "×" },
         { key: "__next", label: "continue →", kind: "button" },
       ],
-      // Cells + divisor seed from the first preset (Identity) via readMerged's matrix case.
       defaults: { image: 1, zoom: 1 },
       note:
         "**Now you hold the kernel.** The $3\\times3$ grid on the right is the actual convolution " +
@@ -316,10 +270,9 @@ export const lessonSpec = {
       next: "summary",
     }),
 
-    // 16 — recap the views, now including the image face
     explain({
       id: "summary",
-      viz: { name: "conv2d", props: { image: 1, filter: 4, mode: "compare" }, persistent: true }, // Einstein, edges
+      viz: { name: "conv2d", props: { image: 1, filter: 4, mode: "compare" }, persistent: true },
       text: article(
         "**One operation, many faces.**\n\n" +
         "1. **A third way to combine** two lists — longer than add or multiply, and it mixes every pair.\n" +

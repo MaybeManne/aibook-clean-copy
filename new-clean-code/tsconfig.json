@@ -15,19 +15,20 @@
     "baseUrl": ".",
     "paths": {
       "@lessonstudio/state-machine": ["state_machine/index.ts"],
-      "@lessonstudio/render-contract": ["render_contract/index.ts"],
+      "@lessonstudio/intents": ["intents/index.ts"],
       "@lessonstudio/timeline": ["timeline/index.ts"],
-      "@lessonstudio/visuals": ["visuals/index.ts"],
+      "@lessonstudio/figures": ["figures/index.ts"],
       "@lessonstudio/audio": ["audio/index.ts"],
       "@lessonstudio/lesson": ["lesson/index.ts"],
       "@lessonstudio/authoring": ["authoring/index.ts"],
       "@lessonstudio/teach": ["teach/index.ts"],
       "@lessonstudio/forge": ["forge/index.ts"],
       "@lessonstudio/live": ["live/index.ts"],
-      "@lessonstudio/template": ["template/index.ts"],
-      "@lessonstudio/scene-svg": ["scene_svg/index.ts"],
-      "@lessonstudio/render-web": ["rendering/render_web/index.ts"]
+      "@lessonstudio/theme": ["theme/index.ts"],
+      "@lessonstudio/svg": ["svg/index.ts"],
+      "@lessonstudio/machine": ["machine/index.ts"],
+      "@lessonstudio/web": ["web/index.ts"]
     }
   },
-  "include": ["state_machine", "render_contract", "timeline", "visuals", "audio", "lesson", "authoring", "teach", "forge", "live", "template", "scene_svg", "rendering", "examples"]
+  "include": ["state_machine", "intents", "timeline", "figures", "audio", "lesson", "authoring", "teach", "forge", "live", "theme", "svg", "machine", "web", "examples", "dev", "checks"]
 }

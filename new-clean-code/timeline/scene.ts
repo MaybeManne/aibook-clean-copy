@@ -1,7 +1,4 @@
-// Light scene graph — declarative nodes, never code. The resolved scene at one
-// instant (SceneSnapshot) is what a renderer draws.
-
-import type { RichText } from "@lessonstudio/render-contract";
+import type { RichText } from "@lessonstudio/intents";
 
 export type NodeId = string;
 
@@ -18,9 +15,9 @@ export interface NodeBase {
   id: NodeId;
   x?: number;
   y?: number;
-  opacity?: number; // 0..1
-  scale?: number; // 1 = natural
-  rotation?: number; // degrees
+  opacity?: number;
+  scale?: number;
+  rotation?: number;
   fill?: string;
   /** Gradient fill (overrides `fill`) — depth + soft glows without a bitmap. */
   gradient?: Gradient;
@@ -34,7 +31,10 @@ export type SceneNode =
   | (NodeBase & { kind: "line" | "arrow"; x2: number; y2: number; stroke?: string })
   | (NodeBase & {
       kind: "label";
-      text: RichText;
+      /** A `RichText` tree, or just the words: `figures/nodes.ts` builds the tree, a director
+       *  authoring a scene as JSON writes the string. Both reach the stage as plain text — the
+       *  stage draws no math. */
+      text: RichText | string;
       size?: number;
       /** Horizontal anchor (default "start"); "middle"/"end" for centered/right labels (axes ticks). */
       anchor?: "start" | "middle" | "end";
@@ -43,14 +43,7 @@ export type SceneNode =
       /** Font weight (default 500). */
       weight?: number;
     })
-  // Arbitrary SVG path in local coords. `draw` (0..1) reveals the stroke
-  // progressively (draw-on) — animate it with a tween. Supply `len` (the path's
-  // length) to make draw-on EXPORT-safe (resvg ignores the pathLength fallback).
   | (NodeBase & { kind: "path"; d: string; stroke?: string; strokeWidth?: number; draw?: number; len?: number })
-  // Shaded region between two circles (the outer at (x,y) radius rOuter; the
-  // inner radius rInner offset down by innerDy — innerDy = rOuter-rInner makes
-  // them share a bottom point, as in nested-tangent-circle problems; 0 = annulus).
-  // Filled with even-odd rule so the ring/crescent is exact.
   | (NodeBase & { kind: "ring"; rOuter: number; rInner: number; innerDy?: number; stroke?: string })
   | (NodeBase & { kind: "group"; children: SceneNode[] });
 
@@ -60,5 +53,16 @@ export interface SceneSnapshot {
   viewBox: { x: number; y: number; w: number; h: number };
 }
 
-/** Animatable numeric/color properties (the union of what Tween.property may target). */
-export type AnimProp = "x" | "y" | "opacity" | "scale" | "rotation" | "fill" | "draw";
+/**
+ * Animatable numeric/color properties (the union of what Tween.property may target).
+ *
+ * Declared as a runtime list with the type derived from it, so the vocabulary a director is
+ * TOLD about (`SCENE_VOCABULARY`) and the vocabulary the sampler accepts cannot drift: there is
+ * one list, and `AnimProp` is read off it.
+ */
+export const ANIM_PROPS = ["x", "y", "opacity", "scale", "rotation", "fill", "draw"] as const;
+
+export type AnimProp = (typeof ANIM_PROPS)[number];
+
+/** Props every node carries, whatever its kind — all of them animatable except `id`. */
+export const NODE_BASE_PROPS = ["id", "x", "y", "opacity", "scale", "rotation", "fill", "gradient", "glow"] as const;

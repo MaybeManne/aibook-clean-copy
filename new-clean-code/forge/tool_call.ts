@@ -1,32 +1,9 @@
-// THE TOOL-CALLING WIRE — one provider request, factored out of the director that uses it.
-//
-// `claude_author.ts` has a `Completer` that returns a STRING, because an author contributes
-// prose. A director contributes ACTIONS, so it needs the other shape: a request carrying
-// tools, and a reply carrying tool calls. Same three-way split as the author's, for the same
-// reasons:
-//   • `anthropicToolCompleter` — the real Messages API call. Node-side; the SDK is imported
-//     lazily through a non-literal specifier so core never gains a hard dependency on it.
-//   • `httpToolCompleter`      — browser-safe: POSTs to a proxy, so the API key stays in the
-//     dev process and never enters a bundle (`forge/dev_director.ts` is the server half).
-//   • an injected fake         — what the headless tests use, so tier 3 is verifiable with
-//     no key, no network and no nondeterminism.
-//
-// This file has NO value dependency on the engine — only types, which are erased. That is
-// what lets `dev_director.ts` (and therefore `vite.config.ts`) import it: a vite config is
-// bundled by esbuild before `resolve.alias` exists, so a value import of
-// `@lessonstudio/lesson` on that path cannot resolve. Same rule as `teach/bus.ts`.
-
 import type { ToolCall, ToolSpec } from "./tools.js";
 
 /**
- * One turn of the conversation with the model.
- *
- * Text only, and that is a deliberate limit: a director's turn ENDS when it emits tool
- * calls, because the verdict on those calls comes from the engine (as the next
- * observation's `last`), not from a tool_result inside this conversation. So no message
- * here ever has to echo a `tool_use` block back, and the shape stays this small. The
- * model's memory of its own actions is the recorded history — which is also what keeps
- * replay honest: there is no chat transcript the session depends on.
+ * One turn of the conversation with the model. Text only: a director's turn ENDS when it emits
+ * tool calls, and the verdict on those calls arrives as the next observation's `last` rather
+ * than as a `tool_result` inside this conversation.
  */
 export interface ToolMessage {
   role: "user" | "assistant";
@@ -57,17 +34,22 @@ export interface ToolTurn {
 export type ToolCompleter = (req: ToolRequest) => Promise<ToolTurn>;
 
 /**
- * The real call. Non-streaming: a director's turn is a few hundred tokens of tool calls, and
- * streaming would buy nothing but a partial JSON parse to get wrong.
- *
+ * The Anthropic key from the environment, or `undefined` — including in a browser, where there
+ * is no `process` at all. That guard is what lets `pickDirector` choose the live director or the
+ * offline one with the SAME call on either side of the wire.
+ */
+export function envApiKey(): string | undefined {
+  return typeof process !== "undefined" ? process.env?.ANTHROPIC_API_KEY : undefined;
+}
+
+/**
+ * The real call. Non-streaming: a director's turn is a few hundred tokens of tool calls.
  * Exported because `dev_director.ts` is the SERVER end of exactly this call — browser →
- * `httpToolCompleter` → `/api/direct` → here. One implementation of the request, whichever
- * side of the wire it runs on.
+ * `httpToolCompleter` → `/api/direct` → here.
  */
 export const anthropicToolCompleter: ToolCompleter = async (req) => {
-  const specifier: string = "@anthropic-ai/sdk"; // widened to `string` ⇒ tsc won't resolve it
-  // `@vite-ignore`: the SDK is never bundled for the browser (see vite.config optimizeDeps).
-  const mod: any = await import(/* @vite-ignore */ specifier);
+  const specifier: string = "@anthropic-ai/sdk";
+  const mod: any = await import( specifier);
   const Anthropic: any = mod.default ?? mod.Anthropic ?? mod;
   const client: any = new Anthropic(req.apiKey ? { apiKey: req.apiKey } : {});
   const body: any = {
@@ -83,11 +65,7 @@ export const anthropicToolCompleter: ToolCompleter = async (req) => {
   return readTurn(msg);
 };
 
-/**
- * Read a Messages API response into a `ToolTurn`. Shared with the dev proxy so the browser
- * and Node paths cannot disagree about what the model said.
- */
-export function readTurn(msg: unknown): ToolTurn {
+function readTurn(msg: unknown): ToolTurn {
   const m = (msg ?? {}) as { content?: unknown; stop_reason?: unknown };
   const blocks: any[] = Array.isArray(m.content) ? m.content : [];
   const text = blocks
@@ -109,11 +87,12 @@ export function readTurn(msg: unknown): ToolTurn {
 
 /**
  * A browser-safe completer that POSTs to a server proxy instead of holding a key. The proxy
- * answers `{text, calls}` on success or `{error}` on failure; a thrown error degrades the
- * director to its offline behaviour, exactly as `httpCompleter` degrades the author.
+ * answers `{text, calls}` on success or `{error}` on failure; a thrown error degrades the AI
+ * teacher to silence, which `directingRunner`'s `onSilence` floor then answers.
  *
- * `apiKey` is never sent — auth is the proxy's job, and this function is the reason the
- * browser bundle can drive an AI teacher without ever holding a credential.
+ * `apiKey` is never sent — auth is the proxy's job. `provider` names which model the proxy
+ * should use (`"auto"` = whichever it can reach); it is a REQUEST, not a fact, because only the
+ * server knows which credentials exist.
  */
 export function httpToolCompleter(url: string, opts: { provider?: string | (() => string) } = {}): ToolCompleter {
   return async (req) => {
@@ -135,7 +114,6 @@ export function httpToolCompleter(url: string, opts: { provider?: string | (() =
     try {
       data = (await res.json()) as typeof data;
     } catch {
-      /* non-JSON body → the status check below reports it */
     }
     if (!res.ok || data.error) throw new Error(data.error ?? `director proxy responded ${res.status}`);
     return { text: (data.text ?? "").trim(), calls: Array.isArray(data.calls) ? data.calls : [] };

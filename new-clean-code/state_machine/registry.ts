@@ -1,7 +1,3 @@
-// Resolves the by-name references in the IR (guards, actions) to functions.
-// Generic over the context type `C`. Holds ONLY guards and actions — it does
-// not know about beats, which are a lesson-layer concept.
-
 import type { Effect } from "./effects.js";
 import type { MachineEvent } from "./types.js";
 
@@ -22,6 +18,12 @@ export interface Registry<C> {
   getAction(name: string): Action<C>;
   hasGuard(name: string): boolean;
   hasAction(name: string): boolean;
+  /**
+   * A copy holding every CURRENT binding, whose later writes are its own. Bindings are keyed by
+   * name, so two runtimes registering the same name into one registry would overwrite each
+   * other; forking gives each its own namespace without re-registering the bindings they share.
+   */
+  fork(): Registry<C>;
 }
 
 class RegistryImpl<C> implements Registry<C> {
@@ -51,6 +53,12 @@ class RegistryImpl<C> implements Registry<C> {
   }
   hasAction(name: string): boolean {
     return this.actions.has(name);
+  }
+  fork(): Registry<C> {
+    const copy = new RegistryImpl<C>();
+    copy.guards = new Map(this.guards);
+    copy.actions = new Map(this.actions);
+    return copy;
   }
 }
 

@@ -1,15 +1,3 @@
-// Pure 2-D convolution kernels + a headless convolver, shared by the browser viz
-// (convolve2d.ts) and the headless check (verify.ts). NO DOM here — `tsx` can test the
-// math directly, exactly as verify.ts already tests the 1-D convolve() through pure paths.
-//
-// This is the image-processing payoff of the 3b1b video: an image is a grid of numbers, a
-// small kernel slides over it, and each output pixel is the weighted sum of the neighborhood
-// under the kernel. Blur, sharpen and edge-detection are all just different 3×3 kernels — the
-// same flip-slide-multiply-sum, now in two dimensions.
-//
-// Pixel buffers are RGBA, row-major, 4 bytes/pixel (the shape ImageData.data has), so a buffer
-// read off a <canvas> feeds straight in and the result feeds straight back out via putImageData.
-
 export interface Kernel {
   name: "identity" | "boxBlur" | "gaussian" | "sharpen" | "edges" | "custom";
   label: string;
@@ -22,8 +10,6 @@ export interface Kernel {
   edges?: boolean;
 }
 
-// Sobel gradient operators (each sums to 0 → a flat region yields no edge). Exported so the
-// headless check can assert the zero-sum property directly.
 export const SOBEL_X = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
 export const SOBEL_Y = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
 
@@ -50,11 +36,10 @@ export interface EditorPreset {
 }
 
 /** Presets offered in the image-filters kernel EDITOR (the `matrix` control), in menu order.
- *  Deliberately distinct from KERNELS: here Sobel-X is the DIRECTIONAL linear gradient (div 1,
- *  signed output), NOT the magnitude path KERNELS[edges] runs — the editor stays a *uniformly*
- *  linear 3×3+divisor convolution. Shared by lesson.ts (to build the control's `presets`) and
- *  convolve2d.ts (to label the live custom kernel), so the on-canvas label and the control's
- *  derived label are computed from ONE source and can never disagree. */
+ *  Distinct from KERNELS: here Sobel-X is the DIRECTIONAL linear gradient (div 1, signed
+ *  output), not the magnitude path `KERNELS[edges]` runs, so the editor stays a uniformly
+ *  linear 3×3+divisor convolution. Shared by lesson.ts (the control's `presets`) and
+ *  convolve2d.ts (the live custom kernel's label). */
 export const EDITOR_PRESETS: EditorPreset[] = [
   { label: "Identity", values: [0, 0, 0, 0, 1, 0, 0, 0, 0], div: 1 },
   { label: "Box blur", values: [1, 1, 1, 1, 1, 1, 1, 1, 1], div: 9 },
@@ -85,7 +70,7 @@ const lum = (r: number, g: number, b: number): number => 0.299 * r + 0.587 * g +
  */
 export function convolve2d(src: Uint8ClampedArray, w: number, h: number, k: Kernel): Uint8ClampedArray {
   const out = new Uint8ClampedArray(src.length);
-  const off = (k.size - 1) >> 1; // 1 for a 3×3 kernel
+  const off = (k.size - 1) >> 1;
 
   if (k.edges) {
     for (let y = 0; y < h; y++) {
@@ -141,9 +126,9 @@ export function convolve2d(src: Uint8ClampedArray, w: number, h: number, k: Kern
 }
 
 /**
- * A small hand-built pixel-art sprite (a smiley), generated in code so the lesson needs no asset
- * for its first, 3b1b-style "image is a grid of numbers" beat. Light background so blur softens
- * the outline visibly and Sobel traces the ring. Returns an RGBA buffer.
+ * A small hand-built pixel-art sprite (a smiley), generated in code so the lesson needs no image
+ * asset. Light background, so blur softens the outline visibly and Sobel traces the ring.
+ * Returns an RGBA buffer.
  */
 export function pixelArtSprite(): { w: number; h: number; pixels: Uint8ClampedArray } {
   const S = 16;
@@ -167,7 +152,6 @@ export function pixelArtSprite(): { w: number; h: number; pixels: Uint8ClampedAr
       set(x, y, d <= r - 1 ? face : d <= r ? ink : bg);
     }
   }
-  // eyes + smile
   for (const [x, y] of [[5, 6], [6, 6], [9, 6], [10, 6]] as const) set(x, y, ink);
   for (const [x, y] of [[4, 9], [5, 10], [6, 11], [7, 11], [8, 11], [9, 11], [10, 10], [11, 9]] as const) set(x, y, ink);
   return { w: S, h: S, pixels: px };

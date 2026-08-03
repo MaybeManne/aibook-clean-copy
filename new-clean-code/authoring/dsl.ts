@@ -1,14 +1,3 @@
-// TIER 1 — DETERMINISTIC HUMAN AUTHORING. The Manim-style surface: a human writes a
-// lesson as data, ahead of time, and the same input always produces the same lesson.
-// No model, no network, no runtime state — this module is pure and its output is the
-// frozen artifact the engine plays.
-//
-// Each function returns a plain BeatSpec, so this is sugar over the JSON IR rather than
-// a second language: a director (human or AI) editing the lesson AT PLAY TIME emits the
-// very same specs through `lesson/direction` — which is why one engine can serve all
-// three tiers. defineLesson compiles the spec to a runnable CompiledLesson against the
-// built-in beats.
-
 import type { Guard, Json } from "@lessonstudio/state-machine";
 import type { Storyboard } from "@lessonstudio/timeline";
 import {
@@ -40,7 +29,7 @@ export interface McqAuthoring extends McqParams {
   next?: string | null;
 }
 export function mcq(p: McqAuthoring): BeatSpec {
-  const { id, next, ...params } = p; // onWrong/onTimeout ride along in params
+  const { id, next, ...params } = p;
   const spec: BeatSpec = { id, type: "mcq", params: params as unknown as Json };
   if (next !== undefined) spec.next = next;
   return spec;
@@ -64,7 +53,7 @@ export interface FreeResponseAuthoring extends FreeResponseParams {
   next?: string | null;
 }
 export function freeResponse(p: FreeResponseAuthoring): BeatSpec {
-  const { id, next, ...params } = p; // onWrong rides along in params
+  const { id, next, ...params } = p;
   const spec: BeatSpec = { id, type: "freeResponse", params: params as unknown as Json };
   if (next !== undefined) spec.next = next;
   return spec;
